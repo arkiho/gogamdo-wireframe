@@ -4,10 +4,12 @@
  * Steps: Space Type → Area → Grade → Budget Slider → Result
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowLeft, ArrowUpRight, Building2, Maximize2, Palette, Calculator, Sparkles } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { nanoid } from "nanoid";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -52,6 +54,28 @@ export default function Estimator() {
   const [spaceType, setSpaceType] = useState("");
   const [area, setArea] = useState(100);
   const [grade, setGrade] = useState("");
+  const [sessionId] = useState(() => nanoid(12));
+
+  const saveEstimate = trpc.estimate.save.useMutation();
+
+  // 결과 단계(step 3) 진입 시 견적 자동 저장
+  useEffect(() => {
+    if (step === 3 && totalCost > 0) {
+      saveEstimate.mutate({
+        sessionId,
+        spaceType,
+        area,
+        grade,
+        resultJson: COST_BREAKDOWN.map((item) => ({
+          name: item.name,
+          ratio: item.ratio,
+          cost: Math.round(totalCost * item.ratio),
+        })),
+        totalMin: Math.round(totalCost * 0.85),
+        totalMax: Math.round(totalCost * 1.15),
+      });
+    }
+  }, [step]);
 
   const selectedGrade = GRADES.find((g) => g.id === grade);
   const selectedType = SPACE_TYPES.find((t) => t.id === spaceType);

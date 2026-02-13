@@ -7,8 +7,9 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Ruler, PenTool, HardHat, Sofa, MonitorSmartphone, ExternalLink, CheckCircle2 } from "lucide-react";
+import { SOLUTION_CONSULT_IMG } from "@/lib/images";
 
-const SOLUTION_IMG = "https://private-us-east-1.manuscdn.com/sessionFile/161FV9HPbAyEn7ahlYrN3P/sandbox/KL1Qk4lWhh3ZsCSl1gJNhr-img-3_1771024313000_na1fn_c29sdXRpb24td29ya3NwYWNl.jpg?x-oss-process=image/resize,w_1920,h_1920/format,webp/quality,q_80&Expires=1798761600&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvMTYxRlY5SFBiQXlFbjdhaGxZck4zUC9zYW5kYm94L0tMMVFrNGxXaGgzWnNDU2wxZ0pOaHItaW1nLTNfMTc3MTAyNDMxMzAwMF9uYTFmbl9jMjlzZFhScGIyNHRkMjl5YTNOd1lXTmwuanBnP3gtb3NzLXByb2Nlc3M9aW1hZ2UvcmVzaXplLHdfMTkyMCxoXzE5MjAvZm9ybWF0LHdlYnAvcXVhbGl0eSxxXzgwIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzk4NzYxNjAwfX19XX0_&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=Rx7X6a~EBZOVIZ-32mIA3qkLD5Ab0cNCVJpuYy3n3Za9IW~W8Yo-Q6UgE9ejzzF5Gi2nON0cX~HwOhfRTAONKz33JKo~1Wm~E9g9o28Kfqb6oRWtgOS2RfJw7T7F-4sFj24Jo3bblhJk1Iez2n-luFpiWN1HYwlcInppyULy2dh~Vn49~o08qcn4M5Yjx4goz4vQ~IeawZJdRQGv7chSBZ5CQUD2pMPtw13VKjJ1ZhAzaZuuPfnjnPEYgLuU6z0NSztegWLAkEsjdGB5GWOC7XXpquAd78n~jn0gRpTa0IFLFOscvvLB0lxckmueOyxgnhjL75TCMTBHfaVO2Q9r9A__";
+const SOLUTION_IMG = SOLUTION_CONSULT_IMG;
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (

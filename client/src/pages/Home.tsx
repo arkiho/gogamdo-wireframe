@@ -9,12 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { motion, useInView } from "framer-motion";
 import { ArrowUpRight, ArrowRight, ChevronRight, Ruler, PenTool, HardHat, CheckCircle2 } from "lucide-react";
-
-const HERO_IMG = "https://private-us-east-1.manuscdn.com/sessionFile/161FV9HPbAyEn7ahlYrN3P/sandbox/KL1Qk4lWhh3ZsCSl1gJNhr-img-1_1771024311000_na1fn_aGVyby1vZmZpY2UtaW50ZXJpb3I.jpg?x-oss-process=image/resize,w_1920,h_1920/format,webp/quality,q_80&Expires=1798761600&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvMTYxRlY5SFBiQXlFbjdhaGxZck4zUC9zYW5kYm94L0tMMVFrNGxXaGgzWnNDU2wxZ0pOaHItaW1nLTFfMTc3MTAyNDMxMTAwMF9uYTFmbl9hR1Z5YnkxdlptWnBZMlV0YVc1MFpYSnBiM0kuanBnP3gtb3NzLXByb2Nlc3M9aW1hZ2UvcmVzaXplLHdfMTkyMCxoXzE5MjAvZm9ybWF0LHdlYnAvcXVhbGl0eSxxXzgwIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzk4NzYxNjAwfX19XX0_&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=GgN2m0QV2KvzTex1sXICLb6RNf0xGNX0YnSxuPWw4AzIQEk7YMDBi-8bNW1ZMSd9pdiVcgwXXLoasbF3LMPR8UyDPif3D4loVkP7mivJDOi~T7OWU0pJReMxNiWQwSbrl39x6gDMNFq523Vhc6tUI8J2fcF4gBzUjSkpbrZ0EO4W8fyXCG2NlfSemNRYEJdQAuCW93jAlH2sgRTILZHJBz6MMCCgUaNzFUOGegcPdkg3aQOP9D9kGRsLonQZhnWz~0MAqwJmP-De-bOppnb7HtFKYfbGo~8GrSo7kdIZVNQfxOQYAiDDKRMB-1XYQOG-yKz5tRdjjpreCYookrK1VA__";
-
-const PORTFOLIO_IMG = "https://private-us-east-1.manuscdn.com/sessionFile/161FV9HPbAyEn7ahlYrN3P/sandbox/KL1Qk4lWhh3ZsCSl1gJNhr-img-2_1771024308000_na1fn_cG9ydGZvbGlvLXNob3djYXNl.jpg?x-oss-process=image/resize,w_1920,h_1920/format,webp/quality,q_80&Expires=1798761600&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvMTYxRlY5SFBiQXlFbjdhaGxZck4zUC9zYW5kYm94L0tMMVFrNGxXaGgzWnNDU2wxZ0pOaHItaW1nLTJfMTc3MTAyNDMwODAwMF9uYTFmbl9jRzl5ZEdadmJHbHZMWE5vYjNkallYTmwuanBnP3gtb3NzLXByb2Nlc3M9aW1hZ2UvcmVzaXplLHdfMTkyMCxoXzE5MjAvZm9ybWF0LHdlYnAvcXVhbGl0eSxxXzgwIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzk4NzYxNjAwfX19XX0_&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=Hw7einNZG8VtHtD8tPZ9ztgy1QU7GFk961BMO1As0a8Fphw0GHkT0iQAos0dQaD6gkHZydMMYMkN2k-HrVPBag1j7GCqNbqtvaNNnYGg~LNg4~qF~Cen8m5cctRlt1kq0yiDEUb27GcXyp4ldxCib79IZWgjFM-0llG~B-hNiE0DRPRfy81YARTdmTM0ow~KO5JFWxp7lADn~KIIQbp-~2Qxg2W~spn7fP1o-ihLOgptKCzX8IaL4wSK1dITc~gzUJsZTYdEaQKJ7eo2PoMFK704g5Z7WCln1M-Jf82s~3zCzrllalKYEwcgUvcqaA9yrCW2cvoroP2rdlY2aUaOaA__";
-
-const SOLUTION_IMG = "https://private-us-east-1.manuscdn.com/sessionFile/161FV9HPbAyEn7ahlYrN3P/sandbox/KL1Qk4lWhh3ZsCSl1gJNhr-img-3_1771024313000_na1fn_c29sdXRpb24td29ya3NwYWNl.jpg?x-oss-process=image/resize,w_1920,h_1920/format,webp/quality,q_80&Expires=1798761600&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvMTYxRlY5SFBiQXlFbjdhaGxZck4zUC9zYW5kYm94L0tMMVFrNGxXaGgzWnNDU2wxZ0pOaHItaW1nLTNfMTc3MTAyNDMxMzAwMF9uYTFmbl9jMjlzZFhScGIyNHRkMjl5YTNOd1lXTmwuanBnP3gtb3NzLXByb2Nlc3M9aW1hZ2UvcmVzaXplLHdfMTkyMCxoXzE5MjAvZm9ybWF0LHdlYnAvcXVhbGl0eSxxXzgwIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzk4NzYxNjAwfX19XX0_&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=Rx7X6a~EBZOVIZ-32mIA3qkLD5Ab0cNCVJpuYy3n3Za9IW~W8Yo-Q6UgE9ejzzF5Gi2nON0cX~HwOhfRTAONKz33JKo~1Wm~E9g9o28Kfqb6oRWtgOS2RfJw7T7F-4sFj24Jo3bblhJk1Iez2n-luFpiWN1HYwlcInppyULy2dh~Vn49~o08qcn4M5Yjx4goz4vQ~IeawZJdRQGv7chSBZ5CQUD2pMPtw13VKjJ1ZhAzaZuuPfnjnPEYgLuU6z0NSztegWLAkEsjdGB5GWOC7XXpquAd78n~jn0gRpTa0IFLFOscvvLB0lxckmueOyxgnhjL75TCMTBHfaVO2Q9r9A__";
+import { HERO_IMG, PORTFOLIO } from "@/lib/images";
 
 // Counter animation hook
 function useCounter(end: number, duration: number = 2000) {
@@ -94,16 +89,28 @@ const SOLUTIONS = [
 
 const FEATURED_PROJECTS = [
   {
-    title: "승일일렉트로닉스 본사",
+    title: "허시드 본사",
     category: "사무실 인테리어",
-    area: "330㎡",
-    image: PORTFOLIO_IMG,
+    area: "250㎡",
+    image: PORTFOLIO.huxeed.image,
   },
   {
     title: "LAB543 크리에이티브 스튜디오",
-    category: "상업공간",
+    category: "크리에이티브 스튜디오",
     area: "200㎡",
-    image: SOLUTION_IMG,
+    image: PORTFOLIO.lab543.image,
+  },
+  {
+    title: "필립스 코리아 오피스",
+    category: "글로벌 기업 오피스",
+    area: "500㎡",
+    image: PORTFOLIO.philips.image,
+  },
+  {
+    title: "HEAL 헬스케어 오피스",
+    category: "헬스케어",
+    area: "350㎡",
+    image: PORTFOLIO.heal.image,
   },
 ];
 
@@ -146,7 +153,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.08] mb-6"
+              className="font-heading text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-[1.1] mb-6"
             >
               공간이 달라지면
               <br />
@@ -363,9 +370,9 @@ export default function Home() {
             </div>
           </FadeUp>
 
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             {FEATURED_PROJECTS.map((project, i) => (
-              <FadeUp key={i} delay={i * 0.15}>
+              <FadeUp key={i} delay={i * 0.1}>
                 <Link href="/portfolio">
                   <div className="group relative overflow-hidden aspect-[4/3] cursor-pointer">
                     <img

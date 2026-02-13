@@ -1,13 +1,14 @@
 /*
  * DESIGN: Precision Studio — Contact Page
  * Neurodesign: Minimal friction form, social proof, urgency cues
- * Sections: Hero → Form + Info → Map placeholder → FAQ
+ * Sections: Hero → Form + Info → FAQ
  */
 
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Phone, Mail, MapPin, Clock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -45,11 +46,42 @@ const FAQS = [
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    company: "",
+    email: "",
+    phone: "",
+    type: "",
+    area: "",
+    message: "",
+  });
+
+  const createInquiry = trpc.inquiry.create.useMutation({
+    onSuccess: () => {
+      setSubmitted(true);
+      toast.success("문의가 접수되었습니다. 24시간 내 연락드리겠습니다.");
+    },
+    onError: (err) => {
+      toast.error("문의 접수에 실패했습니다. 다시 시도해 주세요.");
+      console.error(err);
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    toast.success("문의가 접수되었습니다. 24시간 내 연락드리겠습니다.");
+    createInquiry.mutate({
+      name: formData.name,
+      company: formData.company || undefined,
+      email: formData.email,
+      phone: formData.phone || undefined,
+      type: formData.type || undefined,
+      area: formData.area || undefined,
+      message: formData.message,
+    });
+  };
+
+  const updateField = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -90,7 +122,10 @@ export default function Contact() {
                       담당 컨설턴트가 24시간 내 연락드리겠습니다.
                     </p>
                     <button
-                      onClick={() => setSubmitted(false)}
+                      onClick={() => {
+                        setSubmitted(false);
+                        setFormData({ name: "", company: "", email: "", phone: "", type: "", area: "", message: "" });
+                      }}
                       className="px-6 py-3 bg-ink text-white text-sm font-medium hover:bg-ink/90 transition-colors"
                     >
                       추가 문의하기
@@ -106,6 +141,8 @@ export default function Contact() {
                         <input
                           type="text"
                           required
+                          value={formData.name}
+                          onChange={(e) => updateField("name", e.target.value)}
                           className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors"
                           placeholder="홍길동"
                         />
@@ -116,6 +153,8 @@ export default function Contact() {
                         </label>
                         <input
                           type="text"
+                          value={formData.company}
+                          onChange={(e) => updateField("company", e.target.value)}
                           className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors"
                           placeholder="(주)회사명"
                         />
@@ -130,17 +169,20 @@ export default function Contact() {
                         <input
                           type="email"
                           required
+                          value={formData.email}
+                          onChange={(e) => updateField("email", e.target.value)}
                           className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors"
                           placeholder="email@company.com"
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
-                          연락처 *
+                          연락처
                         </label>
                         <input
                           type="tel"
-                          required
+                          value={formData.phone}
+                          onChange={(e) => updateField("phone", e.target.value)}
                           className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors"
                           placeholder="010-0000-0000"
                         />
@@ -151,7 +193,11 @@ export default function Contact() {
                       <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
                         공간 유형
                       </label>
-                      <select className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none">
+                      <select
+                        value={formData.type}
+                        onChange={(e) => updateField("type", e.target.value)}
+                        className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none"
+                      >
                         <option value="">선택해 주세요</option>
                         <option value="office">사무실</option>
                         <option value="showroom">쇼룸/전시공간</option>
@@ -164,7 +210,11 @@ export default function Contact() {
                       <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
                         예상 면적
                       </label>
-                      <select className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none">
+                      <select
+                        value={formData.area}
+                        onChange={(e) => updateField("area", e.target.value)}
+                        className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none"
+                      >
                         <option value="">선택해 주세요</option>
                         <option value="small">30㎡ 이하 (10평 이하)</option>
                         <option value="medium">30~100㎡ (10~30평)</option>
@@ -180,6 +230,8 @@ export default function Contact() {
                       <textarea
                         required
                         rows={5}
+                        value={formData.message}
+                        onChange={(e) => updateField("message", e.target.value)}
                         className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors resize-none"
                         placeholder="프로젝트에 대해 자유롭게 작성해 주세요. 예산, 일정, 특별 요구사항 등을 포함해 주시면 더 정확한 상담이 가능합니다."
                       />
@@ -187,9 +239,10 @@ export default function Contact() {
 
                     <button
                       type="submit"
-                      className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300"
+                      disabled={createInquiry.isPending}
+                      className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300 disabled:opacity-50"
                     >
-                      문의 보내기
+                      {createInquiry.isPending ? "접수 중..." : "문의 보내기"}
                       <ArrowUpRight className="w-4 h-4" />
                     </button>
                   </form>

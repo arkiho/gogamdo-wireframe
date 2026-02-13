@@ -1,6 +1,6 @@
 /*
  * DESIGN: Precision Studio — Swiss Design + Contemporary Editorial
- * Navigation: Minimal top nav with gold accent CTA
+ * Navigation: Minimal top nav with gold accent CTA + KOKAMDO logo
  * Footer: Editorial grid with newsletter signup
  * Scroll progress: Left vertical gold line
  */
@@ -10,6 +10,8 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ArrowUpRight, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import Logo from "./Logo";
 
 const NAV_ITEMS = [
   { label: "회사소개", href: "/about" },
@@ -18,6 +20,52 @@ const NAV_ITEMS = [
   { label: "AI 견적", href: "/estimator" },
   { label: "인사이트", href: "/insights" },
 ];
+
+function NewsletterForm() {
+  const [email, setEmail] = useState("");
+  const subscribe = trpc.newsletter.subscribe.useMutation({
+    onSuccess: (data) => {
+      if (data.isNew) {
+        toast.success("구독이 완료되었습니다. 감사합니다!");
+      } else {
+        toast.info("이미 구독 중인 이메일입니다.");
+      }
+      setEmail("");
+    },
+    onError: () => {
+      toast.error("구독에 실패했습니다. 다시 시도해 주세요.");
+    },
+  });
+
+  return (
+    <form
+      className="flex w-full lg:w-auto gap-0"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (email) subscribe.mutate({ email, source: "footer" });
+      }}
+    >
+      <div className="relative flex-1 lg:w-80">
+        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="이메일 주소를 입력하세요"
+          className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-gold transition-colors"
+          required
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={subscribe.isPending}
+        className="px-6 py-3 bg-gold text-ink font-medium text-sm hover:bg-gold-light transition-colors whitespace-nowrap disabled:opacity-50"
+      >
+        {subscribe.isPending ? "처리 중..." : "구독하기"}
+      </button>
+    </form>
+  );
+}
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -41,6 +89,9 @@ export default function Layout({ children }: { children: ReactNode }) {
     window.scrollTo(0, 0);
   }, [location]);
 
+  const isHome = location === "/";
+  const isTransparent = !isScrolled && isHome;
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Scroll Progress Bar */}
@@ -54,17 +105,17 @@ export default function Layout({ children }: { children: ReactNode }) {
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           isScrolled
             ? "bg-paper/90 backdrop-blur-xl border-b border-border/50"
-            : location === "/" ? "bg-transparent" : "bg-paper/80 backdrop-blur-sm"
+            : isHome ? "bg-transparent" : "bg-paper/80 backdrop-blur-sm"
         }`}
       >
         <nav className="container flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link href="/">
-              <span className={`font-heading text-xl lg:text-2xl font-bold tracking-tight transition-colors duration-500 ${
-                !isScrolled && location === "/" ? "text-white" : "text-ink"
-              }`}>
-              고감도
-            </span>
+            <Logo
+              variant="full"
+              color={isTransparent ? "#ffffff" : "#111111"}
+              height={28}
+            />
           </Link>
 
           {/* Desktop Nav */}
@@ -73,7 +124,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <Link key={item.href} href={item.href}>
                 <span
                   className={`text-sm font-medium tracking-wide transition-colors duration-300 hover:text-gold ${
-                    location === item.href ? "text-gold" : !isScrolled && location === "/" ? "text-white/70" : "text-ink-light"
+                    location === item.href ? "text-gold" : isTransparent ? "text-white/70" : "text-ink-light"
                   }`}
                 >
                   {item.label}
@@ -86,7 +137,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-4">
             <Link href="/contact">
               <span className={`hidden lg:inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium tracking-wide transition-colors duration-300 ${
-                !isScrolled && location === "/"
+                isTransparent
                   ? "bg-gold text-ink hover:bg-gold-light"
                   : "bg-ink text-white hover:bg-ink/90"
               }`}>
@@ -99,7 +150,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="메뉴 토글"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className={`w-5 h-5 ${!isScrolled && location === "/" ? "text-white" : "text-ink"}`} />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className={`w-5 h-5 ${isTransparent ? "text-white" : "text-ink"}`} />}
             </button>
           </div>
         </nav>
@@ -170,29 +221,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   사무공간 트렌드, 비용 절감 팁, 프로젝트 사례를 격주로 전달합니다.
                 </p>
               </div>
-              <form
-                className="flex w-full lg:w-auto gap-0"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  toast.success("구독이 완료되었습니다. 감사합니다!");
-                }}
-              >
-                <div className="relative flex-1 lg:w-80">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                  <input
-                    type="email"
-                    placeholder="이메일 주소를 입력하세요"
-                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-gold transition-colors"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-gold text-ink font-medium text-sm hover:bg-gold-light transition-colors whitespace-nowrap"
-                >
-                  구독하기
-                </button>
-              </form>
+              <NewsletterForm />
             </div>
           </div>
         </div>
@@ -202,10 +231,10 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Brand */}
             <div className="col-span-2 lg:col-span-1">
-              <span className="font-heading text-2xl font-bold text-white">고감도</span>
+              <Logo variant="full" color="#ffffff" height={24} />
               <p className="mt-4 text-sm text-white/40 leading-relaxed max-w-xs">
-                사무공간 인테리어의 새로운 기준.<br />
-                설계부터 시공까지, 원스톱 솔루션.
+                데이터 기반 원활한 소통,<br />
+                그 공간 가치를 경험하다.
               </p>
             </div>
 

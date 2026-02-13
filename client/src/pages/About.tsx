@@ -7,8 +7,7 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Target, Eye, Shield, Users } from "lucide-react";
-
-const ABOUT_IMG = "https://private-us-east-1.manuscdn.com/sessionFile/161FV9HPbAyEn7ahlYrN3P/sandbox/KL1Qk4lWhh3ZsCSl1gJNhr-img-4_1771024316000_na1fn_YWJvdXQtdGVhbS1zcGFjZQ.jpg?x-oss-process=image/resize,w_1920,h_1920/format,webp/quality,q_80&Expires=1798761600&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvMTYxRlY5SFBiQXlFbjdhaGxZck4zUC9zYW5kYm94L0tMMVFrNGxXaGgzWnNDU2wxZ0pOaHItaW1nLTRfMTc3MTAyNDMxNjAwMF9uYTFmbl9ZV0p2ZFhRdGRHVmhiUzF6Y0dGalpRLmpwZz94LW9zcy1wcm9jZXNzPWltYWdlL3Jlc2l6ZSx3XzE5MjAsaF8xOTIwL2Zvcm1hdCx3ZWJwL3F1YWxpdHkscV84MCIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc5ODc2MTYwMH19fV19&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=qUIhZfhYgmiLM1M5h1mSByW0m-Wfjw-ZEhwVObCDNRIsq~RJ5GAQETlugFDuUOKHVqxT6CFZu7L4CsVyCRGp5MANoroEziRkqVPlbBj83-1W-AJEOHx0takuEs50c5kYX6WdrSvt4oWd78AfVfrTUPoe5Z7qpTZwrCQvEC88o6Azq52EtwWlMn6ZM3-6Mg5GXIOPE1PqlZIZSgv9RkGggZfruyQ5EPWiUyqJGm1CyhLIF~MvR3T88mZ5EucYUstOKlwroEcc-PsgR1~qzpNFEanUrteWqIDMOFoYQndjMs8gE~8yFiWz2dPktO4vuKxcDCA15UyCiQeDfkvSjRfmrg__";
+import { ABOUT_TEAM_IMG } from "@/lib/images";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -67,7 +66,7 @@ export default function About() {
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
             <FadeUp>
               <div className="aspect-[4/3] overflow-hidden">
-                <img src={ABOUT_IMG} alt="고감도 회의실" className="w-full h-full object-cover" />
+                <img src={ABOUT_TEAM_IMG} alt="고감도 회의실" className="w-full h-full object-cover" />
               </div>
             </FadeUp>
             <FadeUp delay={0.2}>
