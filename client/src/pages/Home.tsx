@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { motion, useInView } from "framer-motion";
-import { ArrowUpRight, ArrowRight, ChevronRight, Ruler, PenTool, HardHat, CheckCircle2 } from "lucide-react";
+import { ArrowUpRight, ArrowRight, ChevronRight, Ruler, PenTool, HardHat, CheckCircle2, BarChart3, Database, LineChart, TrendingUp } from "lucide-react";
 import { HERO_IMG, PORTFOLIO } from "@/lib/images";
 import { analytics } from "@/lib/analytics";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
@@ -75,7 +75,7 @@ const SOLUTIONS = [
   {
     icon: <Ruler className="w-6 h-6" />,
     title: "공간 설계",
-    desc: "업무 효율과 브랜드 아이덴티티를 반영한 맞춤형 공간 설계",
+    desc: "실측 데이터와 업종별 공간 효율 DB를 기반으로 한 맞춤형 공간 설계",
   },
   {
     icon: <PenTool className="w-6 h-6" />,
@@ -173,8 +173,8 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="text-white/60 text-lg lg:text-xl leading-relaxed mb-10 max-w-xl"
             >
-              설계부터 시공까지 원스톱 솔루션. 150건 이상의 프로젝트 경험으로
-              기업의 비전을 공간에 담습니다.
+              데이터 기반 설계부터 시공까지 원스톱 솔루션. 150건 이상의 프로젝트에서
+              축적한 실측 데이터로 기업의 비전을 공간에 담습니다.
             </motion.p>
 
             <motion.div
@@ -294,8 +294,8 @@ export default function Home() {
                     고감도는 그 고민을 잘 알고 있습니다
                   </h3>
                   <p className="text-white/50 leading-relaxed">
-                    투명한 견적, 체계적인 프로젝트 관리, 검증된 시공 품질.
-                    12년간 150건 이상의 프로젝트를 통해 증명해 왔습니다.
+                    데이터 기반의 투명한 견적, 체계적인 프로젝트 관리, 검증된 시공 품질.
+                    12년간 150건 이상의 프로젝트에서 축적한 실측 데이터로 증명해 왔습니다.
                   </p>
                 </div>
               </div>
@@ -347,6 +347,142 @@ export default function Home() {
                 </Link>
               </FadeUp>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== DATA-DRIVEN DESIGN ==================== */}
+      <section className="py-20 lg:py-28 bg-[#0a0f1a] text-white relative overflow-hidden">
+        {/* Subtle grid pattern background */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div className="container relative z-10">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left: Content */}
+            <div>
+              <FadeUp>
+                <p className="text-xs font-medium tracking-widest uppercase text-gold mb-4">
+                  Data-Driven Design
+                </p>
+                <h2 className="font-heading text-3xl lg:text-5xl font-bold mb-6 leading-tight">
+                  감이 아닌 <span className="text-gradient-gold">데이터</span>로
+                  <br />설계합니다
+                </h2>
+                <p className="text-white/50 leading-relaxed mb-10 max-w-lg">
+                  고감도는 150건 이상의 프로젝트에서 축적한 실측 데이터와 거래처 원가 정보를 기반으로 공간을 설계합니다.
+                  직감이 아닌 데이터가 설계의 출발점이 되면, 예산 낭비는 줄고 공간 효율은 높아집니다.
+                </p>
+              </FadeUp>
+
+              <div className="grid grid-cols-2 gap-6">
+                <FadeUp delay={0.1}>
+                  <div className="p-5 border border-white/10 rounded-sm">
+                    <BarChart3 className="w-5 h-5 text-gold mb-3" />
+                    <h4 className="font-heading text-sm font-bold mb-1">실적 데이터 분석</h4>
+                    <p className="text-white/40 text-xs leading-relaxed">
+                      70개 이상 거래처, 44억원 규모의 실제 거래 데이터를 분석하여 정확한 단가를 산출합니다.
+                    </p>
+                  </div>
+                </FadeUp>
+                <FadeUp delay={0.15}>
+                  <div className="p-5 border border-white/10 rounded-sm">
+                    <Database className="w-5 h-5 text-gold mb-3" />
+                    <h4 className="font-heading text-sm font-bold mb-1">공간 효율 DB</h4>
+                    <p className="text-white/40 text-xs leading-relaxed">
+                      업종별 최적 좌석 배치, 동선 패턴, 공용 공간 비율 등 축적된 노하우를 DB화하여 활용합니다.
+                    </p>
+                  </div>
+                </FadeUp>
+                <FadeUp delay={0.2}>
+                  <div className="p-5 border border-white/10 rounded-sm">
+                    <LineChart className="w-5 h-5 text-gold mb-3" />
+                    <h4 className="font-heading text-sm font-bold mb-1">비용 예측 모델</h4>
+                    <p className="text-white/40 text-xs leading-relaxed">
+                      과거 프로젝트 데이터를 기반으로 면적·등급·옵션별 비용을 사전에 정확하게 예측합니다.
+                    </p>
+                  </div>
+                </FadeUp>
+                <FadeUp delay={0.25}>
+                  <div className="p-5 border border-white/10 rounded-sm">
+                    <TrendingUp className="w-5 h-5 text-gold mb-3" />
+                    <h4 className="font-heading text-sm font-bold mb-1">시장가 벤치마크</h4>
+                    <p className="text-white/40 text-xs leading-relaxed">
+                      실시간 자재 시세와 시장 평균 단가를 비교하여 합리적인 견적을 제시합니다.
+                    </p>
+                  </div>
+                </FadeUp>
+              </div>
+            </div>
+
+            {/* Right: Visual data illustration */}
+            <FadeUp delay={0.1}>
+              <div className="relative">
+                {/* Main stat card */}
+                <div className="bg-white/[0.03] border border-white/10 p-8 lg:p-10">
+                  <div className="space-y-8">
+                    {/* Data point 1 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-white/40 uppercase tracking-wider">견적 정확도</span>
+                        <span className="font-heading text-2xl font-bold text-gold">96.4%</span>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-gold/60 to-gold rounded-full"
+                          initial={{ width: 0 }}
+                          whileInView={{ width: '96.4%' }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                      </div>
+                    </div>
+                    {/* Data point 2 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-white/40 uppercase tracking-wider">예산 준수율</span>
+                        <span className="font-heading text-2xl font-bold text-gold">94.2%</span>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-gold/60 to-gold rounded-full"
+                          initial={{ width: 0 }}
+                          whileInView={{ width: '94.2%' }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                      </div>
+                    </div>
+                    {/* Data point 3 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-white/40 uppercase tracking-wider">일정 준수율</span>
+                        <span className="font-heading text-2xl font-bold text-gold">97.1%</span>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-gold/60 to-gold rounded-full"
+                          initial={{ width: 0 }}
+                          whileInView={{ width: '97.1%' }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1.5, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom quote */}
+                  <div className="mt-10 pt-8 border-t border-white/10">
+                    <p className="text-white/30 text-sm leading-relaxed italic">
+                      "데이터가 뒷받침하는 설계는 고객에게 신뢰를, 공간에는 효율을 선사합니다."
+                    </p>
+                    <p className="text-gold text-xs mt-2 font-medium">— (주)고감도 설계팀</p>
+                  </div>
+                </div>
+
+                {/* Floating accent */}
+                <div className="absolute -top-4 -right-4 w-24 h-24 border border-gold/20 opacity-50" />
+                <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-gold/10" />
+              </div>
+            </FadeUp>
           </div>
         </div>
       </section>

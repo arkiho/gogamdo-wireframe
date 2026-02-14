@@ -18,12 +18,13 @@ import {
   ChevronDown, ChevronUp, LogOut, Download,
   Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
+  HardDrive, RefreshCw, CloudDownload,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
 import Logo from "@/components/Logo";
 
-type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements" | "portfolio";
+type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements" | "portfolio" | "drive-sync";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   new: { label: "신규", variant: "destructive" },
@@ -130,6 +131,7 @@ export default function AdminDashboard() {
     { id: "ai-style", label: "AI 스타일", icon: <Sparkles className="w-4 h-4" />, count: styleRecs.data?.length },
     { id: "announcements", label: "공지관리", icon: <Megaphone className="w-4 h-4" />, count: announcementsList.data?.length },
     { id: "portfolio", label: "포트폴리오", icon: <Image className="w-4 h-4" />, count: portfolioDrafts.data?.length },
+    { id: "drive-sync", label: "드라이브 동기화", icon: <HardDrive className="w-4 h-4" /> },
   ];
 
   return (
@@ -860,6 +862,10 @@ export default function AdminDashboard() {
         {activeTab === "portfolio" && (
           <PortfolioTab />
         )}
+        {/* Drive Sync Tab */}
+        {activeTab === "drive-sync" && (
+          <DriveSyncTab />
+        )}
       </div>
     </div>
   );
@@ -1137,6 +1143,242 @@ function PortfolioTab() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ===== Drive Sync Tab Component =====
+function DriveSyncTab() {
+  const [rootFolderId, setRootFolderId] = useState("");
+  const [syncingFolderId, setSyncingFolderId] = useState<string | null>(null);
+
+  const connection = trpc.driveSync.checkConnection.useQuery(undefined, {
+    retry: false,
+  });
+  const syncLogs = trpc.driveSync.listLogs.useQuery(undefined);
+
+  const syncFolder = trpc.driveSync.syncFolder.useMutation({
+    onSuccess: () => {
+      syncLogs.refetch();
+      setSyncingFolderId(null);
+    },
+    onError: () => {
+      setSyncingFolderId(null);
+    },
+  });
+
+  const syncAll = trpc.driveSync.syncAll.useMutation({
+    onSuccess: () => {
+      syncLogs.refetch();
+    },
+  });
+
+  const projectFolders = trpc.driveSync.listProjectFolders.useQuery(
+    { rootFolderId },
+    { enabled: !!rootFolderId && rootFolderId.length > 5 }
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="font-heading text-xl font-bold text-ink">Google Drive 동기화</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          구글 드라이브의 준공사진 폴더를 자동으로 탐색하여 포트폴리오 초안을 생성합니다.
+        </p>
+      </div>
+
+      {/* Connection Status */}
+      <Card className="border-border/50">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${connection.data?.connected ? "bg-green-500" : "bg-red-400"}`} />
+              <div>
+                <p className="font-medium text-sm">
+                  {connection.isLoading ? "연결 확인 중..." :
+                    connection.data?.connected ? "Google Drive 연결됨" : "Google Drive 미연결"}
+                </p>
+                {connection.data?.connected && connection.data.email && (
+                  <p className="text-xs text-muted-foreground">{connection.data.email}</p>
+                )}
+                {connection.data?.error && (
+                  <p className="text-xs text-red-500">{connection.data.error}</p>
+                )}
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => connection.refetch()}>
+              <RefreshCw className="w-3 h-3 mr-1" /> 재확인
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Drive 미연결 안내 */}
+      {!connection.isLoading && !connection.data?.connected && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-amber-800 mb-2">Google Drive 서비스 계정 설정이 필요합니다</p>
+                <ol className="list-decimal list-inside space-y-1 text-amber-700">
+                  <li>Google Cloud Console에서 서비스 계정 생성</li>
+                  <li>서비스 계정에 Google Drive API 권한 부여</li>
+                  <li>JSON 키 파일 다운로드</li>
+                  <li>환경변수 <code className="bg-amber-100 px-1 rounded">GOOGLE_SERVICE_ACCOUNT_JSON</code>에 JSON 내용 설정</li>
+                  <li>공유 드라이브 또는 폴더를 서비스 계정 이메일에 공유</li>
+                </ol>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Folder ID Input & Scan */}
+      {connection.data?.connected && (
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FolderOpen className="w-5 h-5 text-gold" />
+              프로젝트 폴더 탐색
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                "완료 프로젝트" 루트 폴더 ID
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={rootFolderId}
+                  onChange={e => setRootFolderId(e.target.value)}
+                  placeholder="Google Drive 폴더 ID (URL에서 복사)"
+                  className="flex-1 px-3 py-2 border border-border rounded-md text-sm"
+                />
+                <Button
+                  onClick={() => projectFolders.refetch()}
+                  disabled={!rootFolderId || projectFolders.isFetching}
+                  className="bg-gold text-ink hover:bg-gold-light"
+                >
+                  {projectFolders.isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : "탐색"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => syncAll.mutate({ rootFolderId })}
+                  disabled={!rootFolderId || syncAll.isPending}
+                >
+                  {syncAll.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CloudDownload className="w-4 h-4 mr-1" />}
+                  전체 동기화
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                폴더 구조: 완료 프로젝트/[프로젝트명]/06. IMAGE (현장사진)/준공사진/4. 준공사진
+              </p>
+            </div>
+
+            {/* Sync All Result */}
+            {syncAll.data && (
+              <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                <p className="text-sm font-medium text-green-800 mb-2">
+                  동기화 완료: {syncAll.data.synced}건 성공 / {syncAll.data.skipped}건 건너뜀 / {syncAll.data.errors}건 오류
+                </p>
+                <div className="space-y-1">
+                  {syncAll.data.details.map((d, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      {d.status === "synced" && <Check className="w-3 h-3 text-green-500" />}
+                      {d.status === "skipped" && <X className="w-3 h-3 text-gray-400" />}
+                      {d.status === "error" && <AlertCircle className="w-3 h-3 text-red-500" />}
+                      <span className={d.status === "error" ? "text-red-600" : "text-muted-foreground"}>
+                        {d.projectName} — {d.status === "synced" ? `${d.imageCount}장` : d.error || d.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Discovered Folders */}
+            {projectFolders.data && projectFolders.data.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-ink">발견된 프로젝트 ({projectFolders.data.length}건)</p>
+                {projectFolders.data.map((folder, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-paper-warm rounded-md border border-border/30">
+                    <div>
+                      <p className="text-sm font-medium text-ink">{folder.projectName}</p>
+                      <p className="text-xs text-muted-foreground">{folder.folderPath}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSyncingFolderId(folder.folderId);
+                        syncFolder.mutate({
+                          folderId: folder.folderId,
+                          projectName: folder.projectName,
+                          folderPath: folder.folderPath,
+                        });
+                      }}
+                      disabled={syncingFolderId === folder.folderId}
+                    >
+                      {syncingFolderId === folder.folderId ? (
+                        <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                      ) : (
+                        <CloudDownload className="w-3 h-3 mr-1" />
+                      )}
+                      동기화
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {projectFolders.data && projectFolders.data.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                준공사진 폴더가 발견되지 않았습니다. 폴더 구조를 확인해주세요.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sync Logs */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-gold" />
+            동기화 기록
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {syncLogs.isLoading ? (
+            <p className="text-sm text-muted-foreground text-center py-4">로딩 중...</p>
+          ) : (syncLogs.data ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">아직 동기화 기록이 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {(syncLogs.data ?? []).map((log: any) => (
+                <div key={log.id} className="flex items-center justify-between p-3 border border-border/30 rounded-md">
+                  <div>
+                    <p className="text-sm font-medium text-ink">{log.folderPath || log.folderId}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {log.fileCount}장 | {formatDate(log.lastSyncAt)}
+                    </p>
+                  </div>
+                  <Badge variant={
+                    log.syncStatus === "done" ? "outline" :
+                    log.syncStatus === "syncing" ? "default" : "destructive"
+                  }>
+                    {log.syncStatus === "done" ? "완료" :
+                     log.syncStatus === "syncing" ? "진행중" : "오류"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

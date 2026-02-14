@@ -16,7 +16,10 @@ import {
   publishPortfolioDraft, archivePortfolioDraft, deletePortfolioDraft,
   addDraftImage, listDraftImages, updateDraftImage, deleteDraftImage, setCoverImage,
   getPublishedPortfolios,
+  listSyncLogs,
 } from "./db";
+import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
+import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
 import { z } from "zod";
@@ -757,6 +760,60 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
   admin: router({
     stats: adminProcedure.query(async () => {
       return getDashboardStats();
+    }),
+  }),
+
+  // ===== 구글 드라이브 동기화 (Drive Sync) =====
+  driveSync: router({
+    // 드라이브 연결 상태 확인
+    checkConnection: adminProcedure.query(async () => {
+      return checkDriveConnection();
+    }),
+
+    // 루트 폴더 내 프로젝트 폴더 목록
+    listProjectFolders: adminProcedure
+      .input(z.object({ rootFolderId: z.string() }))
+      .query(async ({ input }) => {
+        const folders = await findCompletionPhotoFolders(input.rootFolderId);
+        return folders;
+      }),
+
+    // 특정 폴더 내 하위 폴더 목록
+    listFolders: adminProcedure
+      .input(z.object({ parentFolderId: z.string() }))
+      .query(async ({ input }) => {
+        return listFolders(input.parentFolderId);
+      }),
+
+    // 특정 폴더 내 이미지 파일 목록
+    listImages: adminProcedure
+      .input(z.object({ folderId: z.string() }))
+      .query(async ({ input }) => {
+        return listImageFiles(input.folderId);
+      }),
+
+    // 단일 폴더 동기화 (Drive → S3 → 초안 생성)
+    syncFolder: adminProcedure
+      .input(z.object({
+        folderId: z.string(),
+        projectName: z.string(),
+        folderPath: z.string(),
+        category: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return syncFolder(input);
+      }),
+
+    // 전체 프로젝트 일괄 동기화
+    syncAll: adminProcedure
+      .input(z.object({ rootFolderId: z.string() }))
+      .mutation(async ({ input }) => {
+        return syncAllProjects(input.rootFolderId);
+      }),
+
+    // 동기화 로그 목록
+    listLogs: adminProcedure.query(async () => {
+      return listSyncLogs();
     }),
   }),
 });

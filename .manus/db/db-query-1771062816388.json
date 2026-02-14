@@ -1,0 +1,76 @@
+{
+  "query": "SELECT id, title, status, category FROM portfolio_drafts ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, status, category FROM portfolio_drafts ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "title": "허시드 본사 리모델링",
+      "status": "draft",
+      "category": "사무실 인테리어"
+    },
+    {
+      "id": "2",
+      "title": "허시드",
+      "status": "published",
+      "category": "사무실 인테리어"
+    },
+    {
+      "id": "3",
+      "title": "LAB543",
+      "status": "published",
+      "category": "크리에이티브 스튜디오"
+    },
+    {
+      "id": "4",
+      "title": "필립스코리아",
+      "status": "published",
+      "category": "글로벌 기업 오피스"
+    },
+    {
+      "id": "5",
+      "title": "페이퍼랩",
+      "status": "published",
+      "category": "크리에이티브 오피스"
+    },
+    {
+      "id": "6",
+      "title": "휴레이",
+      "status": "published",
+      "category": "IT 오피스"
+    },
+    {
+      "id": "7",
+      "title": "HEAL",
+      "status": "published",
+      "category": "헬스케어 오피스"
+    },
+    {
+      "id": "8",
+      "title": "SBA/SETEC",
+      "status": "published",
+      "category": "공공기관"
+    },
+    {
+      "id": "9",
+      "title": "제조시설 리모델링",
+      "status": "published",
+      "category": "산업시설"
+    },
+    {
+      "id": "10",
+      "title": "허시드 본사 리모델링",
+      "status": "draft",
+      "category": "사무실 인테리어"
+    },
+    {
+      "id": "11",
+      "title": "허시드 본사 리모델링",
+      "status": "draft",
+      "category": "사무실 인테리어"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tstatus\tcategory\n1\t허시드 본사 리모델링\tdraft\t사무실 인테리어\n2\t허시드\tpublished\t사무실 인테리어\n3\tLAB543\tpublished\t크리에이티브 스튜디오\n4\t필립스코리아\tpublished\t글로벌 기업 오피스\n5\t페이퍼랩\tpublished\t크리에이티브 오피스\n6\t휴레이\tpublished\tIT 오피스\n7\tHEAL\tpublished\t헬스케어 오피스\n8\tSBA/SETEC\tpublished\t공공기관\n9\t제조시설 리모델링\tpublished\t산업시설\n10\t허시드 본사 리모델링\tdraft\t사무실 인테리어\n11\t허시드 본사 리모델링\tdraft\t사무실 인테리어\n",
+  "stderr": "",
+  "execution_time_ms": 1565
+}
