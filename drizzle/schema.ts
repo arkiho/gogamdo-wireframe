@@ -188,6 +188,7 @@ export const draftImages = mysqlTable("draft_images", {
   id: int("id").autoincrement().primaryKey(),
   draftId: int("draftId").notNull(),
   originalUrl: text("originalUrl").notNull(),
+  beforeUrl: text("beforeUrl"),
   processedUrl: text("processedUrl"),
   watermarkedUrl: text("watermarkedUrl"),
   thumbnailUrl: text("thumbnailUrl"),
@@ -222,3 +223,191 @@ export const driveSyncLog = mysqlTable("drive_sync_log", {
 
 export type DriveSyncLog = typeof driveSyncLog.$inferSelect;
 export type InsertDriveSyncLog = typeof driveSyncLog.$inferInsert;
+
+/**
+ * DDIA: 공간 분석 프로젝트(Space Analysis Projects)
+ * 센서 데이터 수집 및 공간 분석을 위한 프로젝트 단위
+ */
+export const spaceProjects = mysqlTable("space_projects", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 300 }).notNull(),
+  client: varchar("client", { length: 200 }),
+  location: varchar("location", { length: 300 }),
+  area: varchar("area", { length: 50 }),
+  floorPlanUrl: text("floorPlanUrl"),
+  floorPlanWidth: int("floorPlanWidth"),
+  floorPlanHeight: int("floorPlanHeight"),
+  description: text("description"),
+  status: mysqlEnum("status", ["setup", "collecting", "analyzing", "completed"]).default("setup").notNull(),
+  analysisReport: json("analysisReport"),
+  startDate: timestamp("startDate"),
+  endDate: timestamp("endDate"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SpaceProject = typeof spaceProjects.$inferSelect;
+export type InsertSpaceProject = typeof spaceProjects.$inferInsert;
+
+/**
+ * DDIA: 센서 정의(Sensors)
+ * 평면도에 배치된 개별 센서 (온도, 습도, 조도, CO2, 소음, 동선 등)
+ */
+export const sensors = mysqlTable("sensors", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  type: mysqlEnum("type", [
+    "temperature", "humidity", "illuminance", "co2", "noise",
+    "occupancy", "motion", "air_quality", "power"
+  ]).notNull(),
+  unit: varchar("unit", { length: 20 }),
+  posX: int("posX"),
+  posY: int("posY"),
+  zone: varchar("zone", { length: 100 }),
+  deviceId: varchar("deviceId", { length: 100 }),
+  active: mysqlEnum("active", ["yes", "no"]).default("yes").notNull(),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Sensor = typeof sensors.$inferSelect;
+export type InsertSensor = typeof sensors.$inferInsert;
+
+/**
+ * DDIA: 센서 데이터(Sensor Data)
+ * 각 센서에서 수집된 시계열 데이터
+ */
+export const sensorData = mysqlTable("sensor_data", {
+  id: int("id").autoincrement().primaryKey(),
+  sensorId: int("sensorId").notNull(),
+  projectId: int("projectId").notNull(),
+  value: varchar("value", { length: 50 }).notNull(),
+  recordedAt: timestamp("recordedAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SensorDataRow = typeof sensorData.$inferSelect;
+export type InsertSensorData = typeof sensorData.$inferInsert;
+
+/**
+ * DDIA: 공간 분석 결과(Space Analysis)
+ * 센서 데이터를 기반으로 AI가 분석한 공간 인사이트
+ */
+export const spaceAnalysis = mysqlTable("space_analysis", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  zone: varchar("zone", { length: 100 }),
+  analysisType: mysqlEnum("analysisType", [
+    "occupancy_pattern", "environmental", "energy", "comfort", "traffic_flow"
+  ]).notNull(),
+  summary: text("summary"),
+  dataJson: json("dataJson"),
+  recommendations: json("recommendations").$type<string[]>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SpaceAnalysisRow = typeof spaceAnalysis.$inferSelect;
+export type InsertSpaceAnalysis = typeof spaceAnalysis.$inferInsert;
+
+/**
+ * CRM: 고객(Clients)
+ * 인테리어 프로젝트 고객 정보 관리
+ */
+export const crmClients = mysqlTable("crm_clients", {
+  id: int("id").autoincrement().primaryKey(),
+  companyName: varchar("companyName", { length: 200 }).notNull(),
+  contactName: varchar("contactName", { length: 100 }).notNull(),
+  contactTitle: varchar("contactTitle", { length: 100 }),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 30 }),
+  address: text("address"),
+  industry: varchar("industry", { length: 100 }),
+  companySize: varchar("companySize", { length: 50 }),
+  source: mysqlEnum("source", [
+    "website", "referral", "cold_call", "exhibition", "sns", "other"
+  ]).default("website"),
+  notes: text("notes"),
+  tags: json("tags").$type<string[]>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CrmClientRow = typeof crmClients.$inferSelect;
+export type InsertCrmClient = typeof crmClients.$inferInsert;
+
+/**
+ * CRM: 상담 이력(Interactions)
+ * 고객과의 모든 커뮤니케이션 기록
+ */
+export const crmInteractions = mysqlTable("crm_interactions", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: int("clientId").notNull(),
+  type: mysqlEnum("type", [
+    "phone_call", "email", "meeting", "site_visit", "video_call", "kakao", "note"
+  ]).notNull(),
+  subject: varchar("subject", { length: 300 }).notNull(),
+  content: text("content"),
+  outcome: text("outcome"),
+  nextAction: text("nextAction"),
+  nextActionDate: timestamp("nextActionDate"),
+  assignedTo: varchar("assignedTo", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CrmInteractionRow = typeof crmInteractions.$inferSelect;
+export type InsertCrmInteraction = typeof crmInteractions.$inferInsert;
+
+/**
+ * CRM: 프로젝트 파이프라인(Deals)
+ * 영업 기회 및 프로젝트 진행 상태 추적
+ */
+export const crmDeals = mysqlTable("crm_deals", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: int("clientId").notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  stage: mysqlEnum("stage", [
+    "lead", "consultation", "proposal", "negotiation", "contract", "design", "construction", "completed", "lost"
+  ]).default("lead").notNull(),
+  estimatedValue: int("estimatedValue"),
+  actualValue: int("actualValue"),
+  area: varchar("area", { length: 50 }),
+  spaceType: mysqlEnum("spaceType", [
+    "office", "commercial", "medical", "education", "residential", "other"
+  ]),
+  startDate: timestamp("startDate"),
+  expectedEndDate: timestamp("expectedEndDate"),
+  actualEndDate: timestamp("actualEndDate"),
+  assignedTo: varchar("assignedTo", { length: 100 }),
+  probability: int("probability"),
+  description: text("description"),
+  lostReason: text("lostReason"),
+  tags: json("tags").$type<string[]>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CrmDealRow = typeof crmDeals.$inferSelect;
+export type InsertCrmDeal = typeof crmDeals.$inferInsert;
+
+/**
+ * CRM: 활동 로그(Activities)
+ * 딜/고객 관련 모든 활동 타임라인
+ */
+export const crmActivities = mysqlTable("crm_activities", {
+  id: int("id").autoincrement().primaryKey(),
+  dealId: int("dealId"),
+  clientId: int("clientId"),
+  type: mysqlEnum("type", [
+    "stage_change", "note", "task", "file_upload", "email_sent", "call_logged", "meeting_scheduled"
+  ]).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  metadata: json("metadata"),
+  createdBy: varchar("createdBy", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CrmActivityRow = typeof crmActivities.$inferSelect;
+export type InsertCrmActivity = typeof crmActivities.$inferInsert;

@@ -21,6 +21,7 @@ export type ProjectData = {
   duration: string;
   location: string;
   image: string;
+  beforeImage?: string;
   description: string;
   scope: string[];
   challenge: string;

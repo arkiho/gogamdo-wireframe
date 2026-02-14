@@ -17,6 +17,14 @@ import {
   addDraftImage, listDraftImages, updateDraftImage, deleteDraftImage, setCoverImage,
   getPublishedPortfolios,
   listSyncLogs,
+  createSpaceProject, listSpaceProjects, getSpaceProject, updateSpaceProject, deleteSpaceProject,
+  createSensor, listSensors, updateSensor, deleteSensor,
+  addSensorData, addSensorDataBatch, getSensorDataRange, getSensorLatestData,
+  createSpaceAnalysis, listSpaceAnalyses,
+  listCrmClients, getCrmClient, createCrmClient, updateCrmClient, deleteCrmClient,
+  listCrmInteractions, createCrmInteraction, deleteCrmInteraction,
+  listCrmDeals, getCrmDeal, createCrmDeal, updateCrmDeal, deleteCrmDeal,
+  listCrmActivities, createCrmActivity, getCrmStats,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
@@ -694,6 +702,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
     updateImage: adminProcedure
       .input(z.object({
         id: z.number(),
+        beforeUrl: z.string().nullable().optional(),
         processedUrl: z.string().optional(),
         watermarkedUrl: z.string().optional(),
         thumbnailUrl: z.string().optional(),
@@ -815,6 +824,457 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
     listLogs: adminProcedure.query(async () => {
       return listSyncLogs();
     }),
+  }),
+
+  // ===== DDIA: Data Driven Interior Architecture =====
+  ddia: router({
+    // --- Space Projects ---
+    createProject: adminProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        client: z.string().optional(),
+        location: z.string().optional(),
+        area: z.string().optional(),
+        description: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return createSpaceProject(input);
+      }),
+
+    listProjects: adminProcedure.query(async () => {
+      return listSpaceProjects();
+    }),
+
+    getProject: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return getSpaceProject(input.id);
+      }),
+
+    updateProject: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        client: z.string().optional(),
+        location: z.string().optional(),
+        area: z.string().optional(),
+        description: z.string().optional(),
+        floorPlanUrl: z.string().optional(),
+        floorPlanWidth: z.number().optional(),
+        floorPlanHeight: z.number().optional(),
+        status: z.enum(["setup", "collecting", "analyzing", "completed"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updateSpaceProject(id, data);
+      }),
+
+    deleteProject: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteSpaceProject(input.id);
+      }),
+
+    // --- Sensors ---
+    createSensor: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        name: z.string().min(1),
+        type: z.enum(["temperature", "humidity", "illuminance", "co2", "noise", "occupancy", "motion", "air_quality", "power"]),
+        unit: z.string().optional(),
+        posX: z.number().optional(),
+        posY: z.number().optional(),
+        zone: z.string().optional(),
+        deviceId: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return createSensor(input);
+      }),
+
+    listSensors: adminProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return listSensors(input.projectId);
+      }),
+
+    updateSensor: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        type: z.enum(["temperature", "humidity", "illuminance", "co2", "noise", "occupancy", "motion", "air_quality", "power"]).optional(),
+        unit: z.string().optional(),
+        posX: z.number().optional(),
+        posY: z.number().optional(),
+        zone: z.string().optional(),
+        deviceId: z.string().optional(),
+        active: z.enum(["yes", "no"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updateSensor(id, data);
+      }),
+
+    deleteSensor: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteSensor(input.id);
+      }),
+
+    // --- Sensor Data ---
+    addData: adminProcedure
+      .input(z.object({
+        sensorId: z.number(),
+        projectId: z.number(),
+        value: z.string(),
+        recordedAt: z.string().transform(s => new Date(s)),
+      }))
+      .mutation(async ({ input }) => {
+        return addSensorData({ ...input, recordedAt: input.recordedAt });
+      }),
+
+    addDataBatch: adminProcedure
+      .input(z.object({
+        rows: z.array(z.object({
+          sensorId: z.number(),
+          projectId: z.number(),
+          value: z.string(),
+          recordedAt: z.string().transform(s => new Date(s)),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        return addSensorDataBatch(input.rows);
+      }),
+
+    getDataRange: adminProcedure
+      .input(z.object({
+        sensorId: z.number(),
+        from: z.string().transform(s => new Date(s)),
+        to: z.string().transform(s => new Date(s)),
+      }))
+      .query(async ({ input }) => {
+        return getSensorDataRange(input.sensorId, input.from, input.to);
+      }),
+
+    getLatestData: adminProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return getSensorLatestData(input.projectId);
+      }),
+
+    // --- Space Analysis ---
+    createAnalysis: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        zone: z.string().optional(),
+        analysisType: z.enum(["occupancy_pattern", "environmental", "energy", "comfort", "traffic_flow"]),
+        summary: z.string().optional(),
+        dataJson: z.any().optional(),
+        recommendations: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return createSpaceAnalysis(input);
+      }),
+
+    listAnalyses: adminProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return listSpaceAnalyses(input.projectId);
+      }),
+
+    // --- AI Analysis ---
+    analyzeData: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        analysisType: z.enum(["occupancy_pattern", "environmental", "energy", "comfort", "traffic_flow"]),
+      }))
+      .mutation(async ({ input }) => {
+        const latestData = await getSensorLatestData(input.projectId);
+        const project = await getSpaceProject(input.projectId);
+        if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "프로젝트를 찾을 수 없습니다" });
+
+        const sensorSummary = latestData.map(d => 
+          `${d.sensor.name}(${d.sensor.type}${d.sensor.zone ? `, ${d.sensor.zone}` : ""}): ${d.latestValue ?? "N/A"} ${d.sensor.unit ?? ""}`
+        ).join("\n");
+
+        const analysisLabels: Record<string, string> = {
+          occupancy_pattern: "재실 패턴 분석",
+          environmental: "환경 쾌적도 분석",
+          energy: "에너지 효율 분석",
+          comfort: "공간 쾌적 지수 분석",
+          traffic_flow: "동선 흐름 분석",
+        };
+
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `당신은 Data Driven Interior Architecture 전문가입니다. 센서 데이터를 분석하여 공간 설계에 반영할 인사이트를 도출합니다. 분석 결과를 JSON으로 반환하세요.`,
+            },
+            {
+              role: "user",
+              content: `프로젝트: ${project.name}\n위치: ${project.location ?? "미정"}\n면적: ${project.area ?? "미정"}\n\n센서 데이터:\n${sensorSummary}\n\n${analysisLabels[input.analysisType]}을 수행하고, 공간 설계에 반영할 구체적인 권장사항을 제시하세요.`,
+            },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "space_analysis",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  summary: { type: "string", description: "분석 요약 (2-3문장)" },
+                  findings: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        area: { type: "string" },
+                        insight: { type: "string" },
+                        severity: { type: "string", enum: ["info", "warning", "critical"] },
+                      },
+                      required: ["area", "insight", "severity"],
+                      additionalProperties: false,
+                    },
+                  },
+                  recommendations: {
+                    type: "array",
+                    items: { type: "string" },
+                  },
+                },
+                required: ["summary", "findings", "recommendations"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        const content = response.choices?.[0]?.message?.content as string;
+        const parsed = JSON.parse(content);
+
+        await createSpaceAnalysis({
+          projectId: input.projectId,
+          analysisType: input.analysisType,
+          summary: parsed.summary,
+          dataJson: parsed,
+          recommendations: parsed.recommendations,
+        });
+
+        return parsed;
+      }),
+  }),
+
+  // ========== CRM ==========
+  crm: router({
+    stats: adminProcedure.query(async () => {
+      return getCrmStats();
+    }),
+
+    // --- Clients ---
+    listClients: adminProcedure.query(async () => {
+      return listCrmClients();
+    }),
+
+    getClient: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const client = await getCrmClient(input.id);
+        if (!client) throw new TRPCError({ code: "NOT_FOUND" });
+        return client;
+      }),
+
+    createClient: adminProcedure
+      .input(z.object({
+        companyName: z.string().min(1),
+        contactName: z.string().min(1),
+        contactTitle: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        address: z.string().optional(),
+        industry: z.string().optional(),
+        companySize: z.string().optional(),
+        source: z.enum(["website", "referral", "cold_call", "exhibition", "sns", "other"]).optional(),
+        notes: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await createCrmClient(input);
+        return { id };
+      }),
+
+    updateClient: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        companyName: z.string().optional(),
+        contactName: z.string().optional(),
+        contactTitle: z.string().optional(),
+        email: z.string().optional(),
+        phone: z.string().optional(),
+        address: z.string().optional(),
+        industry: z.string().optional(),
+        companySize: z.string().optional(),
+        source: z.enum(["website", "referral", "cold_call", "exhibition", "sns", "other"]).optional(),
+        notes: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateCrmClient(id, data);
+        return { success: true };
+      }),
+
+    deleteClient: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteCrmClient(input.id);
+        return { success: true };
+      }),
+
+    // --- Interactions ---
+    listInteractions: adminProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        return listCrmInteractions(input.clientId);
+      }),
+
+    createInteraction: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        type: z.enum(["phone_call", "email", "meeting", "site_visit", "video_call", "kakao", "note"]),
+        subject: z.string().min(1),
+        content: z.string().optional(),
+        outcome: z.string().optional(),
+        nextAction: z.string().optional(),
+        nextActionDate: z.date().optional(),
+        assignedTo: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await createCrmInteraction(input);
+        await createCrmActivity({
+          clientId: input.clientId,
+          type: "call_logged",
+          title: `${input.type}: ${input.subject}`,
+          description: input.content,
+          createdBy: input.assignedTo,
+        });
+        return { id };
+      }),
+
+    deleteInteraction: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteCrmInteraction(input.id);
+        return { success: true };
+      }),
+
+    // --- Deals ---
+    listDeals: adminProcedure
+      .input(z.object({ clientId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        return listCrmDeals(input?.clientId);
+      }),
+
+    getDeal: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const deal = await getCrmDeal(input.id);
+        if (!deal) throw new TRPCError({ code: "NOT_FOUND" });
+        return deal;
+      }),
+
+    createDeal: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        title: z.string().min(1),
+        stage: z.enum(["lead", "consultation", "proposal", "negotiation", "contract", "design", "construction", "completed", "lost"]).optional(),
+        estimatedValue: z.number().optional(),
+        area: z.string().optional(),
+        spaceType: z.enum(["office", "commercial", "medical", "education", "residential", "other"]).optional(),
+        startDate: z.date().optional(),
+        expectedEndDate: z.date().optional(),
+        assignedTo: z.string().optional(),
+        probability: z.number().min(0).max(100).optional(),
+        description: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await createCrmDeal(input);
+        await createCrmActivity({
+          clientId: input.clientId,
+          dealId: id ?? undefined,
+          type: "stage_change",
+          title: `새 딜 생성: ${input.title}`,
+          description: `단계: ${input.stage || "lead"}`,
+          createdBy: input.assignedTo,
+        });
+        return { id };
+      }),
+
+    updateDeal: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        stage: z.enum(["lead", "consultation", "proposal", "negotiation", "contract", "design", "construction", "completed", "lost"]).optional(),
+        estimatedValue: z.number().optional(),
+        actualValue: z.number().optional(),
+        area: z.string().optional(),
+        spaceType: z.enum(["office", "commercial", "medical", "education", "residential", "other"]).optional(),
+        startDate: z.date().optional(),
+        expectedEndDate: z.date().optional(),
+        actualEndDate: z.date().optional(),
+        assignedTo: z.string().optional(),
+        probability: z.number().min(0).max(100).optional(),
+        description: z.string().optional(),
+        lostReason: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        const oldDeal = await getCrmDeal(id);
+        await updateCrmDeal(id, data);
+        if (input.stage && oldDeal && input.stage !== oldDeal.stage) {
+          await createCrmActivity({
+            dealId: id,
+            clientId: oldDeal.clientId,
+            type: "stage_change",
+            title: `단계 변경: ${oldDeal.stage} → ${input.stage}`,
+            createdBy: input.assignedTo,
+          });
+        }
+        return { success: true };
+      }),
+
+    deleteDeal: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteCrmDeal(input.id);
+        return { success: true };
+      }),
+
+    // --- Activities ---
+    listActivities: adminProcedure
+      .input(z.object({
+        dealId: z.number().optional(),
+        clientId: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return listCrmActivities(input || {});
+      }),
+
+    createActivity: adminProcedure
+      .input(z.object({
+        dealId: z.number().optional(),
+        clientId: z.number().optional(),
+        type: z.enum(["stage_change", "note", "task", "file_upload", "email_sent", "call_logged", "meeting_scheduled"]),
+        title: z.string().min(1),
+        description: z.string().optional(),
+        metadata: z.any().optional(),
+        createdBy: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await createCrmActivity(input);
+        return { id };
+      }),
   }),
 });
 

@@ -1,0 +1,1 @@
+ALTER TABLE `draft_images` ADD `beforeUrl` text;

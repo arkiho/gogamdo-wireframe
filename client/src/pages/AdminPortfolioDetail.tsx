@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Upload, Wand2, Trash2, Star, Loader2,
   Image as ImageIcon, Eye, Send, Archive, Save,
-  Sparkles, GripVertical, AlertCircle,
+  Sparkles, GripVertical, AlertCircle, SplitSquareHorizontal,
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import Logo from "@/components/Logo";
@@ -47,10 +47,15 @@ export default function AdminPortfolioDetail() {
   const setCover = trpc.portfolio.setCover.useMutation({ onSuccess: () => draft.refetch() });
   const processImage = trpc.portfolio.processImage.useMutation({ onSuccess: () => draft.refetch() });
 
+  const updateImage = trpc.portfolio.updateImage.useMutation({ onSuccess: () => draft.refetch() });
+
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
   const [uploading, setUploading] = useState(false);
+  const [uploadingBeforeId, setUploadingBeforeId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const beforeFileInputRef = useRef<HTMLInputElement>(null);
+  const [beforeUploadTargetId, setBeforeUploadTargetId] = useState<number | null>(null);
 
   const startEditing = useCallback(() => {
     if (!draft.data) return;
@@ -69,6 +74,47 @@ export default function AdminPortfolioDetail() {
   const saveEdits = () => {
     updateDraft.mutate({ id: draftId, ...editData });
     setIsEditing(false);
+  };
+
+  const handleBeforeUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0 || !beforeUploadTargetId) return;
+    setUploadingBeforeId(beforeUploadTargetId);
+    try {
+      const file = files[0];
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: base64,
+          filename: `before-${file.name}`,
+          mimeType: file.type,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+      const { url } = await response.json();
+
+      await updateImage.mutateAsync({
+        id: beforeUploadTargetId,
+        beforeUrl: url,
+      });
+    } catch (err) {
+      console.error("Before image upload error:", err);
+      alert("Before 이미지 업로드에 실패했습니다.");
+    } finally {
+      setUploadingBeforeId(null);
+      setBeforeUploadTargetId(null);
+      if (beforeFileInputRef.current) beforeFileInputRef.current.value = "";
+    }
   };
 
   const handleFileUpload = async (files: FileList | null) => {
@@ -359,7 +405,16 @@ export default function AdminPortfolioDetail() {
                     <p className="text-xs text-muted-foreground/60 mt-1">JPG, PNG, WebP 지원 (최대 10MB)</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <>
+                    {/* Hidden Before file input */}
+                    <input
+                      ref={beforeFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => handleBeforeUpload(e.target.files)}
+                    />
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {images.map((img: any) => (
                       <div key={img.id} className="group relative">
                         <div className="aspect-[4/3] overflow-hidden rounded-lg border border-border/50">
@@ -421,6 +476,42 @@ export default function AdminPortfolioDetail() {
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
+                        {/* Before image indicator & upload */}
+                        <div className="mt-1.5 flex items-center gap-1">
+                          {img.beforeUrl ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200 rounded">
+                              <SplitSquareHorizontal className="w-3 h-3" />
+                              B/A 비교 가능
+                            </span>
+                          ) : (
+                            <button
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium bg-gray-50 text-gray-500 border border-gray-200 rounded hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                              onClick={() => {
+                                setBeforeUploadTargetId(img.id);
+                                setTimeout(() => beforeFileInputRef.current?.click(), 0);
+                              }}
+                              disabled={uploadingBeforeId === img.id}
+                            >
+                              {uploadingBeforeId === img.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Upload className="w-3 h-3" />
+                              )}
+                              Before 추가
+                            </button>
+                          )}
+                          {img.beforeUrl && (
+                            <button
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium bg-red-50 text-red-500 border border-red-200 rounded hover:bg-red-100 transition-colors"
+                              onClick={() => {
+                                if (confirm("Before 이미지를 제거하시겠습니까?"))
+                                  updateImage.mutate({ id: img.id, beforeUrl: null });
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                         {/* Filename */}
                         <p className="text-xs text-muted-foreground mt-1 truncate">{img.filename || `이미지 ${img.id}`}</p>
                       </div>
@@ -435,7 +526,8 @@ export default function AdminPortfolioDetail() {
                         <span className="text-xs text-muted-foreground">추가</span>
                       </div>
                     </div>
-                  </div>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>

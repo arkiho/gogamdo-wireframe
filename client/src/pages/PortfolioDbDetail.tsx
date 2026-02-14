@@ -1,11 +1,17 @@
 /*
  * DB에서 가져온 게시된 포트폴리오 상세 페이지
+ * Before/After 비교 슬라이더 통합
  */
 
 import { trpc } from "@/lib/trpc";
 import { useParams, Link } from "wouter";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, MapPin, Calendar, Ruler, Building2, Clock } from "lucide-react";
+import {
+  ArrowLeft, ArrowUpRight, MapPin, Calendar, Ruler, Building2, Clock,
+  SplitSquareHorizontal, Grid3X3, X,
+} from "lucide-react";
+import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -24,6 +30,7 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
 export default function PortfolioDbDetail() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id || "0");
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const { data: project, isLoading } = trpc.portfolio.detail.useQuery(
     { id },
@@ -56,6 +63,8 @@ export default function PortfolioDbDetail() {
   const images = project.images || [];
   const coverImage = images.find((img: any) => img.isCover === "yes") || images[0];
   const galleryImages = images.filter((img: any) => img.id !== coverImage?.id);
+  const beforeAfterImages = images.filter((img: any) => img.beforeUrl);
+  const regularGalleryImages = galleryImages.filter((img: any) => !img.beforeUrl);
 
   return (
     <>
@@ -75,6 +84,12 @@ export default function PortfolioDbDetail() {
                   {project.category}
                 </span>
               )}
+              {beforeAfterImages.length > 0 && (
+                <span className="px-3 py-1 text-xs font-medium bg-blue-50 text-blue-600 border border-blue-200 inline-flex items-center gap-1">
+                  <SplitSquareHorizontal className="w-3 h-3" />
+                  Before/After {beforeAfterImages.length}장
+                </span>
+              )}
             </div>
             <h1 className="font-heading text-3xl lg:text-5xl font-bold text-ink leading-tight mb-6">
               {project.title}
@@ -83,18 +98,30 @@ export default function PortfolioDbDetail() {
         </div>
       </section>
 
-      {/* Cover Image */}
+      {/* Cover Image - show as B/A slider if cover has beforeUrl */}
       {coverImage && (
         <section className="pb-12">
           <div className="container">
             <FadeUp>
-              <div className="aspect-[16/9] overflow-hidden">
-                <img
-                  src={coverImage.processedUrl || coverImage.originalUrl}
-                  alt={project.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              {coverImage.beforeUrl ? (
+                <div className="aspect-[16/9] overflow-hidden rounded-lg">
+                  <BeforeAfterSlider
+                    beforeImage={coverImage.beforeUrl}
+                    afterImage={coverImage.processedUrl || coverImage.originalUrl}
+                    beforeLabel="시공 전"
+                    afterLabel="시공 후"
+                    className="w-full h-full"
+                  />
+                </div>
+              ) : (
+                <div className="aspect-[16/9] overflow-hidden">
+                  <img
+                    src={coverImage.processedUrl || coverImage.originalUrl}
+                    alt={project.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
             </FadeUp>
           </div>
         </section>
@@ -173,21 +200,72 @@ export default function PortfolioDbDetail() {
         </div>
       </section>
 
-      {/* Gallery */}
-      {galleryImages.length > 0 && (
+      {/* Before/After Comparison Section */}
+      {beforeAfterImages.length > 0 && (
+        <section className="pb-20 lg:pb-28 bg-paper-warm py-16 lg:py-24">
+          <div className="container">
+            <FadeUp>
+              <div className="flex items-center gap-3 mb-2">
+                <SplitSquareHorizontal className="w-5 h-5 text-gold" />
+                <p className="text-xs font-medium tracking-widest uppercase text-gold">
+                  Before & After
+                </p>
+              </div>
+              <h2 className="font-heading text-2xl lg:text-4xl font-bold text-ink mb-4">
+                시공 전후 비교
+              </h2>
+              <p className="text-muted-foreground mb-12 max-w-lg">
+                슬라이더를 좌우로 드래그하여 시공 전후의 변화를 직접 확인하세요.
+              </p>
+            </FadeUp>
+            <div className="space-y-12">
+              {beforeAfterImages.map((img: any, i: number) => (
+                <FadeUp key={img.id} delay={i * 0.1}>
+                  <div className="max-w-4xl mx-auto">
+                    <div className="aspect-[16/10] overflow-hidden rounded-lg shadow-lg">
+                      <BeforeAfterSlider
+                        beforeImage={img.beforeUrl}
+                        afterImage={img.processedUrl || img.originalUrl}
+                        beforeLabel="시공 전"
+                        afterLabel="시공 후"
+                        className="w-full h-full"
+                      />
+                    </div>
+                    {img.caption && (
+                      <p className="text-sm text-muted-foreground mt-3 text-center">{img.caption}</p>
+                    )}
+                  </div>
+                </FadeUp>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Regular Gallery */}
+      {regularGalleryImages.length > 0 && (
         <section className="pb-20 lg:pb-28">
           <div className="container">
             <FadeUp>
+              <div className="flex items-center gap-3 mb-2">
+                <Grid3X3 className="w-5 h-5 text-gold" />
+                <p className="text-xs font-medium tracking-widest uppercase text-gold">
+                  Gallery
+                </p>
+              </div>
               <h2 className="font-heading text-2xl font-bold text-ink mb-8">프로젝트 갤러리</h2>
             </FadeUp>
             <div className="grid md:grid-cols-2 gap-6">
-              {galleryImages.map((img: any, i: number) => (
+              {regularGalleryImages.map((img: any, i: number) => (
                 <FadeUp key={img.id} delay={i * 0.1}>
-                  <div className="aspect-[4/3] overflow-hidden">
+                  <div
+                    className="aspect-[4/3] overflow-hidden cursor-pointer group"
+                    onClick={() => setLightboxIdx(i)}
+                  >
                     <img
                       src={img.processedUrl || img.originalUrl}
                       alt={img.caption || `${project.title} - ${i + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     />
                   </div>
                   {img.caption && (
@@ -198,6 +276,53 @@ export default function PortfolioDbDetail() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* Lightbox */}
+      {lightboxIdx !== null && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightboxIdx(null)}
+        >
+          <button
+            className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"
+            onClick={() => setLightboxIdx(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img
+            src={regularGalleryImages[lightboxIdx]?.processedUrl || regularGalleryImages[lightboxIdx]?.originalUrl}
+            alt=""
+            className="max-w-full max-h-[90vh] object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+          {/* Navigation arrows */}
+          {regularGalleryImages.length > 1 && (
+            <>
+              <button
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                onClick={e => {
+                  e.stopPropagation();
+                  setLightboxIdx(prev => prev !== null ? (prev - 1 + regularGalleryImages.length) % regularGalleryImages.length : 0);
+                }}
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+              <button
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors rotate-180"
+                onClick={e => {
+                  e.stopPropagation();
+                  setLightboxIdx(prev => prev !== null ? (prev + 1) % regularGalleryImages.length : 0);
+                }}
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+            </>
+          )}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/50 text-sm">
+            {lightboxIdx + 1} / {regularGalleryImages.length}
+          </div>
+        </div>
       )}
 
       {/* CTA */}

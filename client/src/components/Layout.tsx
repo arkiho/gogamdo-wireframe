@@ -318,7 +318,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="border-t border-white/5">
           <div className="container py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-white/25">
-              &copy; 2026 (주)고감도. All rights reserved.
+              &copy; 2026 (주)고감도. 공동대표 안향자·김기호. All rights reserved.
             </p>
             <div className="flex gap-6">
               <span className="text-xs text-white/25 hover:text-white/50 transition-colors cursor-pointer">

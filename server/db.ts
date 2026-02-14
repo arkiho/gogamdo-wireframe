@@ -1,6 +1,6 @@
-import { eq, desc, count, and, lte, gte, or, isNull, ne } from "drizzle-orm";
+import { eq, desc, count, and, lte, gte, or, isNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -436,5 +436,286 @@ export async function getDashboardStats() {
     subscribers: subRows?.count ?? 0,
     estimates: estRows?.count ?? 0,
     newInquiries: newInqRows?.count ?? 0,
+  };
+}
+
+// ===== DDIA: Space Project Queries =====
+
+export async function createSpaceProject(data: InsertSpaceProject) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(spaceProjects).values(data);
+  return { success: true, id: result[0].insertId };
+}
+
+export async function listSpaceProjects() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(spaceProjects).orderBy(desc(spaceProjects.updatedAt));
+}
+
+export async function getSpaceProject(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(spaceProjects).where(eq(spaceProjects.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateSpaceProject(id: number, data: Partial<InsertSpaceProject>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(spaceProjects).set(data).where(eq(spaceProjects.id, id));
+  return { success: true };
+}
+
+export async function deleteSpaceProject(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(sensorData).where(eq(sensorData.projectId, id));
+  await db.delete(sensors).where(eq(sensors.projectId, id));
+  await db.delete(spaceAnalysis).where(eq(spaceAnalysis.projectId, id));
+  await db.delete(spaceProjects).where(eq(spaceProjects.id, id));
+  return { success: true };
+}
+
+// ===== DDIA: Sensor Queries =====
+
+export async function createSensor(data: InsertSensor) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(sensors).values(data);
+  return { success: true, id: result[0].insertId };
+}
+
+export async function listSensors(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(sensors)
+    .where(eq(sensors.projectId, projectId))
+    .orderBy(sensors.name);
+}
+
+export async function updateSensor(id: number, data: Partial<InsertSensor>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(sensors).set(data).where(eq(sensors.id, id));
+  return { success: true };
+}
+
+export async function deleteSensor(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(sensorData).where(eq(sensorData.sensorId, id));
+  await db.delete(sensors).where(eq(sensors.id, id));
+  return { success: true };
+}
+
+// ===== DDIA: Sensor Data Queries =====
+
+export async function addSensorData(data: InsertSensorData) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(sensorData).values(data);
+  return { success: true };
+}
+
+export async function addSensorDataBatch(rows: InsertSensorData[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (rows.length === 0) return { success: true, count: 0 };
+  await db.insert(sensorData).values(rows);
+  return { success: true, count: rows.length };
+}
+
+export async function getSensorDataRange(sensorId: number, from: Date, to: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(sensorData)
+    .where(and(
+      eq(sensorData.sensorId, sensorId),
+      gte(sensorData.recordedAt, from),
+      lte(sensorData.recordedAt, to),
+    ))
+    .orderBy(sensorData.recordedAt);
+}
+
+export async function getSensorLatestData(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Get latest reading per sensor for a project
+  const allSensors = await db.select().from(sensors).where(eq(sensors.projectId, projectId));
+  const results = [];
+  for (const s of allSensors) {
+    const latest = await db.select().from(sensorData)
+      .where(eq(sensorData.sensorId, s.id))
+      .orderBy(desc(sensorData.recordedAt))
+      .limit(1);
+    results.push({
+      sensor: s,
+      latestValue: latest[0]?.value ?? null,
+      latestAt: latest[0]?.recordedAt ?? null,
+    });
+  }
+  return results;
+}
+
+// ===== DDIA: Space Analysis Queries =====
+
+export async function createSpaceAnalysis(data: InsertSpaceAnalysis) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(spaceAnalysis).values(data);
+  return { success: true, id: result[0].insertId };
+}
+
+export async function listSpaceAnalyses(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(spaceAnalysis)
+    .where(eq(spaceAnalysis.projectId, projectId))
+    .orderBy(desc(spaceAnalysis.createdAt));
+}
+
+// ========== CRM: Clients ==========
+
+export async function listCrmClients() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(crmClients).orderBy(desc(crmClients.updatedAt));
+}
+
+export async function getCrmClient(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(crmClients).where(eq(crmClients.id, id));
+  return rows[0] || null;
+}
+
+export async function createCrmClient(data: Omit<InsertCrmClient, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(crmClients).values(data);
+  return result[0].insertId;
+}
+
+export async function updateCrmClient(id: number, data: Partial<InsertCrmClient>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(crmClients).set(data).where(eq(crmClients.id, id));
+}
+
+export async function deleteCrmClient(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(crmClients).where(eq(crmClients.id, id));
+}
+
+// ========== CRM: Interactions ==========
+
+export async function listCrmInteractions(clientId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(crmInteractions)
+    .where(eq(crmInteractions.clientId, clientId))
+    .orderBy(desc(crmInteractions.createdAt));
+}
+
+export async function createCrmInteraction(data: Omit<InsertCrmInteraction, "id" | "createdAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(crmInteractions).values(data);
+  return result[0].insertId;
+}
+
+export async function deleteCrmInteraction(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(crmInteractions).where(eq(crmInteractions.id, id));
+}
+
+// ========== CRM: Deals ==========
+
+export async function listCrmDeals(clientId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  if (clientId) {
+    return db.select().from(crmDeals)
+      .where(eq(crmDeals.clientId, clientId))
+      .orderBy(desc(crmDeals.updatedAt));
+  }
+  return db.select().from(crmDeals).orderBy(desc(crmDeals.updatedAt));
+}
+
+export async function getCrmDeal(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(crmDeals).where(eq(crmDeals.id, id));
+  return rows[0] || null;
+}
+
+export async function createCrmDeal(data: Omit<InsertCrmDeal, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(crmDeals).values(data);
+  return result[0].insertId;
+}
+
+export async function updateCrmDeal(id: number, data: Partial<InsertCrmDeal>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(crmDeals).set(data).where(eq(crmDeals.id, id));
+}
+
+export async function deleteCrmDeal(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(crmDeals).where(eq(crmDeals.id, id));
+}
+
+// ========== CRM: Activities ==========
+
+export async function listCrmActivities(opts: { dealId?: number; clientId?: number }) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [];
+  if (opts.dealId) conditions.push(eq(crmActivities.dealId, opts.dealId));
+  if (opts.clientId) conditions.push(eq(crmActivities.clientId, opts.clientId));
+  if (conditions.length === 0) return db.select().from(crmActivities).orderBy(desc(crmActivities.createdAt)).limit(50);
+  return db.select().from(crmActivities)
+    .where(conditions.length === 1 ? conditions[0] : or(...conditions))
+    .orderBy(desc(crmActivities.createdAt));
+}
+
+export async function createCrmActivity(data: Omit<InsertCrmActivity, "id" | "createdAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(crmActivities).values(data);
+  return result[0].insertId;
+}
+
+// ========== CRM: Stats ==========
+
+export async function getCrmStats() {
+  const db = await getDb();
+  if (!db) return { totalClients: 0, activeDeals: 0, totalDealValue: 0, wonDeals: 0, lostDeals: 0 };
+  const [clientCount] = await db.select({ count: count() }).from(crmClients);
+  const [activeCount] = await db.select({ count: count() }).from(crmDeals)
+    .where(and(
+      ne(crmDeals.stage, "completed"),
+      ne(crmDeals.stage, "lost")
+    ));
+  const [totalValue] = await db.select({ total: sql<number>`COALESCE(SUM(estimatedValue), 0)` }).from(crmDeals)
+    .where(and(
+      ne(crmDeals.stage, "completed"),
+      ne(crmDeals.stage, "lost")
+    ));
+  const [wonCount] = await db.select({ count: count() }).from(crmDeals).where(eq(crmDeals.stage, "completed"));
+  const [lostCount] = await db.select({ count: count() }).from(crmDeals).where(eq(crmDeals.stage, "lost"));
+  return {
+    totalClients: clientCount.count,
+    activeDeals: activeCount.count,
+    totalDealValue: totalValue.total || 0,
+    wonDeals: wonCount.count,
+    lostDeals: lostCount.count,
   };
 }

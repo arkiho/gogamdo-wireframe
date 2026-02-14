@@ -18,7 +18,7 @@ import {
   ChevronDown, ChevronUp, LogOut, Download,
   Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
-  HardDrive, RefreshCw, CloudDownload,
+  HardDrive, RefreshCw, CloudDownload, BarChart3,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
@@ -133,6 +133,9 @@ export default function AdminDashboard() {
     { id: "portfolio", label: "포트폴리오", icon: <Image className="w-4 h-4" />, count: portfolioDrafts.data?.length },
     { id: "drive-sync", label: "드라이브 동기화", icon: <HardDrive className="w-4 h-4" /> },
   ];
+
+  // DDIA 바로가기 링크
+  const [, navigate] = useLocation();
 
   return (
     <div className="min-h-screen bg-paper">
@@ -268,6 +271,38 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* DDIA 바로가기 */}
+            <Card className="border-gold/30 bg-gradient-to-r from-gold/5 to-transparent cursor-pointer hover:border-gold/50 transition-colors" onClick={() => navigate("/admin/ddia")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-gold/10 flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6 text-gold" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">DDIA 공간 분석</h3>
+                    <p className="text-xs text-muted-foreground">Data Driven Interior Architecture — 센서 데이터 수집 및 공간 분석</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            {/* CRM 바로가기 */}
+            <Card className="border-blue-300/30 bg-gradient-to-r from-blue-50/50 to-transparent cursor-pointer hover:border-blue-400/50 transition-colors" onClick={() => navigate("/admin/crm")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">고객 관리 (CRM)</h3>
+                    <p className="text-xs text-muted-foreground">고객 관리, 상담 이력, 딜 파이프라인, 프로젝트 추적</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
               </CardContent>
             </Card>
           </div>

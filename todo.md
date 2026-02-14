@@ -69,3 +69,24 @@
 - [x] 구글 드라이브 동기화 모듈 재구현 (googleDrive.ts, driveSyncPipeline.ts, 라우터, 대시보드 탭)
 - [x] 관리자 대시보드 드라이브 동기화 탭 재추가
 - [x] 프로젝트 데이터 DB 시드 (이미 8개 프로젝트 published 상태로 존재)
+- [x] Before/After 이미지 비교 슬라이더 컴포넌트 구현 (드래그 방식)
+- [x] DB 스키마에 Before 이미지 필드 추가 (draftImages.beforeUrl)
+- [x] 관리자 대시보드에 Before 이미지 업로드 UI 추가
+- [x] 포트폴리오 상세 페이지에 Before/After 비교 뷰어 통합 (DB 포트폴리오 + 라이트박스 갤러리)
+- [x] 정적 프로젝트 상세 페이지에도 Before/After 비교 뷰어 적용 (히어로 섹션)
+- [ ] Before/After 비교 뷰어 테스트 작성
+- [x] DDIA: DB 스키마 설계 (spaceProjects, sensors, sensorData, spaceAnalysis)
+- [x] DDIA: 센서 관리 및 데이터 수집 tRPC 라우터 구현 (CRUD + AI 분석)
+- [ ] DDIA: 평면도 센서 배치 인터랙티브 UI (관리자 대시보드)
+- [ ] DDIA: 센서 데이터 실시간 시각화 (히트맵, 차트)
+- [ ] DDIA: OpsX 컨설팅 프로세스 소개 페이지 (서베이→키워드→다이어그램→레이아웃)
+- [ ] DDIA: 홈페이지 Data-Driven Design 섹션 OpsX 프로세스 반영 업데이트
+- [ ] DDIA: 테스트 작성
+- [x] 사업자 대표 변경: 안향자·김기호 공동대표 (About, 푸터, Schema.org 반영)
+- [x] DDIA AdminDDIA.tsx App.tsx 라우트 등록 + 관리자 대시보드 DDIA 바로가기 카드 추가
+- [ ] OpsX 컨설팅 프로세스 소개 페이지 구현
+- [ ] 홈페이지 Data-Driven Design 섹션 OpsX 프로세스 반영
+- [x] CRM: DB 스키마 설계 (crmClients, crmInteractions, crmDeals, crmActivities)
+- [x] CRM: 백엔드 tRPC 라우터 구현 (clients, interactions, deals, activities, stats)
+- [x] CRM: 관리자 대시보드 UI 구현 (대시보드, 고객목록, 고객상세, 딜 파이프라인 칸반)
+- [x] CRM: 테스트 작성 (18개 테스트, 전체 109개 통과)

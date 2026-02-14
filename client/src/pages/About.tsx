@@ -55,8 +55,8 @@ export default function About() {
               공간에 감도를 더하다
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              (주)고감도는 2014년 설립 이래, 기업의 비전과 문화를 공간에 담아내는 사무공간 전문 인테리어 기업입니다.
-              설계부터 시공까지 원스톱 솔루션을 제공하며, 150건 이상의 프로젝트를 성공적으로 완수하였습니다.
+              (주)고감도는 안향자·김기호 공동대표가 이끄는 사무공간 전문 인테리어 기업입니다.
+              2014년 설립 이래 기업의 비전과 문화를 공간에 담아내며, 설계부터 시공까지 원스톱 솔루션을 제공하고 150건 이상의 프로젝트를 성공적으로 완수하였습니다.
             </p>
           </FadeUp>
         </div>
@@ -88,6 +88,7 @@ export default function About() {
                 <blockquote className="text-ink font-heading text-lg font-semibold italic">
                   "공간이 달라지면 일하는 방식이 달라집니다"
                 </blockquote>
+                <p className="text-sm text-muted-foreground mt-3">— 안향자·김기호, (주)고감도 공동대표</p>
               </div>
             </FadeUp>
           </div>

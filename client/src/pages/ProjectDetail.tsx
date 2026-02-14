@@ -5,8 +5,9 @@ import { analytics } from "@/lib/analytics";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, Calendar, MapPin, Clock,
-  Ruler, ChevronRight, ArrowUpRight, Quote,
+  Ruler, ChevronRight, ArrowUpRight, Quote, SplitSquareHorizontal,
 } from "lucide-react";
+import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -57,12 +58,22 @@ export default function ProjectDetail() {
     <>
       {/* Hero Section */}
       <section className="relative h-[60vh] lg:h-[70vh] overflow-hidden">
-        <img
-          src={project.image}
-          alt={project.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        {project.beforeImage ? (
+          <BeforeAfterSlider
+            beforeImage={project.beforeImage}
+            afterImage={project.image}
+            beforeLabel="시공 전"
+            afterLabel="시공 후"
+            className="w-full h-full"
+          />
+        ) : (
+          <img
+            src={project.image}
+            alt={project.name}
+            className="w-full h-full object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
 
         {/* Breadcrumb */}
         <div className="absolute top-24 left-0 right-0 z-10">
