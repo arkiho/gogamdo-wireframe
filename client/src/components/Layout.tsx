@@ -14,6 +14,9 @@ import { trpc } from "@/lib/trpc";
 import { analytics } from "@/lib/analytics";
 import Logo from "./Logo";
 import KakaoChat from "./KakaoChat";
+import AnnouncementBanner from "./AnnouncementBanner";
+import ExitIntentPopup from "./ExitIntentPopup";
+import RelatedPages from "./RelatedPages";
 
 const NAV_ITEMS = [
   { label: "회사소개", href: "/about" },
@@ -99,6 +102,9 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Announcement Banner */}
+      <AnnouncementBanner />
+
       {/* Scroll Progress Bar */}
       <div
         className="scroll-progress"
@@ -212,8 +218,14 @@ export default function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* Kakao Chat Widget */}
+      {/* KakaoTalk Chat Widget */}
       <KakaoChat />
+
+      {/* Exit Intent & Engagement Popup */}
+      <ExitIntentPopup />
+
+      {/* Related Pages - SEO Internal Linking */}
+      <RelatedPages />
 
       {/* Footer */}
       <footer className="bg-ink text-white/80">
@@ -273,6 +285,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   { label: "프로젝트", href: "/portfolio" },
                   { label: "AI 상담", href: "/ai-chat" },
                   { label: "AI 스타일", href: "/ai-style" },
+                  { label: "FAQ", href: "/faq" },
                   { label: "문의하기", href: "/contact" },
                 ].map((item) => (
                   <li key={item.href}>

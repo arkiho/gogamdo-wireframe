@@ -10,6 +10,7 @@ import {
   createLeadDownload, listLeadDownloads,
   upsertChatSession, listChatSessions,
   createStyleRecommendation, listStyleRecommendations,
+  createAnnouncement, listAnnouncements, getActiveAnnouncements, updateAnnouncement, deleteAnnouncement,
   getDashboardStats,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
@@ -80,12 +81,19 @@ export const appRouter = router({
         source: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        return addSubscriber({
+        const result = await addSubscriber({
           email: input.email,
           name: input.name ?? null,
           company: input.company ?? null,
           source: input.source ?? "footer",
         });
+        if (result.isNew) {
+          await notifyOwner({
+            title: `새 뉴스레터 구독: ${input.email}`,
+            content: `이메일: ${input.email}\n이름: ${input.name || "-"}\n회사: ${input.company || "-"}\n경로: ${input.source || "footer"}`,
+          }).catch(() => {});
+        }
+        return result;
       }),
     list: adminProcedure.query(async () => {
       return listSubscribers();
@@ -115,7 +123,16 @@ export const appRouter = router({
         contactName: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        return createEstimate(input);
+        const result = await createEstimate(input);
+        // 연락처가 있는 견적은 관리자에게 알림
+        if (input.contactEmail) {
+          const pyeong = input.area ? Math.round(input.area / 3.3) : 0;
+          await notifyOwner({
+            title: `새 견적 요청: ${input.contactName || input.contactEmail}`,
+            content: `이름: ${input.contactName || "-"}\n이메일: ${input.contactEmail}\n공간: ${input.spaceType || "-"}\n면적: ${input.area || "-"}㎡ (약 ${pyeong}평)\n등급: ${input.grade || "-"}\n예상 비용: ${input.totalMin?.toLocaleString() || "-"} ~ ${input.totalMax?.toLocaleString() || "-"}만원`,
+          }).catch(() => {});
+        }
+        return result;
       }),
     list: adminProcedure.query(async () => {
       return listEstimates();
@@ -478,6 +495,69 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
     list: adminProcedure.query(async () => {
       return listStyleRecommendations();
     }),
+  }),
+
+  // ===== 공지 배너 (Announcements) =====
+  announcement: router({
+    // 공개: 활성화된 공지만 반환
+    active: publicProcedure.query(async () => {
+      return getActiveAnnouncements();
+    }),
+    // 관리자: 전체 목록
+    list: adminProcedure.query(async () => {
+      return listAnnouncements();
+    }),
+    // 관리자: 생성
+    create: adminProcedure
+      .input(z.object({
+        title: z.string().min(1),
+        message: z.string().min(1),
+        linkUrl: z.string().optional(),
+        linkText: z.string().optional(),
+        bgColor: z.string().optional(),
+        textColor: z.string().optional(),
+        priority: z.number().optional(),
+        startsAt: z.date().optional(),
+        endsAt: z.date().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return createAnnouncement({
+          title: input.title,
+          message: input.message,
+          linkUrl: input.linkUrl ?? null,
+          linkText: input.linkText ?? null,
+          bgColor: input.bgColor ?? "#111111",
+          textColor: input.textColor ?? "#ffffff",
+          priority: input.priority ?? 0,
+          startsAt: input.startsAt ?? null,
+          endsAt: input.endsAt ?? null,
+        });
+      }),
+    // 관리자: 수정
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        message: z.string().optional(),
+        linkUrl: z.string().optional(),
+        linkText: z.string().optional(),
+        bgColor: z.string().optional(),
+        textColor: z.string().optional(),
+        active: z.enum(["yes", "no"]).optional(),
+        priority: z.number().optional(),
+        startsAt: z.date().nullable().optional(),
+        endsAt: z.date().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updateAnnouncement(id, data as any);
+      }),
+    // 관리자: 삭제
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteAnnouncement(input.id);
+      }),
   }),
 
   // ===== 관리자 대시보드 (Admin Dashboard) =====

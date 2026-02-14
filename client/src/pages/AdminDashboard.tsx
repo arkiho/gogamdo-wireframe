@@ -16,12 +16,12 @@ import {
   MessageSquare, Users, Calculator, AlertCircle,
   ArrowLeft, Mail, Phone, Building2, Calendar,
   ChevronDown, ChevronUp, LogOut, Download,
-  Bot, Sparkles, ExternalLink,
+  Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { Link } from "wouter";
 import Logo from "@/components/Logo";
 
-type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style";
+type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   new: { label: "신규", variant: "destructive" },
@@ -53,6 +53,20 @@ export default function AdminDashboard() {
   const leadDownloads = trpc.leadMagnet.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const chatSessions = trpc.aiChat.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const styleRecs = trpc.aiStyle.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const announcementsList = trpc.announcement.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+
+  // Announcement mutations
+  const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
+  const [newAnn, setNewAnn] = useState({ title: "", message: "", linkUrl: "", linkText: "", bgColor: "#111111", textColor: "#ffffff" });
+  const createAnnouncement = trpc.announcement.create.useMutation({
+    onSuccess: () => { announcementsList.refetch(); setShowNewAnnouncement(false); setNewAnn({ title: "", message: "", linkUrl: "", linkText: "", bgColor: "#111111", textColor: "#ffffff" }); },
+  });
+  const updateAnnouncement = trpc.announcement.update.useMutation({
+    onSuccess: () => announcementsList.refetch(),
+  });
+  const deleteAnnouncement = trpc.announcement.delete.useMutation({
+    onSuccess: () => announcementsList.refetch(),
+  });
 
   const updateStatus = trpc.inquiry.updateStatus.useMutation({
     onSuccess: () => {
@@ -111,6 +125,7 @@ export default function AdminDashboard() {
     { id: "leads", label: "리드", icon: <Download className="w-4 h-4" /> },
     { id: "ai-chat", label: "AI 상담", icon: <Bot className="w-4 h-4" />, count: chatSessions.data?.length },
     { id: "ai-style", label: "AI 스타일", icon: <Sparkles className="w-4 h-4" />, count: styleRecs.data?.length },
+    { id: "announcements", label: "공지관리", icon: <Megaphone className="w-4 h-4" />, count: announcementsList.data?.length },
   ];
 
   return (
@@ -652,6 +667,187 @@ export default function AdminDashboard() {
                     </Card>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        )}
+        {/* Announcements Tab */}
+        {activeTab === "announcements" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl font-bold text-ink">공지 배너 관리</h2>
+              <Button onClick={() => setShowNewAnnouncement(!showNewAnnouncement)} className="bg-ink text-white hover:bg-ink/90">
+                <Plus className="w-4 h-4 mr-1" />
+                새 공지
+              </Button>
+            </div>
+
+            {showNewAnnouncement && (
+              <Card className="border-gold/30">
+                <CardHeader>
+                  <CardTitle className="text-lg">새 공지 작성</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">제목 *</label>
+                      <input
+                        type="text"
+                        value={newAnn.title}
+                        onChange={e => setNewAnn({ ...newAnn, title: e.target.value })}
+                        placeholder="예: 봄맞이 이벤트"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">메시지 *</label>
+                      <input
+                        type="text"
+                        value={newAnn.message}
+                        onChange={e => setNewAnn({ ...newAnn, message: e.target.value })}
+                        placeholder="예: 3월 한정 인테리어 상담 20% 할인"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">링크 URL</label>
+                      <input
+                        type="text"
+                        value={newAnn.linkUrl}
+                        onChange={e => setNewAnn({ ...newAnn, linkUrl: e.target.value })}
+                        placeholder="/contact"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">링크 텍스트</label>
+                      <input
+                        type="text"
+                        value={newAnn.linkText}
+                        onChange={e => setNewAnn({ ...newAnn, linkText: e.target.value })}
+                        placeholder="자세히 보기"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">배경색</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={newAnn.bgColor}
+                          onChange={e => setNewAnn({ ...newAnn, bgColor: e.target.value })}
+                          className="w-10 h-10 rounded cursor-pointer border-0"
+                        />
+                        <input
+                          type="text"
+                          value={newAnn.bgColor}
+                          onChange={e => setNewAnn({ ...newAnn, bgColor: e.target.value })}
+                          className="flex-1 px-3 py-2 border border-border rounded-md text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">글자색</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={newAnn.textColor}
+                          onChange={e => setNewAnn({ ...newAnn, textColor: e.target.value })}
+                          className="w-10 h-10 rounded cursor-pointer border-0"
+                        />
+                        <input
+                          type="text"
+                          value={newAnn.textColor}
+                          onChange={e => setNewAnn({ ...newAnn, textColor: e.target.value })}
+                          className="flex-1 px-3 py-2 border border-border rounded-md text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Preview */}
+                  <div className="rounded-md overflow-hidden" style={{ backgroundColor: newAnn.bgColor, color: newAnn.textColor }}>
+                    <div className="flex items-center justify-center gap-3 py-2.5 px-4">
+                      <p className="text-xs sm:text-sm font-medium">
+                        <span className="font-semibold mr-1.5">{newAnn.title || "제목"}</span>
+                        <span className="opacity-80">{newAnn.message || "메시지"}</span>
+                      </p>
+                      {newAnn.linkText && <span className="text-xs font-semibold underline">{newAnn.linkText}</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => createAnnouncement.mutate({ title: newAnn.title, message: newAnn.message, linkUrl: newAnn.linkUrl || undefined, linkText: newAnn.linkText || undefined, bgColor: newAnn.bgColor, textColor: newAnn.textColor })}
+                      disabled={!newAnn.title || !newAnn.message || createAnnouncement.isPending}
+                      className="bg-gold text-ink hover:bg-gold-light"
+                    >
+                      {createAnnouncement.isPending ? "저장 중..." : "공지 등록"}
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowNewAnnouncement(false)}>취소</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!announcementsList.data || announcementsList.data.length === 0 ? (
+              <Card className="border-border/50">
+                <CardContent className="py-16 text-center">
+                  <Megaphone className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <p className="text-muted-foreground">등록된 공지가 없습니다.</p>
+                  <p className="text-sm text-muted-foreground/60 mt-1">새 공지를 등록하면 홈페이지 상단에 배너로 표시됩니다.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {announcementsList.data.map((ann) => (
+                  <Card key={ann.id} className="border-border/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant={ann.active === "yes" ? "default" : "secondary"} className={ann.active === "yes" ? "bg-green-500 text-white" : ""}>
+                              {ann.active === "yes" ? "활성" : "비활성"}
+                            </Badge>
+                            <span className="font-heading font-bold text-ink">{ann.title}</span>
+                            <span className="text-xs text-muted-foreground">우선순위: {ann.priority}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">{ann.message}</p>
+                          {/* Preview bar */}
+                          <div className="rounded-md overflow-hidden inline-block" style={{ backgroundColor: ann.bgColor || "#111", color: ann.textColor || "#fff" }}>
+                            <div className="flex items-center gap-2 py-1.5 px-4">
+                              <span className="text-xs font-semibold">{ann.title}</span>
+                              <span className="text-xs opacity-80">{ann.message}</span>
+                              {ann.linkText && <span className="text-xs underline">{ann.linkText}</span>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                            {ann.linkUrl && <span>링크: {ann.linkUrl}</span>}
+                            <span>{formatDate(ann.createdAt)}</span>
+                            {ann.startsAt && <span>시작: {formatDate(ann.startsAt)}</span>}
+                            {ann.endsAt && <span>종료: {formatDate(ann.endsAt)}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateAnnouncement.mutate({ id: ann.id, active: ann.active === "yes" ? "no" : "yes" })}
+                            title={ann.active === "yes" ? "비활성화" : "활성화"}
+                          >
+                            {ann.active === "yes" ? <ToggleRight className="w-5 h-5 text-green-500" /> : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { if (confirm("이 공지를 삭제하시겠습니까?")) deleteAnnouncement.mutate({ id: ann.id }); }}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </div>

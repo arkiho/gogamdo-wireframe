@@ -1,6 +1,6 @@
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, and, lte, gte, or, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -231,6 +231,48 @@ export async function listStyleRecommendations() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(styleRecommendations).orderBy(desc(styleRecommendations.createdAt));
+}
+
+// ===== Announcement Queries =====
+
+export async function createAnnouncement(data: InsertAnnouncement) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(announcements).values(data);
+  return { success: true };
+}
+
+export async function listAnnouncements() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(announcements).orderBy(desc(announcements.priority), desc(announcements.createdAt));
+}
+
+export async function getActiveAnnouncements() {
+  const db = await getDb();
+  if (!db) return [];
+  const now = new Date();
+  return db.select().from(announcements).where(
+    and(
+      eq(announcements.active, "yes"),
+      or(isNull(announcements.startsAt), lte(announcements.startsAt, now)),
+      or(isNull(announcements.endsAt), gte(announcements.endsAt, now)),
+    )
+  ).orderBy(desc(announcements.priority), desc(announcements.createdAt));
+}
+
+export async function updateAnnouncement(id: number, data: Partial<InsertAnnouncement>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(announcements).set(data).where(eq(announcements.id, id));
+  return { success: true };
+}
+
+export async function deleteAnnouncement(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(announcements).where(eq(announcements.id, id));
+  return { success: true };
 }
 
 export async function getDashboardStats() {

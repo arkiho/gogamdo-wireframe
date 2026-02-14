@@ -129,3 +129,25 @@ export const styleRecommendations = mysqlTable("style_recommendations", {
 
 export type StyleRecommendation = typeof styleRecommendations.$inferSelect;
 export type InsertStyleRecommendation = typeof styleRecommendations.$inferInsert;
+
+/**
+ * 공지 배너(Announcement Banners)
+ */
+export const announcements = mysqlTable("announcements", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 200 }).notNull(),
+  message: text("message").notNull(),
+  linkUrl: varchar("linkUrl", { length: 500 }),
+  linkText: varchar("linkText", { length: 100 }),
+  bgColor: varchar("bgColor", { length: 20 }).default("#111111"),
+  textColor: varchar("textColor", { length: 20 }).default("#ffffff"),
+  active: mysqlEnum("active", ["yes", "no"]).default("yes").notNull(),
+  priority: int("priority").default(0),
+  startsAt: timestamp("startsAt"),
+  endsAt: timestamp("endsAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = typeof announcements.$inferInsert;

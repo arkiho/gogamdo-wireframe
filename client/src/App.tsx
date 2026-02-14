@@ -17,6 +17,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Resources from "./pages/Resources";
 import AIChat from "./pages/AIChat";
 import AIStyle from "./pages/AIStyle";
+import FAQ from "./pages/FAQ";
 import Layout from "./components/Layout";
 
 function PublicRouter() {
@@ -33,6 +34,7 @@ function PublicRouter() {
         <Route path="/resources" component={Resources} />
         <Route path="/ai-chat" component={AIChat} />
         <Route path="/ai-style" component={AIStyle} />
+        <Route path="/faq" component={FAQ} />
         <Route path="/contact" component={Contact} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
