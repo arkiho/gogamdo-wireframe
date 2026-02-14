@@ -25,6 +25,8 @@ import {
   listCrmInteractions, createCrmInteraction, deleteCrmInteraction,
   listCrmDeals, getCrmDeal, createCrmDeal, updateCrmDeal, deleteCrmDeal,
   listCrmActivities, createCrmActivity, getCrmStats,
+  createPopup, listPopups, getActivePopups, updatePopup, deletePopup,
+  createNotification, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
@@ -135,6 +137,17 @@ export const appRouter = router({
           title: `새 문의: ${input.name} (${input.company || "개인"})`,
           content: `이름: ${input.name}\n회사: ${input.company || "-"}\n이메일: ${input.email}\n전화: ${input.phone || "-"}\n유형: ${input.type || "-"}\n예산: ${input.budget || "-"}\n면적: ${input.area || "-"}\n\n내용:\n${input.message}\n\n[CRM] 고객 및 딜이 자동 생성되었습니다.`,
         });
+
+        // 알림 센터에 기록
+        try {
+          await createNotification({
+            type: "inquiry",
+            title: `새 문의: ${input.name}`,
+            message: `${input.company || "개인"} | ${input.type || "인테리어 문의"} | ${input.email}`,
+            linkUrl: "/admin/inquiries",
+          });
+        } catch (e) { /* 알림 실패해도 문의는 정상 처리 */ }
+
         return result;
       }),
     list: adminProcedure.query(async () => {
@@ -253,6 +266,16 @@ export const appRouter = router({
             title: `새 견적 요청: ${input.contactName || input.contactEmail}`,
             content: `이름: ${input.contactName || "-"}\n이메일: ${input.contactEmail}\n공간: ${input.spaceType || "-"}\n면적: ${input.area || "-"}㎡ (약 ${pyeong}평)\n등급: ${input.grade || "-"}\n예상 비용: ${input.totalMin?.toLocaleString() || "-"} ~ ${input.totalMax?.toLocaleString() || "-"}만원\n\n[CRM] 고객 및 딜이 자동 생성되었습니다.`,
           }).catch(() => {});
+
+          // 알림 센터에 기록
+          try {
+            await createNotification({
+              type: "estimate",
+              title: `새 견적: ${input.contactName || input.contactEmail}`,
+              message: `${input.spaceType || "인테리어"} ${pyeong}평 | ${input.grade || "-"}등급 | ${input.totalMin?.toLocaleString() || "?"}~${input.totalMax?.toLocaleString() || "?"}만원`,
+              linkUrl: "/admin/estimates",
+            });
+          } catch (e) { /* 알림 실패해도 견적은 정상 처리 */ }
         }
         return result;
       }),
@@ -1413,6 +1436,105 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       .mutation(async ({ input }) => {
         const id = await createCrmActivity(input);
         return { id };
+      }),
+  }),
+
+  // ===== 팝업 알림 관리 (Popups) =====
+  popup: router({
+    // 공개: 활성화된 팝업만 반환
+    active: publicProcedure.query(async () => {
+      return getActivePopups();
+    }),
+    // 관리자: 전체 목록
+    list: adminProcedure.query(async () => {
+      return listPopups();
+    }),
+    // 관리자: 생성
+    create: adminProcedure
+      .input(z.object({
+        title: z.string().min(1),
+        content: z.string().min(1),
+        imageUrl: z.string().optional(),
+        linkUrl: z.string().optional(),
+        linkText: z.string().optional(),
+        position: z.enum(["center", "bottom_right", "bottom_left"]).optional(),
+        showOnce: z.enum(["yes", "no"]).optional(),
+        priority: z.number().optional(),
+        startsAt: z.date().optional(),
+        endsAt: z.date().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return createPopup({
+          title: input.title,
+          content: input.content,
+          imageUrl: input.imageUrl ?? null,
+          linkUrl: input.linkUrl ?? null,
+          linkText: input.linkText ?? null,
+          position: input.position ?? "center",
+          showOnce: input.showOnce ?? "no",
+          priority: input.priority ?? 0,
+          startsAt: input.startsAt ?? null,
+          endsAt: input.endsAt ?? null,
+        });
+      }),
+    // 관리자: 수정
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        content: z.string().optional(),
+        imageUrl: z.string().nullable().optional(),
+        linkUrl: z.string().nullable().optional(),
+        linkText: z.string().nullable().optional(),
+        position: z.enum(["center", "bottom_right", "bottom_left"]).optional(),
+        showOnce: z.enum(["yes", "no"]).optional(),
+        active: z.enum(["yes", "no"]).optional(),
+        priority: z.number().optional(),
+        startsAt: z.date().nullable().optional(),
+        endsAt: z.date().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updatePopup(id, data as any);
+      }),
+    // 관리자: 삭제
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deletePopup(input.id);
+      }),
+  }),
+
+  // ===== 관리자 알림 센터 (Notifications) =====
+  notification: router({
+    // 관리자: 알림 목록
+    list: adminProcedure
+      .input(z.object({
+        unreadOnly: z.boolean().optional(),
+        limit: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return listNotifications(input || {});
+      }),
+    // 관리자: 읽지 않은 알림 수
+    unreadCount: adminProcedure.query(async () => {
+      return getUnreadNotificationCount();
+    }),
+    // 관리자: 알림 읽음 처리
+    markRead: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return markNotificationRead(input.id);
+      }),
+    // 관리자: 모두 읽음 처리
+    markAllRead: adminProcedure.mutation(async () => {
+      return markAllNotificationsRead();
+    }),
+    // 관리자: 알림 삭제
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteNotification(input.id);
       }),
   }),
 });

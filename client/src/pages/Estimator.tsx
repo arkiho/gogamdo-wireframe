@@ -669,6 +669,19 @@ export default function Estimator() {
                     실제 견적은 현장 조건, 마감재 선택, 설비 사양에 따라 달라질 수 있습니다.
                   </p>
 
+                  <div className="bg-ink/5 p-4 mb-6 text-center rounded">
+                    <p className="text-xs text-muted-foreground mb-1">직접 상담을 원하시면</p>
+                    <div className="flex items-center justify-center gap-4">
+                      <a href="tel:02-6952-3111" className="text-sm font-medium text-ink hover:text-gold transition-colors">
+                        02-6952-3111
+                      </a>
+                      <span className="text-border">|</span>
+                      <a href="mailto:contact@kokamdo.co.kr" className="text-sm font-medium text-ink hover:text-gold transition-colors">
+                        contact@kokamdo.co.kr
+                      </a>
+                    </div>
+                  </div>
+
                   <div className="flex flex-wrap justify-center gap-4">
                     <Link href="/contact">
                       <span className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">

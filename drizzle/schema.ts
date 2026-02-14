@@ -411,3 +411,47 @@ export const crmActivities = mysqlTable("crm_activities", {
 
 export type CrmActivityRow = typeof crmActivities.$inferSelect;
 export type InsertCrmActivity = typeof crmActivities.$inferInsert;
+
+/**
+ * 팝업 알림(Popup Notifications)
+ * 사이트 방문자에게 표시되는 팝업 (이벤트, 공지 등)
+ */
+export const popups = mysqlTable("popups", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 200 }).notNull(),
+  content: text("content").notNull(),
+  imageUrl: text("imageUrl"),
+  linkUrl: varchar("linkUrl", { length: 500 }),
+  linkText: varchar("linkText", { length: 100 }),
+  position: mysqlEnum("position", ["center", "bottom_right", "bottom_left"]).default("center").notNull(),
+  showOnce: mysqlEnum("showOnce", ["yes", "no"]).default("no").notNull(),
+  active: mysqlEnum("active", ["yes", "no"]).default("yes").notNull(),
+  priority: int("priority").default(0),
+  startsAt: timestamp("startsAt"),
+  endsAt: timestamp("endsAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PopupRow = typeof popups.$inferSelect;
+export type InsertPopup = typeof popups.$inferInsert;
+
+/**
+ * 관리자 알림(Admin Notifications)
+ * 문의, 견적, CRM 이벤트 등 관리자에게 전달되는 알림
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  type: mysqlEnum("type", [
+    "inquiry", "estimate", "crm_deal", "crm_stage_change", "newsletter", "chat", "system"
+  ]).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  message: text("message").notNull(),
+  linkUrl: varchar("linkUrl", { length: 500 }),
+  metadata: json("metadata"),
+  isRead: mysqlEnum("isRead", ["yes", "no"]).default("no").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type NotificationRow = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

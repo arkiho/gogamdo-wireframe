@@ -18,13 +18,14 @@ import {
   ChevronDown, ChevronUp, LogOut, Download,
   Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
-  HardDrive, RefreshCw, CloudDownload, BarChart3,
+  HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
 import Logo from "@/components/Logo";
+import NotificationCenter from "@/components/NotificationCenter";
 
-type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements" | "portfolio" | "drive-sync";
+type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements" | "popups" | "notifications" | "portfolio" | "drive-sync";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   new: { label: "신규", variant: "destructive" },
@@ -130,6 +131,8 @@ export default function AdminDashboard() {
     { id: "ai-chat", label: "AI 상담", icon: <Bot className="w-4 h-4" />, count: chatSessions.data?.length },
     { id: "ai-style", label: "AI 스타일", icon: <Sparkles className="w-4 h-4" />, count: styleRecs.data?.length },
     { id: "announcements", label: "공지관리", icon: <Megaphone className="w-4 h-4" />, count: announcementsList.data?.length },
+    { id: "popups", label: "팝업관리", icon: <Eye className="w-4 h-4" /> },
+    { id: "notifications", label: "알림센터", icon: <Bell className="w-4 h-4" /> },
     { id: "portfolio", label: "포트폴리오", icon: <Image className="w-4 h-4" />, count: portfolioDrafts.data?.length },
     { id: "drive-sync", label: "드라이브 동기화", icon: <HardDrive className="w-4 h-4" /> },
   ];
@@ -154,6 +157,7 @@ export default function AdminDashboard() {
             <span className="text-xs font-medium tracking-widest uppercase text-gold">Admin</span>
           </div>
           <div className="flex items-center gap-3">
+            <NotificationCenter />
             <span className="text-sm text-muted-foreground">{user.name || user.email}</span>
             <Button variant="ghost" size="sm" onClick={logout}>
               <LogOut className="w-4 h-4" />
@@ -375,7 +379,7 @@ export default function AdminDashboard() {
                         <div className="bg-paper-warm rounded-lg p-4">
                           <p className="text-sm text-ink whitespace-pre-wrap">{inq.message}</p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <span className="text-xs text-muted-foreground">상태 변경:</span>
                           <Select
                             value={inq.status}
@@ -391,6 +395,20 @@ export default function AdminDashboard() {
                               <SelectItem value="completed">완료</SelectItem>
                             </SelectContent>
                           </Select>
+                          <a
+                            href={`mailto:${inq.email}?subject=${encodeURIComponent(`[${"\uACE0\uAC10\uB3C4"}] ${inq.name}\uB2D8 \uBB38\uC758 \uD68C\uC2E0`)}&body=${encodeURIComponent(`${inq.name}\uB2D8 \uC548\uB155\uD558\uC138\uC694,\n\n\uACE0\uAC10\uB3C4\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC154\uC11C \uAC10\uC0AC\uD569\uB2C8\uB2E4.\n\n---\n\uACE0\uAC10\uB3C4 \uB300\uD45C\uC804\uD654: 02-6952-3111\nhttps://kokamdo.co.kr`)}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gold/10 text-gold text-xs font-medium rounded hover:bg-gold/20 transition-colors"
+                          >
+                            <Send className="w-3 h-3" /> 이메일 회신
+                          </a>
+                          {inq.phone && (
+                            <a
+                              href={`tel:${inq.phone}`}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-ink/5 text-ink text-xs font-medium rounded hover:bg-ink/10 transition-colors"
+                            >
+                              <Phone className="w-3 h-3" /> 전화 걸기
+                            </a>
+                          )}
                         </div>
                       </div>
                     )}
@@ -892,6 +910,14 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
+        )}
+        {/* Popup Management Tab */}
+        {activeTab === "popups" && (
+          <PopupManagementTab />
+        )}
+        {/* Notification Center Tab */}
+        {activeTab === "notifications" && (
+          <NotificationCenterTab />
         )}
         {/* Portfolio Drafts Tab */}
         {activeTab === "portfolio" && (
@@ -1414,6 +1440,317 @@ function DriveSyncTab() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+
+// ===== Popup Management Tab Component =====
+function PopupManagementTab() {
+  const popupList = trpc.popup.list.useQuery();
+  const createPopup = trpc.popup.create.useMutation({ onSuccess: () => popupList.refetch() });
+  const updatePopup = trpc.popup.update.useMutation({ onSuccess: () => popupList.refetch() });
+  const deletePopup = trpc.popup.delete.useMutation({ onSuccess: () => popupList.refetch() });
+
+  const [showNew, setShowNew] = useState(false);
+  const [newPopup, setNewPopup] = useState({
+    title: "", content: "", imageUrl: "", linkUrl: "", linkText: "",
+    position: "center" as "center" | "bottom_right" | "bottom_left",
+    showOnce: "no" as "yes" | "no",
+    priority: 0,
+  });
+
+  const POSITION_LABELS: Record<string, string> = {
+    center: "화면 중앙",
+    bottom_right: "우측 하단",
+    bottom_left: "좌측 하단",
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="font-heading text-xl font-bold text-ink">팝업 관리</h2>
+        <Button onClick={() => setShowNew(!showNew)} size="sm" className="bg-gold text-ink hover:bg-gold-light">
+          <Plus className="w-4 h-4 mr-1" /> 새 팝업
+        </Button>
+      </div>
+
+      {showNew && (
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">제목 *</label>
+                <input
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                  value={newPopup.title}
+                  onChange={(e) => setNewPopup({ ...newPopup, title: e.target.value })}
+                  placeholder="팝업 제목"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">위치</label>
+                <Select value={newPopup.position} onValueChange={(v) => setNewPopup({ ...newPopup, position: v as any })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="center">화면 중앙</SelectItem>
+                    <SelectItem value="bottom_right">우측 하단</SelectItem>
+                    <SelectItem value="bottom_left">좌측 하단</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">내용 *</label>
+              <textarea
+                className="w-full px-3 py-2 border border-border rounded-md text-sm min-h-[80px]"
+                value={newPopup.content}
+                onChange={(e) => setNewPopup({ ...newPopup, content: e.target.value })}
+                placeholder="팝업 내용 (HTML 지원)"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">이미지 URL</label>
+                <input
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                  value={newPopup.imageUrl}
+                  onChange={(e) => setNewPopup({ ...newPopup, imageUrl: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">링크 URL</label>
+                <input
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                  value={newPopup.linkUrl}
+                  onChange={(e) => setNewPopup({ ...newPopup, linkUrl: e.target.value })}
+                  placeholder="/estimator"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">링크 텍스트</label>
+                <input
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                  value={newPopup.linkText}
+                  onChange={(e) => setNewPopup({ ...newPopup, linkText: e.target.value })}
+                  placeholder="자세히 보기"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={newPopup.showOnce === "yes"}
+                  onChange={(e) => setNewPopup({ ...newPopup, showOnce: e.target.checked ? "yes" : "no" })}
+                />
+                한 번만 표시
+              </label>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-muted-foreground">우선순위</label>
+                <input
+                  type="number"
+                  className="w-16 px-2 py-1 border border-border rounded-md text-sm"
+                  value={newPopup.priority}
+                  onChange={(e) => setNewPopup({ ...newPopup, priority: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="bg-ink text-white hover:bg-ink/90"
+                onClick={() => {
+                  createPopup.mutate({
+                    title: newPopup.title,
+                    content: newPopup.content,
+                    imageUrl: newPopup.imageUrl || undefined,
+                    linkUrl: newPopup.linkUrl || undefined,
+                    linkText: newPopup.linkText || undefined,
+                    position: newPopup.position,
+                    showOnce: newPopup.showOnce,
+                    priority: newPopup.priority,
+                  });
+                  setShowNew(false);
+                  setNewPopup({ title: "", content: "", imageUrl: "", linkUrl: "", linkText: "", position: "center", showOnce: "no", priority: 0 });
+                }}
+                disabled={!newPopup.title || !newPopup.content}
+              >
+                생성
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowNew(false)}>취소</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Popup List */}
+      <div className="space-y-3">
+        {popupList.data?.length === 0 && (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              등록된 팝업이 없습니다.
+            </CardContent>
+          </Card>
+        )}
+        {popupList.data?.map((popup) => (
+          <Card key={popup.id}>
+            <CardContent className="py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-medium text-ink text-sm">{popup.title}</h3>
+                    <Badge variant={popup.active === "yes" ? "default" : "secondary"} className="text-[10px]">
+                      {popup.active === "yes" ? "활성" : "비활성"}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {POSITION_LABELS[popup.position] || popup.position}
+                    </Badge>
+                    {popup.showOnce === "yes" && (
+                      <Badge variant="outline" className="text-[10px]">1회만</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{popup.content.replace(/<[^>]*>/g, "").slice(0, 100)}</p>
+                  {popup.linkUrl && (
+                    <p className="text-xs text-blue-500 mt-1 flex items-center gap-1">
+                      <Link2 className="w-3 h-3" /> {popup.linkUrl}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => updatePopup.mutate({ id: popup.id, active: popup.active === "yes" ? "no" : "yes" })}
+                    title={popup.active === "yes" ? "비활성화" : "활성화"}
+                  >
+                    {popup.active === "yes" ? <ToggleRight className="w-4 h-4 text-green-500" /> : <ToggleLeft className="w-4 h-4 text-muted-foreground" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { if (confirm("이 팝업을 삭제하시겠습니까?")) deletePopup.mutate({ id: popup.id }); }}
+                  >
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ===== Notification Center Tab Component =====
+function NotificationCenterTab() {
+  const notificationList = trpc.notification.list.useQuery({ limit: 50 });
+  const markRead = trpc.notification.markRead.useMutation({ onSuccess: () => notificationList.refetch() });
+  const markAllRead = trpc.notification.markAllRead.useMutation({ onSuccess: () => notificationList.refetch() });
+  const deleteNotification = trpc.notification.delete.useMutation({ onSuccess: () => notificationList.refetch() });
+
+  const TYPE_LABELS: Record<string, string> = {
+    inquiry: "문의",
+    estimate: "견적",
+    crm_deal: "CRM 딜",
+    crm_stage_change: "단계변경",
+    newsletter: "뉴스레터",
+    chat: "채팅",
+    system: "시스템",
+  };
+
+  const TYPE_COLORS: Record<string, string> = {
+    inquiry: "bg-blue-100 text-blue-700",
+    estimate: "bg-green-100 text-green-700",
+    crm_deal: "bg-purple-100 text-purple-700",
+    crm_stage_change: "bg-orange-100 text-orange-700",
+    newsletter: "bg-teal-100 text-teal-700",
+    chat: "bg-indigo-100 text-indigo-700",
+    system: "bg-gray-100 text-gray-700",
+  };
+
+  function timeAgo(date: Date | string) {
+    const now = new Date();
+    const d = new Date(date);
+    const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+    if (diff < 60) return "방금 전";
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+    return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+
+  const unreadCount = (notificationList.data || []).filter((n) => n.isRead === "no").length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h2 className="font-heading text-xl font-bold text-ink">알림 센터</h2>
+          {unreadCount > 0 && (
+            <Badge variant="destructive" className="text-xs">{unreadCount}개 읽지 않음</Badge>
+          )}
+        </div>
+        {unreadCount > 0 && (
+          <Button variant="outline" size="sm" onClick={() => markAllRead.mutate()}>
+            <Check className="w-4 h-4 mr-1" /> 모두 읽음 처리
+          </Button>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {notificationList.data?.length === 0 && (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground text-sm">
+              <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              알림이 없습니다
+            </CardContent>
+          </Card>
+        )}
+        {notificationList.data?.map((n) => (
+          <Card key={n.id} className={n.isRead === "no" ? "border-l-4 border-l-blue-500" : ""}>
+            <CardContent className="py-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[n.type] || "bg-gray-100 text-gray-700"}`}>
+                      {TYPE_LABELS[n.type] || n.type}
+                    </span>
+                    {n.isRead === "no" && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+                    <span className="text-[10px] text-muted-foreground/60 ml-auto flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {timeAgo(n.createdAt)}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-ink">{n.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
+                  {n.linkUrl && (
+                    <a href={n.linkUrl} className="text-xs text-blue-500 hover:underline mt-1 inline-flex items-center gap-1">
+                      <Link2 className="w-3 h-3" /> 바로가기
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {n.isRead === "no" && (
+                    <Button variant="ghost" size="sm" onClick={() => markRead.mutate({ id: n.id })} title="읽음 처리">
+                      <Check className="w-4 h-4 text-green-500" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteNotification.mutate({ id: n.id })}
+                    title="삭제"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

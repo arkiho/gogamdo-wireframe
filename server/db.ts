@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -725,4 +725,99 @@ export async function getCrmStats() {
     wonDeals: wonCount.count,
     lostDeals: lostCount.count,
   };
+}
+
+// ========== Popup Queries ==========
+
+export async function createPopup(data: InsertPopup) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(popups).values(data);
+  return { success: true, id: result[0].insertId };
+}
+
+export async function listPopups() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(popups).orderBy(desc(popups.priority), desc(popups.createdAt));
+}
+
+export async function getActivePopups() {
+  const db = await getDb();
+  if (!db) return [];
+  const now = new Date();
+  return db.select().from(popups).where(
+    and(
+      eq(popups.active, "yes"),
+      or(isNull(popups.startsAt), lte(popups.startsAt, now)),
+      or(isNull(popups.endsAt), gte(popups.endsAt, now)),
+    )
+  ).orderBy(desc(popups.priority), desc(popups.createdAt));
+}
+
+export async function updatePopup(id: number, data: Partial<InsertPopup>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(popups).set(data).where(eq(popups.id, id));
+  return { success: true };
+}
+
+export async function deletePopup(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(popups).where(eq(popups.id, id));
+  return { success: true };
+}
+
+// ========== Notification Queries ==========
+
+export async function createNotification(data: Omit<InsertNotification, "id" | "createdAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(notifications).values(data);
+  return result[0].insertId;
+}
+
+export async function listNotifications(opts?: { unreadOnly?: boolean; limit?: number }) {
+  const db = await getDb();
+  if (!db) return [];
+  const limit = opts?.limit ?? 50;
+  if (opts?.unreadOnly) {
+    return db.select().from(notifications)
+      .where(eq(notifications.isRead, "no"))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+  }
+  return db.select().from(notifications)
+    .orderBy(desc(notifications.createdAt))
+    .limit(limit);
+}
+
+export async function getUnreadNotificationCount() {
+  const db = await getDb();
+  if (!db) return 0;
+  const [row] = await db.select({ count: count() }).from(notifications)
+    .where(eq(notifications.isRead, "no"));
+  return row?.count ?? 0;
+}
+
+export async function markNotificationRead(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(notifications).set({ isRead: "yes" }).where(eq(notifications.id, id));
+  return { success: true };
+}
+
+export async function markAllNotificationsRead() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(notifications).set({ isRead: "yes" }).where(eq(notifications.isRead, "no"));
+  return { success: true };
+}
+
+export async function deleteNotification(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(notifications).where(eq(notifications.id, id));
+  return { success: true };
 }

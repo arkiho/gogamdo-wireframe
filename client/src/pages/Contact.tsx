@@ -117,23 +117,65 @@ export default function Contact() {
             <div className="lg:col-span-3">
               <FadeUp>
                 {submitted ? (
-                  <div className="p-12 border border-gold/30 bg-gold/5 text-center">
-                    <CheckCircle2 className="w-12 h-12 text-gold mx-auto mb-4" />
-                    <h2 className="font-heading text-2xl font-bold text-ink mb-3">
-                      문의가 접수되었습니다
-                    </h2>
-                    <p className="text-muted-foreground mb-6">
-                      담당 컨설턴트가 24시간 내 연락드리겠습니다.
-                    </p>
-                    <button
-                      onClick={() => {
-                        setSubmitted(false);
-                        setFormData({ name: "", company: "", email: "", phone: "", type: "", area: "", message: "" });
-                      }}
-                      className="px-6 py-3 bg-ink text-white text-sm font-medium hover:bg-ink/90 transition-colors"
-                    >
-                      추가 문의하기
-                    </button>
+                  <div className="p-10 border border-gold/30 bg-gold/5">
+                    <div className="text-center mb-8">
+                      <CheckCircle2 className="w-14 h-14 text-gold mx-auto mb-4" />
+                      <h2 className="font-heading text-2xl font-bold text-ink mb-2">
+                        문의가 접수되었습니다
+                      </h2>
+                      <p className="text-muted-foreground text-sm">
+                        {formData.name}님, 소중한 문의 감사합니다.
+                      </p>
+                    </div>
+
+                    <div className="bg-white/80 border border-border/50 p-6 mb-6 space-y-3">
+                      <h3 className="font-heading text-sm font-bold text-ink mb-3">앞으로의 진행 절차</h3>
+                      <div className="flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-full bg-gold/20 text-gold flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+                        <div>
+                          <p className="text-sm font-medium text-ink">접수 확인</p>
+                          <p className="text-xs text-muted-foreground">문의 내용이 담당 컨설턴트에게 전달되었습니다.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-full bg-gold/20 text-gold flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                        <div>
+                          <p className="text-sm font-medium text-ink">24시간 내 연락</p>
+                          <p className="text-xs text-muted-foreground">담당 컨설턴트가 전화 또는 이메일로 연락드립니다.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-full bg-gold/20 text-gold flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+                        <div>
+                          <p className="text-sm font-medium text-ink">무료 현장 상담</p>
+                          <p className="text-xs text-muted-foreground">현장 방문 후 맞춤 설계안과 상세 견적을 제공합니다.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-ink/5 p-4 mb-6 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">급한 문의는 직접 연락해 주세요</p>
+                      <div className="flex items-center justify-center gap-4">
+                        <a href="tel:02-6952-3111" className="text-sm font-medium text-ink hover:text-gold transition-colors flex items-center gap-1">
+                          <Phone className="w-3.5 h-3.5" /> 02-6952-3111
+                        </a>
+                        <a href="mailto:contact@kokamdo.co.kr" className="text-sm font-medium text-ink hover:text-gold transition-colors flex items-center gap-1">
+                          <Mail className="w-3.5 h-3.5" /> contact@kokamdo.co.kr
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="text-center">
+                      <button
+                        onClick={() => {
+                          setSubmitted(false);
+                          setFormData({ name: "", company: "", email: "", phone: "", type: "", area: "", message: "" });
+                        }}
+                        className="px-6 py-3 bg-ink text-white text-sm font-medium hover:bg-ink/90 transition-colors"
+                      >
+                        추가 문의하기
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-6">

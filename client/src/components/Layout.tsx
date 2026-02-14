@@ -16,6 +16,7 @@ import Logo from "./Logo";
 import KakaoChat from "./KakaoChat";
 import AnnouncementBanner from "./AnnouncementBanner";
 import ExitIntentPopup from "./ExitIntentPopup";
+import PopupModal from "./PopupModal";
 import RelatedPages from "./RelatedPages";
 
 const NAV_ITEMS = [
@@ -224,6 +225,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Exit Intent & Engagement Popup */}
       <ExitIntentPopup />
+      <PopupModal />
 
       {/* Related Pages - SEO Internal Linking */}
       <RelatedPages />
