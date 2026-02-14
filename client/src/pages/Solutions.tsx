@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Ruler, PenTool, HardHat, Sofa, MonitorSmartphone, ExternalLink, CheckCircle2 } from "lucide-react";
 import { SOLUTION_CONSULT_IMG } from "@/lib/images";
+import { analytics } from "@/lib/analytics";
 
 const SOLUTION_IMG = SOLUTION_CONSULT_IMG;
 
@@ -176,6 +177,7 @@ export default function Solutions() {
                   className="inline-flex items-center gap-2 px-6 py-3 bg-ink text-white font-medium text-sm hover:bg-ink/90 transition-colors"
                   onClick={(e) => {
                     e.preventDefault();
+                    analytics.solutionClick("OpsX");
                     window.open("https://opsx.io", "_blank");
                   }}
                 >

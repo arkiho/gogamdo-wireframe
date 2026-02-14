@@ -9,6 +9,7 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowLeft, ArrowUpRight, Building2, Maximize2, Palette, Calculator, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { analytics } from "@/lib/analytics";
 import { nanoid } from "nanoid";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -58,9 +59,13 @@ export default function Estimator() {
 
   const saveEstimate = trpc.estimate.save.useMutation();
 
-  // 결과 단계(step 3) 진입 시 견적 자동 저장
+  // 결과 단계(step 3) 진입 시 견적 자동 저장 + 트래킹
   useEffect(() => {
+    if (step === 1 && !spaceType) {
+      analytics.estimatorStart();
+    }
     if (step === 3 && totalCost > 0) {
+      analytics.estimatorComplete(totalCost, spaceType);
       saveEstimate.mutate({
         sessionId,
         spaceType,

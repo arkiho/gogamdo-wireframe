@@ -3,8 +3,22 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { notifyOwner } from "./_core/notification";
-import { createInquiry, listInquiries, addSubscriber, listSubscribers, createEstimate, listEstimates } from "./db";
+import {
+  createInquiry, listInquiries, updateInquiryStatus,
+  addSubscriber, listSubscribers, toggleSubscriberActive,
+  createEstimate, listEstimates,
+  getDashboardStats,
+} from "./db";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+
+// Admin-only procedure
+const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "관리자 권한이 필요합니다." });
+  }
+  return next({ ctx });
+});
 
 export const appRouter = router({
   system: systemRouter,
@@ -32,16 +46,23 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const result = await createInquiry(input);
-        // 대표님에게 알림 발송
         await notifyOwner({
           title: `새 문의: ${input.name} (${input.company || "개인"})`,
           content: `이름: ${input.name}\n회사: ${input.company || "-"}\n이메일: ${input.email}\n전화: ${input.phone || "-"}\n유형: ${input.type || "-"}\n예산: ${input.budget || "-"}\n면적: ${input.area || "-"}\n\n내용:\n${input.message}`,
         });
         return result;
       }),
-    list: protectedProcedure.query(async () => {
+    list: adminProcedure.query(async () => {
       return listInquiries();
     }),
+    updateStatus: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["new", "contacted", "in_progress", "completed"]),
+      }))
+      .mutation(async ({ input }) => {
+        return updateInquiryStatus(input.id, input.status);
+      }),
   }),
 
   // ===== 뉴스레터 구독 (Newsletter) =====
@@ -61,9 +82,17 @@ export const appRouter = router({
           source: input.source ?? "footer",
         });
       }),
-    list: protectedProcedure.query(async () => {
+    list: adminProcedure.query(async () => {
       return listSubscribers();
     }),
+    toggleActive: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        active: z.enum(["yes", "no"]),
+      }))
+      .mutation(async ({ input }) => {
+        return toggleSubscriberActive(input.id, input.active);
+      }),
   }),
 
   // ===== AI 견적 (Estimates) =====
@@ -83,8 +112,15 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return createEstimate(input);
       }),
-    list: protectedProcedure.query(async () => {
+    list: adminProcedure.query(async () => {
       return listEstimates();
+    }),
+  }),
+
+  // ===== 관리자 대시보드 (Admin Dashboard) =====
+  admin: router({
+    stats: adminProcedure.query(async () => {
+      return getDashboardStats();
     }),
   }),
 });

@@ -10,6 +10,7 @@ import { Link } from "wouter";
 import { motion, useInView } from "framer-motion";
 import { ArrowUpRight, ArrowRight, ChevronRight, Ruler, PenTool, HardHat, CheckCircle2 } from "lucide-react";
 import { HERO_IMG, PORTFOLIO } from "@/lib/images";
+import { analytics } from "@/lib/analytics";
 
 // Counter animation hook
 function useCounter(end: number, duration: number = 2000) {
@@ -89,24 +90,28 @@ const SOLUTIONS = [
 
 const FEATURED_PROJECTS = [
   {
+    slug: "huxeed",
     title: "허시드 본사",
     category: "사무실 인테리어",
     area: "250㎡",
     image: PORTFOLIO.huxeed.image,
   },
   {
+    slug: "lab543",
     title: "LAB543 크리에이티브 스튜디오",
     category: "크리에이티브 스튜디오",
     area: "200㎡",
     image: PORTFOLIO.lab543.image,
   },
   {
+    slug: "philips",
     title: "필립스 코리아 오피스",
     category: "글로벌 기업 오피스",
     area: "500㎡",
     image: PORTFOLIO.philips.image,
   },
   {
+    slug: "heal",
     title: "HEAL 헬스케어 오피스",
     category: "헬스케어",
     area: "350㎡",
@@ -176,13 +181,13 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-wrap gap-4"
             >
-              <Link href="/estimator">
+              <Link href="/estimator" onClick={() => analytics.ctaClick("AI 견적", "hero")}>
                 <span className="inline-flex items-center gap-2 px-7 py-3.5 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
                   AI 예상 견적 받기
                   <ArrowUpRight className="w-4 h-4" />
                 </span>
               </Link>
-              <Link href="/portfolio">
+              <Link href="/portfolio" onClick={() => analytics.ctaClick("포트폴리오", "hero")}>
                 <span className="inline-flex items-center gap-2 px-7 py-3.5 border border-white/30 text-white font-medium text-sm tracking-wide hover:bg-white/10 transition-all duration-300">
                   프로젝트 보기
                   <ArrowRight className="w-4 h-4" />
@@ -373,7 +378,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-6">
             {FEATURED_PROJECTS.map((project, i) => (
               <FadeUp key={i} delay={i * 0.1}>
-                <Link href="/portfolio">
+                <Link href={`/portfolio/${project.slug}`}>
                   <div className="group relative overflow-hidden aspect-[4/3] cursor-pointer">
                     <img
                       src={project.image}

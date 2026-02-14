@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
-import { PORTFOLIO_LIST } from "@/lib/images";
+import { PROJECTS } from "@/lib/images";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -24,16 +24,7 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
-const CATEGORIES = ["전체", "사무실 인테리어", "크리에이티브 오피스", "글로벌 기업 오피스", "공공기관", "헬스케어 오피스", "IT 오피스", "산업시설"];
-
-const PROJECTS = PORTFOLIO_LIST.map((p, i) => ({
-  title: p.name,
-  category: p.category,
-  area: p.area,
-  year: String(2025 - i),
-  image: p.image,
-  client: p.name,
-}));
+const CATEGORIES = ["전체", "사무실 인테리어", "크리에이티브 오피스", "크리에이티브 스튜디오", "글로벌 기업 오피스", "공공기관", "헬스케어 오피스", "IT 오피스", "산업시설"];
 
 export default function Portfolio() {
   const [activeCategory, setActiveCategory] = useState("전체");
@@ -92,25 +83,30 @@ export default function Portfolio() {
               transition={{ duration: 0.3 }}
               className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
             >
-              {filtered.map((project, i) => (
-                <div key={project.title} className="group cursor-pointer">
-                  <div className="relative overflow-hidden aspect-[4/3] mb-4">
-                    <img
-                      src={project.image}
-                      alt={project.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500" />
+              {filtered.map((project) => (
+                <Link key={project.slug} href={`/portfolio/${project.slug}`}>
+                  <div className="group cursor-pointer">
+                    <div className="relative overflow-hidden aspect-[4/3] mb-4">
+                      <img
+                        src={project.image}
+                        alt={project.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500" />
+                      <div className="absolute bottom-3 right-3 w-8 h-8 bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <ArrowUpRight className="w-4 h-4 text-ink" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-xs font-medium text-gold">{project.category}</span>
+                      <span className="text-xs text-muted-foreground">{project.area.split(" ")[0]}</span>
+                      <span className="text-xs text-muted-foreground">{project.year}</span>
+                    </div>
+                    <h3 className="font-heading text-lg font-bold text-ink group-hover:text-gold transition-colors">
+                      {project.name}
+                    </h3>
                   </div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-xs font-medium text-gold">{project.category}</span>
-                    <span className="text-xs text-muted-foreground">{project.area}</span>
-                    <span className="text-xs text-muted-foreground">{project.year}</span>
-                  </div>
-                  <h3 className="font-heading text-lg font-bold text-ink group-hover:text-gold transition-colors">
-                    {project.title}
-                  </h3>
-                </div>
+                </Link>
               ))}
             </motion.div>
           </AnimatePresence>

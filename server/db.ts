@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, inquiries, subscribers, estimates, type InsertInquiry, type InsertSubscriber, type InsertEstimate } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -139,4 +139,37 @@ export async function listEstimates() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(estimates).orderBy(desc(estimates.createdAt));
+}
+
+// ===== Admin Helpers =====
+
+export async function updateInquiryStatus(id: number, status: "new" | "contacted" | "in_progress" | "completed") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(inquiries).set({ status }).where(eq(inquiries.id, id));
+  return { success: true };
+}
+
+export async function toggleSubscriberActive(id: number, active: "yes" | "no") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(subscribers).set({ active }).where(eq(subscribers.id, id));
+  return { success: true };
+}
+
+export async function getDashboardStats() {
+  const db = await getDb();
+  if (!db) return { inquiries: 0, subscribers: 0, estimates: 0, newInquiries: 0 };
+  
+  const [inqRows] = await db.select({ count: count() }).from(inquiries);
+  const [subRows] = await db.select({ count: count() }).from(subscribers);
+  const [estRows] = await db.select({ count: count() }).from(estimates);
+  const [newInqRows] = await db.select({ count: count() }).from(inquiries).where(eq(inquiries.status, "new"));
+  
+  return {
+    inquiries: inqRows?.count ?? 0,
+    subscribers: subRows?.count ?? 0,
+    estimates: estRows?.count ?? 0,
+    newInquiries: newInqRows?.count ?? 0,
+  };
 }

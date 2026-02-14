@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Phone, Mail, MapPin, Clock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { analytics } from "@/lib/analytics";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -58,6 +59,7 @@ export default function Contact() {
 
   const createInquiry = trpc.inquiry.create.useMutation({
     onSuccess: () => {
+      analytics.contactSubmit(formData.type || "general");
       setSubmitted(true);
       toast.success("문의가 접수되었습니다. 24시간 내 연락드리겠습니다.");
     },

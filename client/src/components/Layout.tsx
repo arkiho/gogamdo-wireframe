@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ArrowUpRight, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { analytics } from "@/lib/analytics";
 import Logo from "./Logo";
 
 const NAV_ITEMS = [
@@ -26,6 +27,7 @@ function NewsletterForm() {
   const subscribe = trpc.newsletter.subscribe.useMutation({
     onSuccess: (data) => {
       if (data.isNew) {
+        analytics.newsletterSubscribe();
         toast.success("구독이 완료되었습니다. 감사합니다!");
       } else {
         toast.info("이미 구독 중인 이메일입니다.");
