@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Target, Eye, Shield, Users } from "lucide-react";
 import { ABOUT_TEAM_IMG } from "@/lib/images";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -42,6 +43,7 @@ const VALUES = [
 export default function About() {
   return (
     <>
+      <SEOHead {...SEO_CONFIG.about} />
       {/* Hero */}
       <section className="pt-32 lg:pt-40 pb-20 lg:pb-28">
         <div className="container">

@@ -1,6 +1,6 @@
 import { eq, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, type InsertInquiry, type InsertSubscriber, type InsertEstimate } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -155,6 +155,32 @@ export async function toggleSubscriberActive(id: number, active: "yes" | "no") {
   if (!db) throw new Error("Database not available");
   await db.update(subscribers).set({ active }).where(eq(subscribers.id, id));
   return { success: true };
+}
+
+// ===== Lead Magnet Queries =====
+
+export async function createLeadDownload(data: InsertLeadDownload) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(leadDownloads).values(data);
+  // Also add to subscribers if new
+  try {
+    await db.insert(subscribers).values({
+      email: data.email,
+      name: data.name,
+      company: data.company,
+      source: `lead_magnet_${data.resourceId}`,
+    });
+  } catch (err: any) {
+    // Ignore duplicate entry
+  }
+  return { success: true };
+}
+
+export async function listLeadDownloads() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(leadDownloads).orderBy(desc(leadDownloads.createdAt));
 }
 
 export async function getDashboardStats() {

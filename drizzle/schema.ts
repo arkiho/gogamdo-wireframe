@@ -75,3 +75,19 @@ export const estimates = mysqlTable("estimates", {
 
 export type Estimate = typeof estimates.$inferSelect;
 export type InsertEstimate = typeof estimates.$inferInsert;
+
+/**
+ * 리드 마그넷 다운로드 기록(Lead Magnet Downloads)
+ */
+export const leadDownloads = mysqlTable("lead_downloads", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  name: varchar("name", { length: 100 }),
+  company: varchar("company", { length: 200 }),
+  resourceId: varchar("resourceId", { length: 50 }).notNull(),
+  resourceTitle: varchar("resourceTitle", { length: 200 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LeadDownload = typeof leadDownloads.$inferSelect;
+export type InsertLeadDownload = typeof leadDownloads.$inferInsert;

@@ -9,6 +9,7 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { PROJECTS } from "@/lib/images";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -35,6 +36,7 @@ export default function Portfolio() {
 
   return (
     <>
+      <SEOHead {...SEO_CONFIG.portfolio} />
       {/* Hero */}
       <section className="pt-32 lg:pt-40 pb-12 lg:pb-16">
         <div className="container">

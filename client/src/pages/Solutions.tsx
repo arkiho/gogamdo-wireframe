@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Ruler, PenTool, HardHat, Sofa, MonitorSmartphone, ExternalLink, CheckCircle2 } from "lucide-react";
 import { SOLUTION_CONSULT_IMG } from "@/lib/images";
 import { analytics } from "@/lib/analytics";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
 const SOLUTION_IMG = SOLUTION_CONSULT_IMG;
 
@@ -64,6 +65,7 @@ const PROCESS = [
 export default function Solutions() {
   return (
     <>
+      <SEOHead {...SEO_CONFIG.solutions} />
       {/* Hero */}
       <section className="pt-32 lg:pt-40 pb-20 lg:pb-28">
         <div className="container">

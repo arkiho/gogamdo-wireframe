@@ -14,6 +14,7 @@ import Estimator from "./pages/Estimator";
 import Insights from "./pages/Insights";
 import Contact from "./pages/Contact";
 import AdminDashboard from "./pages/AdminDashboard";
+import Resources from "./pages/Resources";
 import Layout from "./components/Layout";
 
 function PublicRouter() {
@@ -27,6 +28,7 @@ function PublicRouter() {
         <Route path="/portfolio/:slug" component={ProjectDetail} />
         <Route path="/estimator" component={Estimator} />
         <Route path="/insights" component={Insights} />
+        <Route path="/resources" component={Resources} />
         <Route path="/contact" component={Contact} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />

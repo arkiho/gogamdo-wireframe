@@ -11,6 +11,7 @@ import { motion, useInView } from "framer-motion";
 import { ArrowUpRight, ArrowRight, ChevronRight, Ruler, PenTool, HardHat, CheckCircle2 } from "lucide-react";
 import { HERO_IMG, PORTFOLIO } from "@/lib/images";
 import { analytics } from "@/lib/analytics";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
 // Counter animation hook
 function useCounter(end: number, duration: number = 2000) {
@@ -122,6 +123,7 @@ const FEATURED_PROJECTS = [
 export default function Home() {
   return (
     <>
+      <SEOHead {...SEO_CONFIG.home} />
       {/* ==================== HERO SECTION ==================== */}
       <section className="relative min-h-screen flex items-end pb-16 lg:pb-24 overflow-hidden">
         {/* Background Image */}

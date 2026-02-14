@@ -10,6 +10,7 @@ import { ArrowUpRight, Phone, Mail, MapPin, Clock, CheckCircle2 } from "lucide-r
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { analytics } from "@/lib/analytics";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -88,6 +89,7 @@ export default function Contact() {
 
   return (
     <>
+      <SEOHead {...SEO_CONFIG.contact} />
       {/* Hero */}
       <section className="pt-32 lg:pt-40 pb-16 lg:pb-20">
         <div className="container">

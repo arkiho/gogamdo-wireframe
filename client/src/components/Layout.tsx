@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { analytics } from "@/lib/analytics";
 import Logo from "./Logo";
+import KakaoChat from "./KakaoChat";
 
 const NAV_ITEMS = [
   { label: "회사소개", href: "/about" },
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { label: "프로젝트", href: "/portfolio" },
   { label: "AI 견적", href: "/estimator" },
   { label: "인사이트", href: "/insights" },
+  { label: "자료실", href: "/resources" },
 ];
 
 function NewsletterForm() {
@@ -209,6 +211,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
+      {/* Kakao Chat Widget */}
+      <KakaoChat />
+
       {/* Footer */}
       <footer className="bg-ink text-white/80">
         {/* Newsletter Strip */}
@@ -266,6 +271,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   { label: "회사소개", href: "/about" },
                   { label: "프로젝트", href: "/portfolio" },
                   { label: "인사이트", href: "/insights" },
+                  { label: "자료실", href: "/resources" },
                   { label: "문의하기", href: "/contact" },
                 ].map((item) => (
                   <li key={item.href}>

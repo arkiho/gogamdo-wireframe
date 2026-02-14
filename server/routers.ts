@@ -7,6 +7,7 @@ import {
   createInquiry, listInquiries, updateInquiryStatus,
   addSubscriber, listSubscribers, toggleSubscriberActive,
   createEstimate, listEstimates,
+  createLeadDownload, listLeadDownloads,
   getDashboardStats,
 } from "./db";
 import { z } from "zod";
@@ -114,6 +115,35 @@ export const appRouter = router({
       }),
     list: adminProcedure.query(async () => {
       return listEstimates();
+    }),
+  }),
+
+  // ===== 리드 마그넷 (Lead Magnet) =====
+  leadMagnet: router({
+    download: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        name: z.string().optional(),
+        company: z.string().optional(),
+        resourceId: z.string(),
+        resourceTitle: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await createLeadDownload({
+          email: input.email,
+          name: input.name ?? null,
+          company: input.company ?? null,
+          resourceId: input.resourceId,
+          resourceTitle: input.resourceTitle ?? null,
+        });
+        await notifyOwner({
+          title: `리드 마그넷 다운로드: ${input.email}`,
+          content: `이름: ${input.name || "-"}\n회사: ${input.company || "-"}\n이메일: ${input.email}\n자료: ${input.resourceTitle || input.resourceId}`,
+        });
+        return result;
+      }),
+    list: adminProcedure.query(async () => {
+      return listLeadDownloads();
     }),
   }),
 

@@ -8,6 +8,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Clock, Tag, Mail } from "lucide-react";
 import { toast } from "sonner";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -88,6 +89,7 @@ export default function Insights() {
 
   return (
     <>
+      <SEOHead {...SEO_CONFIG.insights} />
       {/* Hero */}
       <section className="pt-32 lg:pt-40 pb-12 lg:pb-16">
         <div className="container">

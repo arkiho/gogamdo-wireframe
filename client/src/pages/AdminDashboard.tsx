@@ -15,12 +15,12 @@ import {
 import {
   MessageSquare, Users, Calculator, AlertCircle,
   ArrowLeft, Mail, Phone, Building2, Calendar,
-  ChevronDown, ChevronUp, LogOut,
+  ChevronDown, ChevronUp, LogOut, Download,
 } from "lucide-react";
 import { Link } from "wouter";
 import Logo from "@/components/Logo";
 
-type TabType = "overview" | "inquiries" | "subscribers" | "estimates";
+type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   new: { label: "신규", variant: "destructive" },
@@ -49,6 +49,7 @@ export default function AdminDashboard() {
   const inquiries = trpc.inquiry.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const subscribers = trpc.newsletter.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const estimates = trpc.estimate.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const leadDownloads = trpc.leadMagnet.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
 
   const updateStatus = trpc.inquiry.updateStatus.useMutation({
     onSuccess: () => {
@@ -104,6 +105,7 @@ export default function AdminDashboard() {
     { id: "inquiries", label: "문의", icon: <MessageSquare className="w-4 h-4" />, count: stats.data?.newInquiries },
     { id: "subscribers", label: "구독자", icon: <Users className="w-4 h-4" />, count: stats.data?.subscribers },
     { id: "estimates", label: "견적", icon: <Calculator className="w-4 h-4" />, count: stats.data?.estimates },
+    { id: "leads", label: "리드", icon: <Download className="w-4 h-4" /> },
   ];
 
   return (
@@ -449,6 +451,50 @@ export default function AdminDashboard() {
                               ) : "-"}
                             </td>
                             <td className="p-3 text-xs text-muted-foreground">{formatDate(est.createdAt)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+        {/* Lead Downloads Tab */}
+        {activeTab === "leads" && (
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl font-bold text-ink">리드 마그넷 다운로드</h2>
+            {leadDownloads.isLoading ? (
+              <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
+            ) : (leadDownloads.data?.length ?? 0) === 0 ? (
+              <Card className="border-border/50">
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  아직 다운로드 이력이 없습니다.
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-border/50">
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border/50 bg-paper-warm">
+                          <th className="text-left p-3 font-medium text-muted-foreground">이메일</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">이름</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">회사</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">자료</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">일시</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {leadDownloads.data?.map((lead: any) => (
+                          <tr key={lead.id} className="border-b border-border/30 hover:bg-paper-warm/50 transition-colors">
+                            <td className="p-3 text-ink font-medium">{lead.email}</td>
+                            <td className="p-3 text-muted-foreground">{lead.name || "-"}</td>
+                            <td className="p-3 text-muted-foreground">{lead.company || "-"}</td>
+                            <td className="p-3"><Badge variant="outline" className="text-xs">{lead.resourceTitle || lead.resourceId}</Badge></td>
+                            <td className="p-3 text-xs text-muted-foreground">{formatDate(lead.createdAt)}</td>
                           </tr>
                         ))}
                       </tbody>
