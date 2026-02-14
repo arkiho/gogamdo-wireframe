@@ -1,7 +1,11 @@
 /**
  * KOKAMDO Logo Component
- * Based on the new brand identity - geometric chevron + diamond symbol
+ * Uses actual brand logo images from CDN
  */
+
+const LOGO_DARK = "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/YPvjJaHufGOhnzia.png";
+const LOGO_WHITE = "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/avyBjfVmpnrZSajo.png";
+const LOGO_SYMBOL = "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/SfHLuQGAjxPTrVWr.png";
 
 interface LogoProps {
   variant?: "full" | "symbol" | "wordmark";
@@ -11,8 +15,18 @@ interface LogoProps {
 }
 
 export default function Logo({ variant = "full", color = "currentColor", className = "", height = 32 }: LogoProps) {
-  const symbolWidth = height * 1.1;
-  const fullWidth = variant === "full" ? height * 4.5 : variant === "symbol" ? symbolWidth : height * 3.5;
+  const isWhite = color === "#ffffff" || color === "white" || color === "#fff";
+
+  if (variant === "symbol") {
+    return (
+      <img
+        src={LOGO_SYMBOL}
+        alt="KOKAMDO"
+        className={`object-contain ${className}`}
+        style={{ height, width: "auto", filter: isWhite ? "invert(1) brightness(2)" : "none" }}
+      />
+    );
+  }
 
   if (variant === "wordmark") {
     return (
@@ -25,58 +39,27 @@ export default function Logo({ variant = "full", color = "currentColor", classNa
     );
   }
 
-  return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
-      {/* Symbol Mark - Chevron + Diamond */}
-      <svg
-        width={symbolWidth}
-        height={height}
-        viewBox="0 0 120 100"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-label="KOKAMDO 로고"
-      >
-        {/* Left chevron - two parallelograms forming < shape */}
-        <path
-          d="M8 20 L38 50 L8 80 L22 80 L52 50 L22 20 Z"
-          fill={color}
-        />
-        {/* Right diamond/hexagon with internal diagonal */}
-        <path
-          d="M52 20 L52 50 L82 20 Z"
-          fill={color}
-        />
-        <path
-          d="M52 50 L52 80 L82 80 Z"
-          fill={color}
-        />
-        <path
-          d="M82 20 L82 80 L112 50 Z"
-          fill={color}
-        />
-      </svg>
+  // Full logo - symbol + wordmark image
+  const logoSrc = isWhite ? LOGO_WHITE : LOGO_DARK;
 
-      {/* Wordmark */}
-      {variant === "full" && (
-        <span
-          className="font-heading font-bold tracking-tight"
-          style={{ fontSize: height * 0.65, color, lineHeight: 1 }}
-        >
-          KOKAMDO
-        </span>
-      )}
-    </span>
+  return (
+    <img
+      src={logoSrc}
+      alt="KOKAMDO 고감도"
+      className={`object-contain ${className}`}
+      style={{ height, width: "auto" }}
+    />
   );
 }
 
 /**
- * Logo as favicon-ready SVG string
+ * Logo CDN URLs for external use
  */
-export function getLogoSvgString(color: string = "#111111"): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none">
-    <path d="M8 20 L38 50 L8 80 L22 80 L52 50 L22 20 Z" fill="${color}"/>
-    <path d="M52 20 L52 50 L82 20 Z" fill="${color}"/>
-    <path d="M52 50 L52 80 L82 80 Z" fill="${color}"/>
-    <path d="M82 20 L82 80 L112 50 Z" fill="${color}"/>
-  </svg>`;
-}
+export const LOGO_URLS = {
+  dark: LOGO_DARK,
+  white: LOGO_WHITE,
+  symbol: LOGO_SYMBOL,
+  favicon32: "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/sxFLBDGEinEorgzx.png",
+  favicon180: "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/JqpxUMGoCvqxVnlx.png",
+  favicon512: "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/sjVFuJSyMZqDtKdZ.png",
+};

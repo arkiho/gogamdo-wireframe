@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -151,3 +151,74 @@ export const announcements = mysqlTable("announcements", {
 
 export type Announcement = typeof announcements.$inferSelect;
 export type InsertAnnouncement = typeof announcements.$inferInsert;
+
+/**
+ * 포트폴리오 초안(Portfolio Drafts)
+ * 구글 드라이브에서 자동 생성되거나 수동으로 만든 포트폴리오 초안
+ * status: draft(초안) → review(검토중) → published(게시됨) → archived(보관)
+ */
+export const portfolioDrafts = mysqlTable("portfolio_drafts", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 300 }).notNull(),
+  projectName: varchar("projectName", { length: 200 }),
+  category: varchar("category", { length: 100 }),
+  client: varchar("client", { length: 200 }),
+  area: varchar("area", { length: 50 }),
+  location: varchar("location", { length: 200 }),
+  duration: varchar("duration", { length: 100 }),
+  description: text("description"),
+  aiDescription: text("aiDescription"),
+  tags: json("tags").$type<string[]>(),
+  status: mysqlEnum("status", ["draft", "review", "published", "archived"]).default("draft").notNull(),
+  driveFolder: varchar("driveFolder", { length: 500 }),
+  driveFolderId: varchar("driveFolderId", { length: 200 }),
+  publishedAt: timestamp("publishedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PortfolioDraft = typeof portfolioDrafts.$inferSelect;
+export type InsertPortfolioDraft = typeof portfolioDrafts.$inferInsert;
+
+/**
+ * 포트폴리오 초안 이미지(Draft Images)
+ * 각 초안에 연결된 이미지들 (원본 + AI 보정본)
+ */
+export const draftImages = mysqlTable("draft_images", {
+  id: int("id").autoincrement().primaryKey(),
+  draftId: int("draftId").notNull(),
+  originalUrl: text("originalUrl").notNull(),
+  processedUrl: text("processedUrl"),
+  watermarkedUrl: text("watermarkedUrl"),
+  thumbnailUrl: text("thumbnailUrl"),
+  filename: varchar("filename", { length: 300 }),
+  driveFileId: varchar("driveFileId", { length: 200 }),
+  aiProcessed: mysqlEnum("aiProcessed", ["yes", "no"]).default("no").notNull(),
+  processingStatus: mysqlEnum("processingStatus", ["pending", "processing", "done", "error"]).default("pending").notNull(),
+  sortOrder: int("sortOrder").default(0),
+  isCover: mysqlEnum("isCover", ["yes", "no"]).default("no").notNull(),
+  caption: text("caption"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DraftImage = typeof draftImages.$inferSelect;
+export type InsertDraftImage = typeof draftImages.$inferInsert;
+
+/**
+ * 구글 드라이브 동기화 기록(Drive Sync Log)
+ * 어떤 폴더/파일이 이미 동기화되었는지 추적
+ */
+export const driveSyncLog = mysqlTable("drive_sync_log", {
+  id: int("id").autoincrement().primaryKey(),
+  folderId: varchar("folderId", { length: 200 }).notNull(),
+  folderPath: varchar("folderPath", { length: 500 }),
+  fileCount: int("fileCount").default(0),
+  draftId: int("draftId"),
+  syncStatus: mysqlEnum("syncStatus", ["syncing", "done", "error"]).default("syncing").notNull(),
+  lastSyncAt: timestamp("lastSyncAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DriveSyncLog = typeof driveSyncLog.$inferSelect;
+export type InsertDriveSyncLog = typeof driveSyncLog.$inferInsert;

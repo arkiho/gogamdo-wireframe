@@ -264,14 +264,14 @@ export default function Contact() {
                       <li className="flex items-start gap-3">
                         <Phone className="w-4 h-4 text-gold mt-1 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-ink">02-XXX-XXXX</p>
+                          <p className="text-sm font-medium text-ink"><a href="tel:02-3487-6133">02-3487-6133</a></p>
                           <p className="text-xs text-muted-foreground">평일 09:00 - 18:00</p>
                         </div>
                       </li>
                       <li className="flex items-start gap-3">
                         <Mail className="w-4 h-4 text-gold mt-1 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-ink">info@kokamdo.co.kr</p>
+                          <p className="text-sm font-medium text-ink"><a href="mailto:contact@kokamdo.co.kr">contact@kokamdo.co.kr</a></p>
                           <p className="text-xs text-muted-foreground">24시간 내 회신</p>
                         </div>
                       </li>

@@ -201,7 +201,7 @@ export const wireframePages: WirePage[] = [
         annotation: '본사 위치 지도 (네이버/카카오맵 API 연동). 주소, 연락처, 대중교통 안내.',
         children: [
           { id: 'map-embed', type: 'image', label: '지도 임베드 영역', width: 'w-full', annotation: '네이버/카카오맵 API' },
-          { id: 'map-info', type: 'text', label: '주소: 서울시 OO구 OO로 00\n전화: 02-0000-0000' },
+          { id: 'map-info', type: 'text', label: '주소: 서울특별시 강남구\n전화: 02-3487-6133' },
         ]
       },
     ]
@@ -423,7 +423,7 @@ export const wireframePages: WirePage[] = [
         annotation: '"고감도에 문의하세요" — 문의 유형별 안내. 전화번호, 이메일도 함께 표시.',
         children: [
           { id: 'con-title', type: 'text', label: '"고감도에 문의하세요"' },
-          { id: 'con-info', type: 'text', label: '전화: 02-0000-0000 | 이메일: info@gogamdo.com' },
+          { id: 'con-info', type: 'text', label: '전화: 02-3487-6133 | 이메일: contact@kokamdo.co.kr' },
         ]
       },
       {

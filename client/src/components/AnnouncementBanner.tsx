@@ -1,20 +1,21 @@
 /*
  * Announcement Banner Component
- * 관리자가 설정한 공지사항을 상단에 표시합니다.
- * 닫기 버튼으로 개별 공지를 숨길 수 있습니다.
+ * 관리자가 설정한 공지사항을 상단에 fixed로 표시합니다.
+ * 배너 높이를 CSS 변수(--banner-height)로 전달하여 헤더가 아래로 밀립니다.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X, ChevronRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 export default function AnnouncementBanner() {
   const { data: announcements } = trpc.announcement.active.useQuery(undefined, {
-    staleTime: 60_000, // 1분 캐시
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const bannerRef = useRef<HTMLDivElement>(null);
 
   // 세션 스토리지에서 닫은 공지 복원
   useEffect(() => {
@@ -26,6 +27,34 @@ export default function AnnouncementBanner() {
     } catch {}
   }, []);
 
+  // 배너 높이를 CSS 변수로 전달
+  const updateBannerHeight = useCallback(() => {
+    const h = bannerRef.current?.offsetHeight || 0;
+    document.documentElement.style.setProperty("--banner-height", `${h}px`);
+  }, []);
+
+  useEffect(() => {
+    updateBannerHeight();
+    window.addEventListener("resize", updateBannerHeight);
+    return () => {
+      window.removeEventListener("resize", updateBannerHeight);
+    };
+  }, [updateBannerHeight]);
+
+  // announcements나 dismissed가 변경될 때 높이 재계산
+  useEffect(() => {
+    // 약간의 딜레이 후 높이 업데이트 (DOM 렌더 완료 대기)
+    const timer = setTimeout(updateBannerHeight, 50);
+    return () => clearTimeout(timer);
+  }, [announcements, dismissed, updateBannerHeight]);
+
+  // 컴포넌트 언마운트 시 높이 리셋
+  useEffect(() => {
+    return () => {
+      document.documentElement.style.setProperty("--banner-height", "0px");
+    };
+  }, []);
+
   const handleDismiss = (id: number) => {
     const next = new Set(dismissed);
     next.add(id);
@@ -33,19 +62,26 @@ export default function AnnouncementBanner() {
     try {
       sessionStorage.setItem("dismissed_announcements", JSON.stringify(Array.from(next)));
     } catch {}
+    // 닫으면 바로 높이 리셋
+    requestAnimationFrame(() => {
+      const h = bannerRef.current?.offsetHeight || 0;
+      document.documentElement.style.setProperty("--banner-height", `${h}px`);
+    });
   };
 
-  if (!announcements || announcements.length === 0) return null;
+  // 표시할 배너 계산
+  const visible = (announcements || []).filter((a) => !dismissed.has(a.id));
 
-  const visible = announcements.filter((a) => !dismissed.has(a.id));
-  if (visible.length === 0) return null;
+  if (visible.length === 0) {
+    return <div ref={bannerRef} style={{ display: "none" }} />;
+  }
 
-  // 가장 우선순위 높은 공지 1개만 표시
   const banner = visible[0];
 
   return (
     <div
-      className="relative z-[60] w-full text-center"
+      ref={bannerRef}
+      className="fixed top-0 left-0 right-0 z-[60] w-full text-center"
       style={{
         backgroundColor: banner.bgColor || "#111111",
         color: banner.textColor || "#ffffff",

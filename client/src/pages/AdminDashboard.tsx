@@ -17,11 +17,13 @@ import {
   ArrowLeft, Mail, Phone, Building2, Calendar,
   ChevronDown, ChevronUp, LogOut, Download,
   Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
+  Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
 } from "lucide-react";
+import { useLocation } from "wouter";
 import { Link } from "wouter";
 import Logo from "@/components/Logo";
 
-type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements";
+type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements" | "portfolio";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   new: { label: "신규", variant: "destructive" },
@@ -54,6 +56,7 @@ export default function AdminDashboard() {
   const chatSessions = trpc.aiChat.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const styleRecs = trpc.aiStyle.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const announcementsList = trpc.announcement.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const portfolioDrafts = trpc.portfolio.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
 
   // Announcement mutations
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
@@ -126,6 +129,7 @@ export default function AdminDashboard() {
     { id: "ai-chat", label: "AI 상담", icon: <Bot className="w-4 h-4" />, count: chatSessions.data?.length },
     { id: "ai-style", label: "AI 스타일", icon: <Sparkles className="w-4 h-4" />, count: styleRecs.data?.length },
     { id: "announcements", label: "공지관리", icon: <Megaphone className="w-4 h-4" />, count: announcementsList.data?.length },
+    { id: "portfolio", label: "포트폴리오", icon: <Image className="w-4 h-4" />, count: portfolioDrafts.data?.length },
   ];
 
   return (
@@ -852,7 +856,287 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+        {/* Portfolio Drafts Tab */}
+        {activeTab === "portfolio" && (
+          <PortfolioTab />
+        )}
       </div>
+    </div>
+  );
+}
+
+// ===== Portfolio Management Tab Component =====
+const DRAFT_STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  draft: { label: "초안", variant: "secondary" },
+  review: { label: "검토중", variant: "default" },
+  published: { label: "게시됨", variant: "outline" },
+  archived: { label: "보관", variant: "destructive" },
+};
+
+const CATEGORY_OPTIONS = [
+  "사무실 인테리어", "크리에이티브 오피스", "크리에이티브 스튜디오",
+  "글로벌 기업 오피스", "공공기관", "헬스케어 오피스", "IT 오피스", "산업시설", "기타",
+];
+
+function PortfolioTab() {
+  const [, navigate] = useLocation();
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [newDraft, setNewDraft] = useState({
+    title: "", projectName: "", category: "사무실 인테리어",
+    client: "", area: "", location: "", duration: "", description: "",
+  });
+
+  const drafts = trpc.portfolio.list.useQuery(undefined);
+  const createDraft = trpc.portfolio.create.useMutation({ onSuccess: () => { drafts.refetch(); setShowCreateForm(false); resetForm(); } });
+  const updateDraft = trpc.portfolio.update.useMutation({ onSuccess: () => { drafts.refetch(); setEditingId(null); } });
+  const publishDraft = trpc.portfolio.publish.useMutation({ onSuccess: () => drafts.refetch() });
+  const archiveDraft = trpc.portfolio.archive.useMutation({ onSuccess: () => drafts.refetch() });
+  const deleteDraft = trpc.portfolio.delete.useMutation({ onSuccess: () => drafts.refetch() });
+  const generateDesc = trpc.portfolio.generateDescription.useMutation();
+
+  function resetForm() {
+    setNewDraft({ title: "", projectName: "", category: "사무실 인테리어", client: "", area: "", location: "", duration: "", description: "" });
+  }
+
+  const filteredDrafts = statusFilter === "all"
+    ? drafts.data ?? []
+    : (drafts.data ?? []).filter((d: any) => d.status === statusFilter);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-heading text-xl font-bold text-ink">포트폴리오 관리</h2>
+          <p className="text-sm text-muted-foreground mt-1">프로젝트 포트폴리오를 생성, 편집, 게시할 수 있습니다.</p>
+        </div>
+        <Button onClick={() => setShowCreateForm(!showCreateForm)} className="bg-gold text-ink hover:bg-gold-light">
+          <Plus className="w-4 h-4 mr-1" />
+          새 포트폴리오
+        </Button>
+      </div>
+
+      {/* Status Filter */}
+      <div className="flex gap-2">
+        {["all", "draft", "review", "published", "archived"].map(s => (
+          <button
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              statusFilter === s ? "bg-ink text-white" : "bg-paper-warm text-muted-foreground hover:text-ink"
+            }`}
+          >
+            {s === "all" ? "전체" : DRAFT_STATUS_MAP[s]?.label || s}
+            {s !== "all" && (
+              <span className="ml-1">({(drafts.data ?? []).filter((d: any) => d.status === s).length})</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Create Form */}
+      {showCreateForm && (
+        <Card className="border-gold/30">
+          <CardHeader>
+            <CardTitle className="text-lg">새 포트폴리오 초안</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">프로젝트 제목 *</label>
+                <input
+                  type="text" value={newDraft.title}
+                  onChange={e => setNewDraft({ ...newDraft, title: e.target.value })}
+                  placeholder="예: 허시드 본사 리모델링" className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">카테고리</label>
+                <select
+                  value={newDraft.category}
+                  onChange={e => setNewDraft({ ...newDraft, category: e.target.value })}
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm bg-white"
+                >
+                  {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">고객사</label>
+                <input
+                  type="text" value={newDraft.client}
+                  onChange={e => setNewDraft({ ...newDraft, client: e.target.value })}
+                  placeholder="예: (주)허시드" className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">면적</label>
+                <input
+                  type="text" value={newDraft.area}
+                  onChange={e => setNewDraft({ ...newDraft, area: e.target.value })}
+                  placeholder="예: 250㎡ (76평)" className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">위치</label>
+                <input
+                  type="text" value={newDraft.location}
+                  onChange={e => setNewDraft({ ...newDraft, location: e.target.value })}
+                  placeholder="예: 서울 강남구" className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">공사 기간</label>
+                <input
+                  type="text" value={newDraft.duration}
+                  onChange={e => setNewDraft({ ...newDraft, duration: e.target.value })}
+                  placeholder="예: 8주" className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">설명</label>
+              <textarea
+                value={newDraft.description}
+                onChange={e => setNewDraft({ ...newDraft, description: e.target.value })}
+                placeholder="프로젝트에 대한 간략한 설명..." rows={3}
+                className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => createDraft.mutate(newDraft)}
+                disabled={!newDraft.title || createDraft.isPending}
+                className="bg-gold text-ink hover:bg-gold-light"
+              >
+                {createDraft.isPending ? "생성 중..." : "초안 생성"}
+              </Button>
+              <Button variant="outline" onClick={() => { setShowCreateForm(false); resetForm(); }}>취소</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Drafts List */}
+      {drafts.isLoading ? (
+        <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
+      ) : filteredDrafts.length === 0 ? (
+        <Card className="border-border/50">
+          <CardContent className="py-16 text-center">
+            <FolderOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground">포트폴리오 초안이 없습니다.</p>
+            <p className="text-sm text-muted-foreground/60 mt-1">새 포트폴리오를 생성하거나 Google Drive에서 자동으로 가져올 수 있습니다.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filteredDrafts.map((draft: any) => {
+            const isEditing = editingId === draft.id;
+            return (
+              <Card key={draft.id} className={`border-border/50 ${draft.status === "published" ? "border-green-200 bg-green-50/30" : ""}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <Badge variant={DRAFT_STATUS_MAP[draft.status]?.variant || "secondary"}
+                          className={draft.status === "published" ? "bg-green-500 text-white" : ""}>
+                          {DRAFT_STATUS_MAP[draft.status]?.label || draft.status}
+                        </Badge>
+                        <Link href={`/admin/portfolio/${draft.id}`}>
+                          <span className="font-heading font-bold text-ink text-lg hover:text-gold transition-colors cursor-pointer">{draft.title}</span>
+                        </Link>
+                        {draft.category && (
+                          <Badge variant="outline" className="text-xs">{draft.category}</Badge>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-2">
+                        {draft.client && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" /> {draft.client}</span>}
+                        {draft.area && <span>{draft.area}</span>}
+                        {draft.location && <span>{draft.location}</span>}
+                        {draft.duration && <span>{draft.duration}</span>}
+                      </div>
+                      {draft.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{draft.description}</p>
+                      )}
+                      {draft.aiDescription && (
+                        <div className="bg-gold/5 border border-gold/20 rounded-md p-3 mb-2">
+                          <div className="flex items-center gap-1 text-xs text-gold font-medium mb-1">
+                            <Wand2 className="w-3 h-3" /> AI 생성 설명
+                          </div>
+                          <p className="text-sm text-ink/80 line-clamp-3">{draft.aiDescription}</p>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="w-3 h-3" />
+                        생성: {formatDate(draft.createdAt)}
+                        {draft.publishedAt && <span className="text-green-600">| 게시: {formatDate(draft.publishedAt)}</span>}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-col gap-1">
+                      {draft.status === "draft" && (
+                        <>
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => {
+                              generateDesc.mutate({
+                                id: draft.id, title: draft.title,
+                                category: draft.category, client: draft.client,
+                                area: draft.area, location: draft.location,
+                              });
+                            }}
+                            disabled={generateDesc.isPending}
+                            title="AI 설명 생성"
+                          >
+                            {generateDesc.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4 text-gold" />}
+                          </Button>
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => updateDraft.mutate({ id: draft.id, status: "review" })}
+                            title="검토 요청"
+                          >
+                            <Eye className="w-4 h-4 text-blue-500" />
+                          </Button>
+                        </>
+                      )}
+                      {(draft.status === "draft" || draft.status === "review") && (
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={() => {
+                            if (confirm("이 포트폴리오를 게시하시겠습니까?")) publishDraft.mutate({ id: draft.id });
+                          }}
+                          title="게시"
+                        >
+                          <Send className="w-4 h-4 text-green-500" />
+                        </Button>
+                      )}
+                      {draft.status === "published" && (
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={() => archiveDraft.mutate({ id: draft.id })}
+                          title="보관"
+                        >
+                          <Archive className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost" size="sm"
+                        onClick={() => { if (confirm("이 포트폴리오를 삭제하시겠습니까?")) deleteDraft.mutate({ id: draft.id }); }}
+                        className="text-destructive hover:text-destructive"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

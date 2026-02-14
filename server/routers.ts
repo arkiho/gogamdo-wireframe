@@ -12,6 +12,10 @@ import {
   createStyleRecommendation, listStyleRecommendations,
   createAnnouncement, listAnnouncements, getActiveAnnouncements, updateAnnouncement, deleteAnnouncement,
   getDashboardStats,
+  createPortfolioDraft, listPortfolioDrafts, getPortfolioDraft, updatePortfolioDraft,
+  publishPortfolioDraft, archivePortfolioDraft, deletePortfolioDraft,
+  addDraftImage, listDraftImages, updateDraftImage, deleteDraftImage, setCoverImage,
+  getPublishedPortfolios,
 } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
@@ -557,6 +561,195 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return deleteAnnouncement(input.id);
+      }),
+  }),
+
+  // ===== 포트폴리오 초안 관리 (Portfolio Drafts) =====
+  portfolio: router({
+    // 공개: 게시된 포트폴리오 목록
+    published: publicProcedure.query(async () => {
+      return getPublishedPortfolios();
+    }),
+    // 공개: 게시된 포트폴리오 상세 + 이미지
+    detail: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const draft = await getPortfolioDraft(input.id);
+        if (!draft || draft.status !== "published") return null;
+        const images = await listDraftImages(input.id);
+        return { ...draft, images };
+      }),
+    // 관리자: 초안 생성
+    create: adminProcedure
+      .input(z.object({
+        title: z.string().min(1),
+        projectName: z.string().optional(),
+        category: z.string().optional(),
+        client: z.string().optional(),
+        area: z.string().optional(),
+        location: z.string().optional(),
+        duration: z.string().optional(),
+        description: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return createPortfolioDraft(input);
+      }),
+    // 관리자: 전체 초안 목록
+    list: adminProcedure
+      .input(z.object({ status: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        return listPortfolioDrafts(input?.status);
+      }),
+    // 관리자: 초안 상세 + 이미지
+    get: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const draft = await getPortfolioDraft(input.id);
+        if (!draft) throw new TRPCError({ code: "NOT_FOUND" });
+        const images = await listDraftImages(input.id);
+        return { ...draft, images };
+      }),
+    // 관리자: 초안 수정
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        projectName: z.string().optional(),
+        category: z.string().optional(),
+        client: z.string().optional(),
+        area: z.string().optional(),
+        location: z.string().optional(),
+        duration: z.string().optional(),
+        description: z.string().optional(),
+        aiDescription: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+        status: z.enum(["draft", "review", "published", "archived"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updatePortfolioDraft(id, data as any);
+      }),
+    // 관리자: 게시
+    publish: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return publishPortfolioDraft(input.id);
+      }),
+    // 관리자: 보관
+    archive: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return archivePortfolioDraft(input.id);
+      }),
+    // 관리자: 삭제
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deletePortfolioDraft(input.id);
+      }),
+    // 관리자: AI 설명 생성
+    generateDescription: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string(),
+        category: z.string().optional(),
+        client: z.string().optional(),
+        area: z.string().optional(),
+        location: z.string().optional(),
+        imageCount: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await invokeLLM({
+          messages: [
+            { role: "system", content: "당신은 (주)고감도의 포트폴리오 콘텐츠 작성 전문가입니다. 인테리어 프로젝트를 매력적으로 소개하는 글을 작성합니다. 전문적이면서도 따뜻한 톤으로 작성하세요." },
+            { role: "user", content: `다음 프로젝트에 대한 포트폴리오 소개글을 작성해주세요.\n\n프로젝트명: ${input.title}\n카테고리: ${input.category || "사무실 인테리어"}\n고객사: ${input.client || "비공개"}\n면적: ${input.area || "미정"}\n위치: ${input.location || "미정"}\n사진 수: ${input.imageCount || 0}장\n\n3-4문장으로 프로젝트의 핵심 특징, 디자인 컨셉, 고객 니즈 해결 방식을 소개하는 글을 작성해주세요.` },
+          ],
+        });
+        const rawContent = result.choices[0]?.message?.content;
+        const description = typeof rawContent === "string" ? rawContent : "";
+        await updatePortfolioDraft(input.id, { aiDescription: description });
+        return { description };
+      }),
+    // ===== 이미지 관리 =====
+    addImage: adminProcedure
+      .input(z.object({
+        draftId: z.number(),
+        originalUrl: z.string(),
+        filename: z.string().optional(),
+        driveFileId: z.string().optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return addDraftImage(input);
+      }),
+    listImages: adminProcedure
+      .input(z.object({ draftId: z.number() }))
+      .query(async ({ input }) => {
+        return listDraftImages(input.draftId);
+      }),
+    updateImage: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        processedUrl: z.string().optional(),
+        watermarkedUrl: z.string().optional(),
+        thumbnailUrl: z.string().optional(),
+        aiProcessed: z.enum(["yes", "no"]).optional(),
+        processingStatus: z.enum(["pending", "processing", "done", "error"]).optional(),
+        sortOrder: z.number().optional(),
+        isCover: z.enum(["yes", "no"]).optional(),
+        caption: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updateDraftImage(id, data as any);
+      }),
+    deleteImage: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteDraftImage(input.id);
+      }),
+    setCover: adminProcedure
+      .input(z.object({ draftId: z.number(), imageId: z.number() }))
+      .mutation(async ({ input }) => {
+        return setCoverImage(input.draftId, input.imageId);
+      }),
+    // AI 이미지 보정
+    processImage: adminProcedure
+      .input(z.object({
+        imageId: z.number(),
+        originalUrl: z.string(),
+        action: z.enum(["enhance", "watermark", "addPeople", "all"]),
+      }))
+      .mutation(async ({ input }) => {
+        await updateDraftImage(input.imageId, { processingStatus: "processing" });
+        try {
+          let processedUrl = input.originalUrl;
+          if (input.action === "enhance" || input.action === "all") {
+            const result = await generateImage({
+              prompt: "Enhance this interior photo: improve lighting, color balance, and clarity. Make it look professional and magazine-quality. Keep the original composition and content exactly the same.",
+              originalImages: [{ url: input.originalUrl, mimeType: "image/jpeg" }],
+            });
+            if (result.url) processedUrl = result.url;
+          }
+          if (input.action === "addPeople" || input.action === "all") {
+            const result = await generateImage({
+              prompt: "Add 1-2 professional business people naturally interacting in this office interior space. They should look like they are working or having a meeting. Keep the interior design exactly the same, only add realistic people.",
+              originalImages: [{ url: processedUrl, mimeType: "image/jpeg" }],
+            });
+            if (result.url) processedUrl = result.url;
+          }
+          // 워터마크는 프론트에서 canvas로 처리하거나, 별도 서비스로 처리
+          await updateDraftImage(input.imageId, {
+            processedUrl,
+            aiProcessed: "yes",
+            processingStatus: "done",
+          });
+          return { success: true, processedUrl };
+        } catch (err) {
+          await updateDraftImage(input.imageId, { processingStatus: "error" });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "이미지 처리 실패" });
+        }
       }),
   }),
 

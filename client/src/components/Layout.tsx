@@ -113,7 +113,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Navigation */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        style={{ top: "var(--banner-height, 0px)" }}
+        className={`fixed left-0 right-0 z-50 transition-all duration-500 ${
           isScrolled
             ? "bg-paper/90 backdrop-blur-xl border-b border-border/50"
             : isHome ? "bg-transparent" : "bg-paper/80 backdrop-blur-sm"
@@ -306,8 +307,8 @@ export default function Layout({ children }: { children: ReactNode }) {
               </h4>
               <ul className="space-y-2.5 text-sm text-white/40">
                 <li>서울특별시 강남구</li>
-                <li>02-XXX-XXXX</li>
-                <li>info@kokamdo.co.kr</li>
+                <li><a href="tel:02-3487-6133" className="hover:text-gold transition-colors">02-3487-6133</a></li>
+                <li><a href="mailto:contact@kokamdo.co.kr" className="hover:text-gold transition-colors">contact@kokamdo.co.kr</a></li>
               </ul>
             </div>
           </div>

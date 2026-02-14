@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { storagePut } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,6 +36,36 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // File upload endpoint for portfolio images
+  app.post("/api/upload", async (req, res) => {
+    try {
+      const contentType = req.headers["content-type"] || "";
+      if (!contentType.startsWith("multipart/form-data") && !contentType.startsWith("application/octet-stream")) {
+        // Handle base64 JSON upload
+        const { data, filename, mimeType } = req.body;
+        if (!data || !filename) {
+          return res.status(400).json({ error: "Missing data or filename" });
+        }
+        const buffer = Buffer.from(data, "base64");
+        const key = `portfolio/${Date.now()}-${filename}`;
+        const result = await storagePut(key, buffer, mimeType || "image/jpeg");
+        return res.json({ url: result.url, key: result.key });
+      }
+      // For multipart, collect raw body
+      const chunks: Buffer[] = [];
+      req.on("data", (chunk: Buffer) => chunks.push(chunk));
+      req.on("end", async () => {
+        const body = Buffer.concat(chunks);
+        const key = `portfolio/${Date.now()}-upload.jpg`;
+        const result = await storagePut(key, body, "image/jpeg");
+        res.json({ url: result.url, key: result.key });
+      });
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      res.status(500).json({ error: err.message || "Upload failed" });
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",

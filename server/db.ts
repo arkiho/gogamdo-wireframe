@@ -1,6 +1,6 @@
-import { eq, desc, count, and, lte, gte, or, isNull } from "drizzle-orm";
+import { eq, desc, count, and, lte, gte, or, isNull, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -273,6 +273,153 @@ export async function deleteAnnouncement(id: number) {
   if (!db) throw new Error("Database not available");
   await db.delete(announcements).where(eq(announcements.id, id));
   return { success: true };
+}
+
+// ===== Portfolio Draft Queries =====
+
+export async function createPortfolioDraft(data: InsertPortfolioDraft) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(portfolioDrafts).values(data);
+  return { success: true, id: result[0].insertId };
+}
+
+export async function listPortfolioDrafts(status?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (status) {
+    return db.select().from(portfolioDrafts)
+      .where(eq(portfolioDrafts.status, status as any))
+      .orderBy(desc(portfolioDrafts.updatedAt));
+  }
+  return db.select().from(portfolioDrafts).orderBy(desc(portfolioDrafts.updatedAt));
+}
+
+export async function getPortfolioDraft(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(portfolioDrafts).where(eq(portfolioDrafts.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updatePortfolioDraft(id: number, data: Partial<InsertPortfolioDraft>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(portfolioDrafts).set(data).where(eq(portfolioDrafts.id, id));
+  return { success: true };
+}
+
+export async function publishPortfolioDraft(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(portfolioDrafts).set({ status: "published", publishedAt: new Date() }).where(eq(portfolioDrafts.id, id));
+  return { success: true };
+}
+
+export async function archivePortfolioDraft(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(portfolioDrafts).set({ status: "archived" }).where(eq(portfolioDrafts.id, id));
+  return { success: true };
+}
+
+export async function deletePortfolioDraft(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(draftImages).where(eq(draftImages.draftId, id));
+  await db.delete(portfolioDrafts).where(eq(portfolioDrafts.id, id));
+  return { success: true };
+}
+
+// ===== Draft Image Queries =====
+
+export async function addDraftImage(data: InsertDraftImage) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(draftImages).values(data);
+  return { success: true, id: result[0].insertId };
+}
+
+export async function listDraftImages(draftId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(draftImages)
+    .where(eq(draftImages.draftId, draftId))
+    .orderBy(draftImages.sortOrder);
+}
+
+export async function updateDraftImage(id: number, data: Partial<InsertDraftImage>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(draftImages).set(data).where(eq(draftImages.id, id));
+  return { success: true };
+}
+
+export async function deleteDraftImage(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(draftImages).where(eq(draftImages.id, id));
+  return { success: true };
+}
+
+export async function setCoverImage(draftId: number, imageId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Reset all covers for this draft
+  await db.update(draftImages).set({ isCover: "no" }).where(eq(draftImages.draftId, draftId));
+  // Set new cover
+  await db.update(draftImages).set({ isCover: "yes" }).where(eq(draftImages.id, imageId));
+  return { success: true };
+}
+
+// ===== Drive Sync Log Queries =====
+
+export async function createSyncLog(data: InsertDriveSyncLog) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(driveSyncLog).values(data);
+  return { success: true, id: result[0].insertId };
+}
+
+export async function getSyncLogByFolderId(folderId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(driveSyncLog).where(eq(driveSyncLog.folderId, folderId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateSyncLog(id: number, data: Partial<InsertDriveSyncLog>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(driveSyncLog).set(data).where(eq(driveSyncLog.id, id));
+  return { success: true };
+}
+
+export async function listSyncLogs() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(driveSyncLog).orderBy(desc(driveSyncLog.lastSyncAt));
+}
+
+export async function getPublishedPortfolios() {
+  const db = await getDb();
+  if (!db) return [];
+  const drafts = await db.select().from(portfolioDrafts)
+    .where(eq(portfolioDrafts.status, "published"))
+    .orderBy(desc(portfolioDrafts.publishedAt));
+  // Attach cover image for each draft
+  const result = [];
+  for (const draft of drafts) {
+    const images = await db.select().from(draftImages)
+      .where(eq(draftImages.draftId, draft.id))
+      .orderBy(draftImages.sortOrder);
+    const cover = images.find(img => img.isCover === "yes") || images[0];
+    result.push({
+      ...draft,
+      coverImage: cover?.processedUrl || cover?.originalUrl || null,
+    });
+  }
+  return result;
 }
 
 export async function getDashboardStats() {

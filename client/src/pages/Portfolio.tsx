@@ -2,13 +2,16 @@
  * DESIGN: Precision Studio — Portfolio Page
  * Neurodesign: Social proof, before/after contrast
  * Sections: Hero → Filter → Project Grid → CTA
+ * 
+ * 정적 프로젝트(PROJECTS)와 DB에서 게시된 포트폴리오를 합쳐서 표시
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { PROJECTS } from "@/lib/images";
+import { trpc } from "@/lib/trpc";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -27,12 +30,57 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
 
 const CATEGORIES = ["전체", "사무실 인테리어", "크리에이티브 오피스", "크리에이티브 스튜디오", "글로벌 기업 오피스", "공공기관", "헬스케어 오피스", "IT 오피스", "산업시설"];
 
+// Unified project type for display
+type DisplayProject = {
+  id: string;
+  name: string;
+  category: string;
+  area: string;
+  year: string;
+  image: string;
+  href: string;
+  source: "static" | "db";
+};
+
 export default function Portfolio() {
   const [activeCategory, setActiveCategory] = useState("전체");
+  
+  // Fetch published portfolios from DB
+  const publishedPortfolios = trpc.portfolio.published.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+
+  // Merge static + DB projects
+  const allProjects = useMemo<DisplayProject[]>(() => {
+    const staticProjects: DisplayProject[] = PROJECTS.map(p => ({
+      id: `static-${p.slug}`,
+      name: p.name,
+      category: p.category,
+      area: p.area.split(" ")[0],
+      year: p.year,
+      image: p.image,
+      href: `/portfolio/${p.slug}`,
+      source: "static" as const,
+    }));
+
+    const dbProjects: DisplayProject[] = (publishedPortfolios.data || []).map((p: any) => ({
+      id: `db-${p.id}`,
+      name: p.title,
+      category: p.category || "기타",
+      area: p.area || "",
+      year: p.createdAt ? new Date(p.createdAt).getFullYear().toString() : new Date().getFullYear().toString(),
+      image: p.coverImage || "",
+      href: `/portfolio/p/${p.id}`,
+      source: "db" as const,
+    }));
+
+    // DB projects first (newest), then static
+    return [...dbProjects, ...staticProjects];
+  }, [publishedPortfolios.data]);
 
   const filtered = activeCategory === "전체"
-    ? PROJECTS
-    : PROJECTS.filter((p) => p.category === activeCategory);
+    ? allProjects
+    : allProjects.filter((p) => p.category === activeCategory);
 
   return (
     <>
@@ -86,22 +134,33 @@ export default function Portfolio() {
               className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
             >
               {filtered.map((project) => (
-                <Link key={project.slug} href={`/portfolio/${project.slug}`}>
+                <Link key={project.id} href={project.href}>
                   <div className="group cursor-pointer">
-                    <div className="relative overflow-hidden aspect-[4/3] mb-4">
-                      <img
-                        src={project.image}
-                        alt={project.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
+                    <div className="relative overflow-hidden aspect-[4/3] mb-4 bg-paper-warm">
+                      {project.image ? (
+                        <img
+                          src={project.image}
+                          alt={project.name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-muted-foreground/30 font-heading text-2xl font-bold">{project.name.charAt(0)}</span>
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500" />
                       <div className="absolute bottom-3 right-3 w-8 h-8 bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <ArrowUpRight className="w-4 h-4 text-ink" />
                       </div>
+                      {project.source === "db" && (
+                        <div className="absolute top-3 left-3">
+                          <span className="px-2 py-0.5 text-[10px] font-medium bg-gold/90 text-ink rounded-full">NEW</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-xs font-medium text-gold">{project.category}</span>
-                      <span className="text-xs text-muted-foreground">{project.area.split(" ")[0]}</span>
+                      {project.area && <span className="text-xs text-muted-foreground">{project.area}</span>}
                       <span className="text-xs text-muted-foreground">{project.year}</span>
                     </div>
                     <h3 className="font-heading text-lg font-bold text-ink group-hover:text-gold transition-colors">

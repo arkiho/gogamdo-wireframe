@@ -10,10 +10,12 @@ import About from "./pages/About";
 import Solutions from "./pages/Solutions";
 import Portfolio from "./pages/Portfolio";
 import ProjectDetail from "./pages/ProjectDetail";
+import PortfolioDbDetail from "./pages/PortfolioDbDetail";
 import Estimator from "./pages/Estimator";
 import Insights from "./pages/Insights";
 import Contact from "./pages/Contact";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminPortfolioDetail from "./pages/AdminPortfolioDetail";
 import Resources from "./pages/Resources";
 import AIChat from "./pages/AIChat";
 import AIStyle from "./pages/AIStyle";
@@ -28,6 +30,7 @@ function PublicRouter() {
         <Route path="/about" component={About} />
         <Route path="/solutions" component={Solutions} />
         <Route path="/portfolio" component={Portfolio} />
+        <Route path="/portfolio/p/:id" component={PortfolioDbDetail} />
         <Route path="/portfolio/:slug" component={ProjectDetail} />
         <Route path="/estimator" component={Estimator} />
         <Route path="/insights" component={Insights} />
@@ -47,6 +50,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />
       <Route component={PublicRouter} />
     </Switch>
   );
