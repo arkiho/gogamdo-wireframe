@@ -91,3 +91,41 @@ export const leadDownloads = mysqlTable("lead_downloads", {
 
 export type LeadDownload = typeof leadDownloads.$inferSelect;
 export type InsertLeadDownload = typeof leadDownloads.$inferInsert;
+
+/**
+ * AI 상담 챗봇 세션(AI Chat Sessions)
+ */
+export const chatSessions = mysqlTable("chat_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: varchar("sessionId", { length: 64 }).notNull().unique(),
+  messages: json("messages").$type<Array<{ role: string; content: string }>>(),
+  contactEmail: varchar("contactEmail", { length: 320 }),
+  contactName: varchar("contactName", { length: 100 }),
+  contactPhone: varchar("contactPhone", { length: 30 }),
+  summary: text("summary"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type InsertChatSession = typeof chatSessions.$inferInsert;
+
+/**
+ * AI 공간 스타일 추천 기록(Style Recommendations)
+ */
+export const styleRecommendations = mysqlTable("style_recommendations", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: varchar("sessionId", { length: 64 }).notNull(),
+  industry: varchar("industry", { length: 100 }),
+  teamSize: varchar("teamSize", { length: 50 }),
+  mood: varchar("mood", { length: 100 }),
+  budget: varchar("budget", { length: 50 }),
+  priorities: json("priorities").$type<string[]>(),
+  resultJson: json("resultJson"),
+  imageUrl: text("imageUrl"),
+  contactEmail: varchar("contactEmail", { length: 320 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type StyleRecommendation = typeof styleRecommendations.$inferSelect;
+export type InsertStyleRecommendation = typeof styleRecommendations.$inferInsert;

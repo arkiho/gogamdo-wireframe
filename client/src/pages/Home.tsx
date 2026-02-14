@@ -415,6 +415,86 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ==================== AI FEATURES ==================== */}
+      <section className="py-20 lg:py-28 bg-ink text-white relative overflow-hidden">
+        <div className="absolute top-8 right-8 lg:right-16 opacity-[0.04] select-none pointer-events-none">
+          <span className="font-heading text-[10rem] lg:text-[16rem] font-extrabold leading-none">
+            05
+          </span>
+        </div>
+        <div className="container relative z-10">
+          <FadeUp>
+            <p className="text-xs font-medium tracking-widest uppercase text-gold mb-4">
+              AI-Powered Tools
+            </p>
+            <h2 className="font-heading text-3xl lg:text-5xl font-bold mb-4 max-w-2xl leading-tight">
+              AI로 더 쉽게,<br />
+              <span className="text-white/40">더 스마트하게</span>
+            </h2>
+            <p className="text-white/50 mb-12 max-w-lg">
+              인공지능 기술로 인테리어 상담부터 스타일 추천까지, 더 빠르고 정확한 서비스를 경험하세요.
+            </p>
+          </FadeUp>
+
+          <div className="grid lg:grid-cols-3 gap-6">
+            <FadeUp delay={0}>
+              <Link href="/ai-chat">
+                <div className="group p-8 lg:p-10 border border-white/10 hover:border-gold/30 transition-all duration-500 h-full">
+                  <div className="w-12 h-12 flex items-center justify-center bg-gold text-ink mb-6 group-hover:scale-110 transition-transform duration-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+                  </div>
+                  <h3 className="font-heading text-xl font-bold text-white mb-3">
+                    AI 인테리어 상담
+                  </h3>
+                  <p className="text-white/50 text-sm leading-relaxed mb-6">
+                    24시간 AI 상담사가 비용, 디자인, 공사 기간 등 인테리어에 대한 모든 궁금증을 실시간으로 답변해 드립니다.
+                  </p>
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-gold opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    상담 시작하기 <ChevronRight className="w-4 h-4" />
+                  </span>
+                </div>
+              </Link>
+            </FadeUp>
+            <FadeUp delay={0.1}>
+              <Link href="/ai-style">
+                <div className="group p-8 lg:p-10 border border-white/10 hover:border-gold/30 transition-all duration-500 h-full">
+                  <div className="w-12 h-12 flex items-center justify-center bg-gold text-ink mb-6 group-hover:scale-110 transition-transform duration-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                  </div>
+                  <h3 className="font-heading text-xl font-bold text-white mb-3">
+                    AI 스타일 추천
+                  </h3>
+                  <p className="text-white/50 text-sm leading-relaxed mb-6">
+                    업종, 분위기, 예산에 맞는 맞춤 인테리어 스타일을 AI가 추천하고, 컨러 팔레트와 참고 이미지까지 생성합니다.
+                  </p>
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-gold opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    스타일 추천받기 <ChevronRight className="w-4 h-4" />
+                  </span>
+                </div>
+              </Link>
+            </FadeUp>
+            <FadeUp delay={0.2}>
+              <Link href="/estimator">
+                <div className="group p-8 lg:p-10 border border-white/10 hover:border-gold/30 transition-all duration-500 h-full">
+                  <div className="w-12 h-12 flex items-center justify-center bg-gold text-ink mb-6 group-hover:scale-110 transition-transform duration-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><path d="M8 10h8"/><path d="M8 14h4"/></svg>
+                  </div>
+                  <h3 className="font-heading text-xl font-bold text-white mb-3">
+                    AI 예상 견적
+                  </h3>
+                  <p className="text-white/50 text-sm leading-relaxed mb-6">
+                    면적, 용도, 등급만 입력하면 AI가 즉시 예상 비용을 산출합니다. 투명한 견적으로 예산 계획을 시작하세요.
+                  </p>
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-gold opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    견적 받아보기 <ChevronRight className="w-4 h-4" />
+                  </span>
+                </div>
+              </Link>
+            </FadeUp>
+          </div>
+        </div>
+      </section>
+
       {/* ==================== FINAL CTA ==================== */}
       <section className="py-24 lg:py-32 relative overflow-hidden">
         <div className="container relative z-10 text-center">

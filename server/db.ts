@@ -1,6 +1,6 @@
 import { eq, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -181,6 +181,56 @@ export async function listLeadDownloads() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(leadDownloads).orderBy(desc(leadDownloads.createdAt));
+}
+
+// ===== AI Chat Session Queries =====
+
+export async function upsertChatSession(data: { sessionId: string; messages: Array<{ role: string; content: string }>; contactEmail?: string; contactName?: string; contactPhone?: string; summary?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    await db.insert(chatSessions).values({
+      sessionId: data.sessionId,
+      messages: data.messages,
+      contactEmail: data.contactEmail ?? null,
+      contactName: data.contactName ?? null,
+      contactPhone: data.contactPhone ?? null,
+      summary: data.summary ?? null,
+    }).onDuplicateKeyUpdate({
+      set: {
+        messages: data.messages,
+        contactEmail: data.contactEmail ?? undefined,
+        contactName: data.contactName ?? undefined,
+        contactPhone: data.contactPhone ?? undefined,
+        summary: data.summary ?? undefined,
+      },
+    });
+    return { success: true };
+  } catch (err) {
+    console.error("[DB] Failed to upsert chat session:", err);
+    throw err;
+  }
+}
+
+export async function listChatSessions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(chatSessions).orderBy(desc(chatSessions.updatedAt));
+}
+
+// ===== Style Recommendation Queries =====
+
+export async function createStyleRecommendation(data: InsertStyleRecommendation) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(styleRecommendations).values(data);
+  return { success: true };
+}
+
+export async function listStyleRecommendations() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(styleRecommendations).orderBy(desc(styleRecommendations.createdAt));
 }
 
 export async function getDashboardStats() {

@@ -20,8 +20,9 @@ const NAV_ITEMS = [
   { label: "솔루션", href: "/solutions" },
   { label: "프로젝트", href: "/portfolio" },
   { label: "AI 견적", href: "/estimator" },
+  { label: "AI 상담", href: "/ai-chat" },
+  { label: "AI 스타일", href: "/ai-style" },
   { label: "인사이트", href: "/insights" },
-  { label: "자료실", href: "/resources" },
 ];
 
 function NewsletterForm() {
@@ -270,8 +271,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 {[
                   { label: "회사소개", href: "/about" },
                   { label: "프로젝트", href: "/portfolio" },
-                  { label: "인사이트", href: "/insights" },
-                  { label: "자료실", href: "/resources" },
+                  { label: "AI 상담", href: "/ai-chat" },
+                  { label: "AI 스타일", href: "/ai-style" },
                   { label: "문의하기", href: "/contact" },
                 ].map((item) => (
                   <li key={item.href}>
