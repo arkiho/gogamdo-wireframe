@@ -219,7 +219,7 @@ export default function Estimator() {
                 AI 예상 견적
               </h1>
               <p className="text-muted-foreground max-w-lg mx-auto">
-                고감도의 36년간 500건 이상 실제 프로젝트 데이터를 기반으로 산출합니다.
+                고감도의 35년간 2,800건 이상 실제 프로젝트 데이터를 기반으로 산출합니다.
                 정확한 견적은 현장 방문 후 확정됩니다.
               </p>
             </div>
@@ -665,7 +665,7 @@ export default function Estimator() {
                   </div>
 
                   <p className="text-xs text-muted-foreground text-center mb-8">
-                    * 본 견적은 고감도의 36년간 500건 이상 실제 프로젝트 데이터를 기반으로 AI가 산출한 예상 금액입니다.
+                    * 본 견적은 고감도의 35년간 2,800건 이상 실제 프로젝트 데이터를 기반으로 AI가 산출한 예상 금액입니다.
                     실제 견적은 현장 조건, 마감재 선택, 설비 사양에 따라 달라질 수 있습니다.
                   </p>
 

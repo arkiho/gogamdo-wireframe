@@ -251,7 +251,7 @@ export default function Resources() {
               <span className="text-[#C8A96E]">무료</span>로 받아보세요
             </h1>
             <p className="text-white/50 text-lg max-w-xl leading-relaxed">
-              고감도의 36년 노하우를 담은 실무 가이드와 트렌드 리포트.
+              고감도의 35년 노하우를 담은 실무 가이드와 트렌드 리포트.
               사무실 인테리어를 준비하시는 분들께 도움이 되길 바랍니다.
             </p>
           </FadeUp>

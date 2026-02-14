@@ -21,7 +21,7 @@ import {
   createSensor, listSensors, updateSensor, deleteSensor,
   addSensorData, addSensorDataBatch, getSensorDataRange, getSensorLatestData,
   createSpaceAnalysis, listSpaceAnalyses,
-  listCrmClients, getCrmClient, createCrmClient, updateCrmClient, deleteCrmClient,
+  listCrmClients, getCrmClient, findCrmClientByEmail, createCrmClient, updateCrmClient, deleteCrmClient,
   listCrmInteractions, createCrmInteraction, deleteCrmInteraction,
   listCrmDeals, getCrmDeal, createCrmDeal, updateCrmDeal, deleteCrmDeal,
   listCrmActivities, createCrmActivity, getCrmStats,
@@ -40,6 +40,24 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   }
   return next({ ctx });
 });
+
+// 문의 유형을 CRM spaceType으로 매핑
+function mapInquiryTypeToSpaceType(type?: string): "office" | "commercial" | "medical" | "education" | "residential" | "other" | undefined {
+  if (!type) return undefined;
+  const map: Record<string, "office" | "commercial" | "medical" | "education" | "residential" | "other"> = {
+    "사무실": "office",
+    "오피스": "office",
+    "상업공간": "commercial",
+    "매장": "commercial",
+    "쇼룸": "commercial",
+    "병원": "medical",
+    "의료": "medical",
+    "학교": "education",
+    "교육": "education",
+    "주거": "residential",
+  };
+  return map[type] || "other";
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -67,9 +85,55 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const result = await createInquiry(input);
+
+        // === CRM 자동 연동: 고객 + 딜 + 활동 자동 생성 ===
+        try {
+          // 1. 이메일로 기존 CRM 고객 검색, 없으면 새로 생성
+          let existingClient = await findCrmClientByEmail(input.email);
+          let clientId: number;
+
+          if (existingClient) {
+            clientId = existingClient.id;
+          } else {
+            const newClientId = await createCrmClient({
+              companyName: input.company || `${input.name} (개인)`,
+              contactName: input.name,
+              email: input.email,
+              phone: input.phone || undefined,
+              source: "website",
+              notes: `웹사이트 문의를 통해 자동 생성됨.\n문의 유형: ${input.type || "-"}\n예산: ${input.budget || "-"}\n면적: ${input.area || "-"}`,
+            });
+            clientId = newClientId!;
+          }
+
+          // 2. 딜(영업 기회) 자동 생성
+          const dealTitle = `[웹문의] ${input.company || input.name} - ${input.type || "인테리어 문의"}`;
+          const dealId = await createCrmDeal({
+            clientId,
+            title: dealTitle,
+            stage: "lead",
+            area: input.area || undefined,
+            spaceType: mapInquiryTypeToSpaceType(input.type),
+            description: input.message,
+          });
+
+          // 3. 활동 로그 기록
+          await createCrmActivity({
+            dealId: dealId || undefined,
+            clientId,
+            type: "note",
+            title: "웹사이트 문의 접수",
+            description: `문의 내용: ${input.message}\n유형: ${input.type || "-"}\n예산: ${input.budget || "-"}\n면적: ${input.area || "-"}`,
+            createdBy: "system",
+          });
+        } catch (crmError) {
+          // CRM 연동 실패해도 문의 접수는 정상 처리
+          console.error("[CRM Auto-Link] Failed to create CRM records:", crmError);
+        }
+
         await notifyOwner({
           title: `새 문의: ${input.name} (${input.company || "개인"})`,
-          content: `이름: ${input.name}\n회사: ${input.company || "-"}\n이메일: ${input.email}\n전화: ${input.phone || "-"}\n유형: ${input.type || "-"}\n예산: ${input.budget || "-"}\n면적: ${input.area || "-"}\n\n내용:\n${input.message}`,
+          content: `이름: ${input.name}\n회사: ${input.company || "-"}\n이메일: ${input.email}\n전화: ${input.phone || "-"}\n유형: ${input.type || "-"}\n예산: ${input.budget || "-"}\n면적: ${input.area || "-"}\n\n내용:\n${input.message}\n\n[CRM] 고객 및 딜이 자동 생성되었습니다.`,
         });
         return result;
       }),
@@ -302,7 +366,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
 ## 회사 정보
 - 회사명: (주)고감도 (KOKAMDO)
 - 전문 분야: 사무실/상업공간 인테리어 설계 및 시공
-- 업력: 36년 (1990년 창업), 500건 이상 프로젝트 완료
+- 업력: 35년 (1991년 창업), 2,800건 이상 프로젝트 완료
 - 시공 면적: 대한민국 면적만큼 (100,000㎡ 이상)
 - 고객 만족도: 98%
 - 서비스: 공간 설계, 디자인 & 3D 렌더링, 시공 관리 (원스톱 솔루션)

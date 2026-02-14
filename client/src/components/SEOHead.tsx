@@ -16,7 +16,7 @@ interface SEOProps {
 
 const BASE_URL = "https://kokamdo.co.kr";
 const DEFAULT_TITLE = "고감도 KOKAMDO | 사무공간 인테리어 전문기업";
-const DEFAULT_DESC = "36년 경력의 사무공간 인테리어 전문기업 고감도. 대한민국 면적만큼의 공간을 설계하고 시공한 경험. 설계부터 시공까지 원스톱 솔루션, AI 예상 견적 서비스 제공.";
+const DEFAULT_DESC = "1991년 창업, 35년 경력의 사무공간 인테리어 전문기업 고감도. 대한민국 면적만큼의 공간을 설계하고 시공한 경험, 2,800건 이상 프로젝트 완료. AI 예상 견적 서비스 제공.";
 
 function setMeta(property: string, content: string) {
   let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
@@ -74,12 +74,12 @@ export default function SEOHead({ title, description, path = "/", image, type = 
 export const SEO_CONFIG = {
   home: {
     title: undefined,
-    description: "36년 경력의 사무공간 인테리어 전문기업 고감도. 대한민국 면적만큼의 공간을 설계하고 시공한 경험. 설계부터 시공까지 원스톱 솔루션, AI 예상 견적 서비스 제공.",
+    description: "1991년 창업, 35년 경력의 사무공간 인테리어 전문기업 고감도. 대한민국 면적만큼의 공간을 설계하고 시공한 경험, 2,800건 이상 프로젝트 완료. AI 예상 견적 서비스 제공.",
     path: "/",
   },
   about: {
     title: "회사소개",
-    description: "고감도는 1990년 창업 이래 36년간 대한민국 면적만큼의 공간을 설계하고 시공해 온 인테리어 전문기업입니다. 데이터 기반 설계와 체계적인 시공 관리로 최적의 업무 환경을 만듭니다.",
+    description: "고감도는 1991년 창업 이래 35년간 대한민국 면적만큼의 공간을 설계하고 시공해 온 인테리어 전문기업입니다. 2,800건 이상의 프로젝트, 데이터 기반 설계와 체계적인 시공 관리로 최적의 업무 환경을 만듭니다.",
     path: "/about",
   },
   solutions: {

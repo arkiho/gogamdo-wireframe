@@ -591,6 +591,13 @@ export async function getCrmClient(id: number) {
   return rows[0] || null;
 }
 
+export async function findCrmClientByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(crmClients).where(eq(crmClients.email, email));
+  return rows[0] || null;
+}
+
 export async function createCrmClient(data: Omit<InsertCrmClient, "id" | "createdAt" | "updatedAt">) {
   const db = await getDb();
   if (!db) return null;

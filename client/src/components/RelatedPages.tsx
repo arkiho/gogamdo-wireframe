@@ -16,7 +16,7 @@ const ALL_PAGES: RelatedPage[] = [
   { label: "AI 견적", href: "/estimator", description: "30초 만에 예상 비용을 무료로 확인하세요" },
   { label: "AI 상담", href: "/ai-chat", description: "24시간 AI 인테리어 상담사와 대화하세요" },
   { label: "AI 스타일", href: "/ai-style", description: "맞춤 인테리어 스타일을 추천받으세요" },
-  { label: "프로젝트", href: "/portfolio", description: "36년간 500건 이상의 완료 프로젝트를 확인하세요" },
+  { label: "프로젝트", href: "/portfolio", description: "35년간 2,800건 이상의 완료 프로젝트를 확인하세요" },
   { label: "솔루션", href: "/solutions", description: "설계부터 시공까지 원스톱 솔루션" },
   { label: "FAQ", href: "/faq", description: "자주 묻는 질문과 답변을 확인하세요" },
   { label: "무료 상담", href: "/contact", description: "전문 컨설턴트와 무료 상담을 시작하세요" },
