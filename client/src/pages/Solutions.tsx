@@ -6,7 +6,7 @@
 
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Ruler, PenTool, HardHat, Sofa, MonitorSmartphone, ExternalLink, CheckCircle2 } from "lucide-react";
+import { ArrowUpRight, Ruler, PenTool, HardHat, Sofa, MonitorSmartphone, ExternalLink, CheckCircle2, ChevronRight } from "lucide-react";
 import { SOLUTION_CONSULT_IMG } from "@/lib/images";
 import { analytics } from "@/lib/analytics";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
@@ -172,20 +172,24 @@ export default function Solutions() {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href="https://opsx.io"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-ink text-white font-medium text-sm hover:bg-ink/90 transition-colors"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    analytics.solutionClick("OpsX");
-                    window.open("https://opsx.io", "_blank");
-                  }}
-                >
-                  OpsX 자세히 보기
-                  <ExternalLink className="w-4 h-4" />
-                </a>
+                <div className="flex flex-wrap gap-3">
+                  <Link href="/opsx">
+                    <span className="inline-flex items-center gap-2 px-6 py-3 bg-gold text-ink font-semibold text-sm hover:bg-gold-light transition-colors">
+                      OpsX 프로세스 상세
+                      <ChevronRight className="w-4 h-4" />
+                    </span>
+                  </Link>
+                  <a
+                    href="https://opsx.co.kr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-ink text-white font-medium text-sm hover:bg-ink/90 transition-colors"
+                    onClick={() => analytics.solutionClick("OpsX")}
+                  >
+                    OpsX 사이트 방문
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
               </div>
             </FadeUp>
           </div>

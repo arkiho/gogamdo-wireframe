@@ -6,7 +6,7 @@
 
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Target, Eye, Shield, Users } from "lucide-react";
+import { ArrowUpRight, Target, Eye, Shield, Users, Award, BadgeCheck } from "lucide-react";
 import { ABOUT_TEAM_IMG } from "@/lib/images";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
@@ -30,7 +30,7 @@ const TIMELINE = [
   { year: "2000", event: "실내 건축 공사업 등록", detail: "건설업 면허 취득으로 사업 영역 확대" },
   { year: "2005", event: "기업 환경 디자인 연구소 설립", detail: "공간 데이터 연구 및 설계 혁신 전담 조직 발족" },
   { year: "2007", event: "이노비즈 및 경영혁신 기업 인증", detail: "기술혁신우수기업 선정, 국내 최초 Factory+Interior 개념 도입" },
-  { year: "2009", event: "벤처 기업 윤리 경영 인증", detail: "투명한 경영과 윤리적 기업 문화 구축" },
+  { year: "2009", event: "벤처 기업 윤리 경영 인증", detail: "투명한 경영과 윤리적 기업 문화 구축, 여성기업 인증 취득" },
   { year: "2010", event: "한국 디자인 기업 협회 등록", detail: "사단법인 한국 디자인 기업 협회 정회원 가입" },
   { year: "2015", event: "디자인 컨설팅 자회사 설립", detail: "신 사업 영역으로 디자인 컨설팅 사업 확장" },
   { year: "2024", event: "OpsX 프로젝트 관리 도입", detail: "디지털 프로젝트 관리 시스템 구축" },
@@ -62,6 +62,20 @@ export default function About() {
               (주)고감도는 안향자·김기호 공동대표가 이끄는 사무공간 전문 인테리어 기업입니다.
               1991년 창업 이래 35년간 대한민국 면적만큼의 공간을 설계하고 시공해 왔으며, 설계부터 시공까지 원스톱 솔루션을 제공하고 2,800건 이상의 프로젝트를 성공적으로 완수하였습니다.
             </p>
+            <div className="flex flex-wrap gap-3 mt-6">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold/10 border border-gold/20 text-sm font-medium text-gold">
+                <Award className="w-4 h-4" />
+                여성기업 인증
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink/5 border border-border/50 text-sm font-medium text-ink">
+                <BadgeCheck className="w-4 h-4" />
+                이노비즈 인증
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink/5 border border-border/50 text-sm font-medium text-ink">
+                <BadgeCheck className="w-4 h-4" />
+                윤리경영 인증
+              </span>
+            </div>
           </FadeUp>
         </div>
       </section>

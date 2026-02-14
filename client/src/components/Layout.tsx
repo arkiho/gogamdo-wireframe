@@ -265,11 +265,18 @@ export default function Layout({ children }: { children: ReactNode }) {
                 서비스
               </h4>
               <ul className="space-y-2.5">
-                {["사무실 인테리어", "상업공간 설계", "리모델링", "가구 솔루션"].map((item) => (
-                  <li key={item}>
-                    <span className="text-sm text-white/40 hover:text-gold transition-colors cursor-pointer">
-                      {item}
-                    </span>
+                {[
+                  { label: "사무실 인테리어", href: "/solutions" },
+                  { label: "상업공간 설계", href: "/solutions" },
+                  { label: "OpsX 컨설팅", href: "/opsx" },
+                  { label: "AI 견적", href: "/estimator" },
+                ].map((item) => (
+                  <li key={item.label}>
+                    <Link href={item.href}>
+                      <span className="text-sm text-white/40 hover:text-gold transition-colors">
+                        {item.label}
+                      </span>
+                    </Link>
                   </li>
                 ))}
               </ul>

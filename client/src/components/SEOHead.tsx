@@ -16,7 +16,7 @@ interface SEOProps {
 
 const BASE_URL = "https://kokamdo.co.kr";
 const DEFAULT_TITLE = "고감도 KOKAMDO | 사무공간 인테리어 전문기업";
-const DEFAULT_DESC = "1991년 창업, 35년 경력의 사무공간 인테리어 전문기업 고감도. 대한민국 면적만큼의 공간을 설계하고 시공한 경험, 2,800건 이상 프로젝트 완료. AI 예상 견적 서비스 제공.";
+const DEFAULT_DESC = "1991년 창업, 35년 경력의 여성기업 인증 사무공간 인테리어 전문기업 고감도. 대한민국 면적만큼의 공간을 설계하고 시공한 경험, 2,800건 이상 프로젝트 완료. AI 예상 견적 서비스 제공.";
 
 function setMeta(property: string, content: string) {
   let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
@@ -79,13 +79,18 @@ export const SEO_CONFIG = {
   },
   about: {
     title: "회사소개",
-    description: "고감도는 1991년 창업 이래 35년간 대한민국 면적만큼의 공간을 설계하고 시공해 온 인테리어 전문기업입니다. 2,800건 이상의 프로젝트, 데이터 기반 설계와 체계적인 시공 관리로 최적의 업무 환경을 만듭니다.",
+    description: "고감도는 1991년 창업 이래 35년간 대한민국 면적만큼의 공간을 설계하고 시공해 온 여성기업 인증 인테리어 전문기업입니다. 2,800건 이상의 프로젝트, 데이터 기반 설계와 체계적인 시공 관리로 최적의 업무 환경을 만듭니다.",
     path: "/about",
   },
   solutions: {
     title: "솔루션",
     description: "공간 설계, 3D 렌더링, 시공 관리까지 원스톱 인테리어 솔루션. 업무 효율과 브랜드 아이덴티티를 반영한 맞춤형 공간을 제안합니다.",
     path: "/solutions",
+  },
+  opsx: {
+    title: "OpsX 컨설팅 프로세스",
+    description: "데이터 기반 사무환경 진단부터 원스톱 구축까지. OpsX 인사이트 서비스의 8단계 프로세스로 최적의 오피스를 완성합니다.",
+    path: "/opsx",
   },
   portfolio: {
     title: "프로젝트",

@@ -151,9 +151,14 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
-              <span className="inline-block px-3 py-1 mb-6 text-xs font-medium tracking-widest uppercase text-gold border border-gold/30">
-                Office Interior Specialist
-              </span>
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <span className="inline-block px-3 py-1 text-xs font-medium tracking-widest uppercase text-gold border border-gold/30">
+                  Office Interior Specialist
+                </span>
+                <span className="inline-block px-3 py-1 text-xs font-medium tracking-widest uppercase text-gold/80 border border-gold/20 bg-gold/5">
+                  여성기업 인증
+                </span>
+              </div>
             </motion.div>
 
             <motion.h1

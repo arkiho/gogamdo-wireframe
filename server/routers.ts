@@ -203,12 +203,55 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const result = await createEstimate(input);
-        // 연락처가 있는 견적은 관리자에게 알림
+
+        // 연락처가 있는 견적은 CRM 자동 연동 + 관리자 알림
         if (input.contactEmail) {
           const pyeong = input.area ? Math.round(input.area / 3.3) : 0;
+
+          // === CRM 자동 연동: 견적 리드 ===
+          try {
+            let existingClient = await findCrmClientByEmail(input.contactEmail);
+            let clientId: number;
+
+            if (existingClient) {
+              clientId = existingClient.id;
+            } else {
+              const newClientId = await createCrmClient({
+                companyName: `${input.contactName || input.contactEmail} (견적문의)`,
+                contactName: input.contactName || input.contactEmail,
+                email: input.contactEmail,
+                source: "website",
+                notes: `AI 견적을 통해 자동 생성됨.\n공간: ${input.spaceType || "-"}\n면적: ${input.area || "-"}㎡ (약 ${pyeong}평)\n등급: ${input.grade || "-"}`,
+              });
+              clientId = newClientId!;
+            }
+
+            const estimateRange = `${input.totalMin?.toLocaleString() || "?"} ~ ${input.totalMax?.toLocaleString() || "?"}만원`;
+            const dealId = await createCrmDeal({
+              clientId,
+              title: `[AI견적] ${input.contactName || input.contactEmail} - ${input.spaceType || "인테리어"} ${pyeong}평`,
+              stage: "lead",
+              estimatedValue: input.totalMax || undefined,
+              area: input.area ? `${input.area}㎡` : undefined,
+              spaceType: mapInquiryTypeToSpaceType(input.spaceType),
+              description: `AI 견적 결과: ${estimateRange}\n등급: ${input.grade || "-"}`,
+            });
+
+            await createCrmActivity({
+              dealId: dealId || undefined,
+              clientId,
+              type: "note",
+              title: "AI 견적 완료",
+              description: `공간: ${input.spaceType || "-"}\n면적: ${input.area || "-"}㎡ (약 ${pyeong}평)\n등급: ${input.grade || "-"}\n예상 비용: ${estimateRange}`,
+              createdBy: "system",
+            });
+          } catch (crmError) {
+            console.error("[CRM Auto-Link] Failed to create CRM records from estimate:", crmError);
+          }
+
           await notifyOwner({
             title: `새 견적 요청: ${input.contactName || input.contactEmail}`,
-            content: `이름: ${input.contactName || "-"}\n이메일: ${input.contactEmail}\n공간: ${input.spaceType || "-"}\n면적: ${input.area || "-"}㎡ (약 ${pyeong}평)\n등급: ${input.grade || "-"}\n예상 비용: ${input.totalMin?.toLocaleString() || "-"} ~ ${input.totalMax?.toLocaleString() || "-"}만원`,
+            content: `이름: ${input.contactName || "-"}\n이메일: ${input.contactEmail}\n공간: ${input.spaceType || "-"}\n면적: ${input.area || "-"}㎡ (약 ${pyeong}평)\n등급: ${input.grade || "-"}\n예상 비용: ${input.totalMin?.toLocaleString() || "-"} ~ ${input.totalMax?.toLocaleString() || "-"}만원\n\n[CRM] 고객 및 딜이 자동 생성되었습니다.`,
           }).catch(() => {});
         }
         return result;
@@ -369,7 +412,9 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
 - 업력: 35년 (1991년 창업), 2,800건 이상 프로젝트 완료
 - 시공 면적: 대한민국 면적만큼 (100,000㎡ 이상)
 - 고객 만족도: 98%
+- 인증: 여성기업 인증, 이노비즈 인증, 윤리경영 인증
 - 서비스: 공간 설계, 디자인 & 3D 렌더링, 시공 관리 (원스톱 솔루션)
+- 자회사: OpsX (데이터 기반 사무환경 컨설팅, opsx.co.kr)
 
 ## 비용 가이드 (평당 기준, 3.3㎡)
 - 스탠다드: 200~280만원 (기본 마감, 실용적 설계)
@@ -1297,6 +1342,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         const oldDeal = await getCrmDeal(id);
         await updateCrmDeal(id, data);
         if (input.stage && oldDeal && input.stage !== oldDeal.stage) {
+          // 활동 로그 기록
           await createCrmActivity({
             dealId: id,
             clientId: oldDeal.clientId,
@@ -1304,6 +1350,35 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
             title: `단계 변경: ${oldDeal.stage} → ${input.stage}`,
             createdBy: input.assignedTo,
           });
+
+          // 단계 변경 오너 알림
+          const stageLabels: Record<string, string> = {
+            lead: "리드",
+            consultation: "상담",
+            proposal: "제안",
+            negotiation: "협상",
+            contract: "계약",
+            design: "설계",
+            construction: "시공",
+            completed: "완료",
+            lost: "실주",
+          };
+          const oldLabel = stageLabels[oldDeal.stage] || oldDeal.stage;
+          const newLabel = stageLabels[input.stage] || input.stage;
+
+          // 고객 정보 조회
+          let clientName = "알 수 없음";
+          try {
+            const client = await getCrmClient(oldDeal.clientId);
+            if (client) clientName = `${client.companyName} (${client.contactName})`;
+          } catch {}
+
+          const valueStr = oldDeal.estimatedValue ? `${oldDeal.estimatedValue.toLocaleString()}만원` : "미정";
+
+          await notifyOwner({
+            title: `[CRM] 딜 단계 변경: ${oldLabel} → ${newLabel}`,
+            content: `딜: ${oldDeal.title}\n고객: ${clientName}\n단계: ${oldLabel} → ${newLabel}\n예상 금액: ${valueStr}\n담당자: ${input.assignedTo || oldDeal.assignedTo || "-"}`,
+          }).catch(() => {});
         }
         return { success: true };
       }),

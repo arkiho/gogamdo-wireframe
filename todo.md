@@ -84,8 +84,8 @@
 - [ ] DDIA: 테스트 작성
 - [x] 사업자 대표 변경: 안향자·김기호 공동대표 (About, 푸터, Schema.org 반영)
 - [x] DDIA AdminDDIA.tsx App.tsx 라우트 등록 + 관리자 대시보드 DDIA 바로가기 카드 추가
-- [ ] OpsX 컨설팅 프로세스 소개 페이지 구현
-- [ ] 홈페이지 Data-Driven Design 섹션 OpsX 프로세스 반영
+- [x] OpsX 컨설팅 프로세스 소개 페이지 구현 (/opsx 라우트)
+- [x] 홈페이지 Data-Driven Design 섹션 OpsX 프로세스 반영
 - [x] CRM: DB 스키마 설계 (crmClients, crmInteractions, crmDeals, crmActivities)
 - [x] CRM: 백엔드 tRPC 라우터 구현 (clients, interactions, deals, activities, stats)
 - [x] CRM: 관리자 대시보드 UI 구현 (대시보드, 고객목록, 고객상세, 딜 파이프라인 칸반)
@@ -94,3 +94,8 @@
 - [x] 실제 프로젝트 수 확인 및 수정: 연 80개 × 35년 = 2,800건+ (1991년 창업 기준)
 - [x] About 타임라인 실제 연혁으로 보완 (1991 설립, 1996 법인전환, 2000 건설업등록, 2005 연구소, 2007 이노비즈, 2009 윤리경영, 2010 디자인협회, 2015 컨설팅 자회사)
 - [x] CRM-문의 자동 연동: 문의 접수 시 CRM 고객 자동 생성 + 딜 자동 생성 + 활동 로그 + 오너 알림
+- [x] AI 견적 완료 시 CRM 자동 연동 (견적에 연락처 남긴 고객 → CRM 리드 자동 등록)
+- [x] CRM 파이프라인 단계 변경 자동 알림 (lead→consultation 등 단계 변경 시 오너 알림)
+- [x] OpsX 컨설팅 프로세스 소개 페이지 구현 (8단계 프로세스, opsx.co.kr 연동, 견적 비교, 시너지 섹션)
+- [x] 여성기업 강조 전체 반영 (About 배지+타임라인, Home 히어로 배지, SEO 메타, AI 챗봇 프롬프트)
+- [x] OpsX 주소(opsx.co.kr) 전체 반영 및 기존 링크 업데이트 (Solutions, Layout 푸터, AI 챗봇)
