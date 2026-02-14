@@ -16,11 +16,12 @@ import {
   MessageSquare, Users, Calculator, AlertCircle,
   ArrowLeft, Mail, Phone, Building2, Calendar,
   ChevronDown, ChevronUp, LogOut, Download,
+  Bot, Sparkles, ExternalLink,
 } from "lucide-react";
 import { Link } from "wouter";
 import Logo from "@/components/Logo";
 
-type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads";
+type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   new: { label: "신규", variant: "destructive" },
@@ -50,6 +51,8 @@ export default function AdminDashboard() {
   const subscribers = trpc.newsletter.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const estimates = trpc.estimate.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
   const leadDownloads = trpc.leadMagnet.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const chatSessions = trpc.aiChat.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const styleRecs = trpc.aiStyle.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
 
   const updateStatus = trpc.inquiry.updateStatus.useMutation({
     onSuccess: () => {
@@ -106,6 +109,8 @@ export default function AdminDashboard() {
     { id: "subscribers", label: "구독자", icon: <Users className="w-4 h-4" />, count: stats.data?.subscribers },
     { id: "estimates", label: "견적", icon: <Calculator className="w-4 h-4" />, count: stats.data?.estimates },
     { id: "leads", label: "리드", icon: <Download className="w-4 h-4" /> },
+    { id: "ai-chat", label: "AI 상담", icon: <Bot className="w-4 h-4" />, count: chatSessions.data?.length },
+    { id: "ai-style", label: "AI 스타일", icon: <Sparkles className="w-4 h-4" />, count: styleRecs.data?.length },
   ];
 
   return (
@@ -502,6 +507,152 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+          </div>
+        )}
+        {/* AI Chat Sessions Tab */}
+        {activeTab === "ai-chat" && (
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl font-bold text-ink">AI 상담 세션</h2>
+            {chatSessions.isLoading ? (
+              <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
+            ) : (chatSessions.data?.length ?? 0) === 0 ? (
+              <Card className="border-border/50">
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  아직 AI 상담 이력이 없습니다.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {chatSessions.data?.map((session: any) => {
+                  const msgs = Array.isArray(session.messages) ? session.messages : [];
+                  const userMsgs = msgs.filter((m: any) => m.role === "user");
+                  const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+                  return (
+                    <Card key={session.id} className="border-border/50">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Bot className="w-4 h-4 text-gold" />
+                              <span className="text-sm font-medium text-ink">
+                                세션 {session.sessionId?.slice(0, 8)}...
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {userMsgs.length}회 대화
+                              </Badge>
+                              {session.contactEmail && (
+                                <Badge variant="default" className="text-xs bg-gold text-ink">
+                                  리드 수집
+                                </Badge>
+                              )}
+                            </div>
+                            {session.contactEmail && (
+                              <div className="flex flex-wrap gap-3 mb-2 text-xs text-muted-foreground">
+                                {session.contactName && (
+                                  <span className="flex items-center gap-1">
+                                    <Users className="w-3 h-3" /> {session.contactName}
+                                  </span>
+                                )}
+                                <span className="flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />
+                                  <a href={`mailto:${session.contactEmail}`} className="text-gold hover:underline">{session.contactEmail}</a>
+                                </span>
+                                {session.contactPhone && (
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3" /> {session.contactPhone}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {lastMsg && (
+                              <p className="text-xs text-muted-foreground truncate max-w-[500px]">
+                                마지막: {lastMsg.content?.slice(0, 100)}{lastMsg.content?.length > 100 ? "..." : ""}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {formatDate(session.updatedAt || session.createdAt)}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* AI Style Recommendations Tab */}
+        {activeTab === "ai-style" && (
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl font-bold text-ink">AI 스타일 추천 기록</h2>
+            {styleRecs.isLoading ? (
+              <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
+            ) : (styleRecs.data?.length ?? 0) === 0 ? (
+              <Card className="border-border/50">
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  아직 AI 스타일 추천 이력이 없습니다.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {styleRecs.data?.map((rec: any) => {
+                  const result = typeof rec.resultJson === "string" ? JSON.parse(rec.resultJson) : rec.resultJson;
+                  const priorities = typeof rec.priorities === "string" ? JSON.parse(rec.priorities) : rec.priorities;
+                  return (
+                    <Card key={rec.id} className="border-border/50 overflow-hidden">
+                      {rec.imageUrl && (
+                        <div className="aspect-[16/9] overflow-hidden">
+                          <img src={rec.imageUrl} alt={result?.styleName || "추천 스타일"} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-gold" />
+                            <span className="font-heading font-bold text-ink">
+                              {result?.styleName || "스타일 추천"}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{formatDate(rec.createdAt)}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          <Badge variant="outline" className="text-xs">{rec.industry}</Badge>
+                          <Badge variant="outline" className="text-xs">{rec.teamSize}</Badge>
+                          <Badge variant="outline" className="text-xs">{rec.mood}</Badge>
+                          <Badge variant="outline" className="text-xs">{rec.budget}</Badge>
+                        </div>
+                        {Array.isArray(priorities) && priorities.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {priorities.map((p: string, i: number) => (
+                              <span key={i} className="text-xs px-2 py-0.5 bg-gold/10 text-gold rounded-full">{p}</span>
+                            ))}
+                          </div>
+                        )}
+                        {result?.colorPalette && (
+                          <div className="flex gap-1 mb-3">
+                            {result.colorPalette.slice(0, 5).map((c: any, i: number) => (
+                              <div key={i} className="flex flex-col items-center gap-1">
+                                <div className="w-8 h-8 rounded-full border border-border/50" style={{ backgroundColor: c.hex }} title={`${c.name}: ${c.usage}`} />
+                                <span className="text-[10px] text-muted-foreground">{c.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {rec.contactEmail && (
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
+                            <Mail className="w-3 h-3 text-muted-foreground" />
+                            <a href={`mailto:${rec.contactEmail}`} className="text-xs text-gold hover:underline">{rec.contactEmail}</a>
+                            <Badge variant="default" className="text-xs bg-gold text-ink ml-auto">리드</Badge>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}

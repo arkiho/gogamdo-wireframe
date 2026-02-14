@@ -120,6 +120,109 @@ export const appRouter = router({
     list: adminProcedure.query(async () => {
       return listEstimates();
     }),
+    // AI 견적 상세 분석 - LLM 기반
+    aiAnalysis: publicProcedure
+      .input(z.object({
+        spaceType: z.string(),
+        area: z.number(),
+        grade: z.string(),
+        options: z.array(z.string()),
+        totalCost: z.number(),
+        breakdown: z.array(z.object({
+          name: z.string(),
+          cost: z.number(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const pyeong = Math.round(input.area / 3.3);
+        const prompt = `당신은 (주)고감도의 인테리어 견적 분석 전문가입니다.
+
+## 고감도 실적 데이터 (거래처원장 기반)
+- 총 70개 거래처, 총 매출 44억원
+- 기업 프로젝트: 28건, 평균 8,877만원 (최대 6.9억, 최소 20만원)
+- 교육기관: 21건, 평균 4,816만원
+- 공공기관: 14건, 평균 5,980만원
+- 주요 기업 고객: 피앤이시스템즈(6.9억), 세종리테일(3.7억), 카이젠인테리어(2.1억), 에드워드코리아(1.9억), 세종미디어그룹(1.8억)
+- 주요 교육기관: 서울장곡초(1.5억), 서울언남초(1.2억), 서울영화초(8,600만)
+- 주요 공공: 서울주택도시공사(1.3억), 서울교통공사(1.2억), 서울특별시(8,800만)
+
+## 고객 입력 정보
+- 공간 유형: ${input.spaceType}
+- 면적: ${input.area}㎡ (약 ${pyeong}평)
+- 마감 등급: ${input.grade}
+- 추가 옵션: ${input.options.length > 0 ? input.options.join(", ") : "없음"}
+- 예상 총 비용: ${input.totalCost}만원
+
+## 공종별 비용 내역
+${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
+
+위 정보를 바탕으로 전문적인 견적 분석을 제공해주세요.`;
+
+        const result = await invokeLLM({
+          messages: [
+            { role: "system", content: "당신은 인테리어 견적 분석 전문가입니다. 한국어로 응답하세요." },
+            { role: "user", content: prompt },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "estimate_analysis",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  marketComparison: { type: "string", description: "시장 대비 비용 수준 평가 (1-2문장)" },
+                  costSavingTips: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "비용 절감 팁 3개",
+                  },
+                  qualityUpgradeTips: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "같은 예산으로 품질을 높이는 팁 3개",
+                  },
+                  timeline: { type: "string", description: "예상 공사 일정 상세 설명" },
+                  riskFactors: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "주의해야 할 리스크 요인 2-3개",
+                  },
+                  benchmarkProjects: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string", description: "유사 프로젝트명" },
+                        scale: { type: "string", description: "규모" },
+                        cost: { type: "string", description: "비용 범위" },
+                      },
+                      required: ["name", "scale", "cost"],
+                      additionalProperties: false,
+                    },
+                    description: "고감도 실적 기반 유사 프로젝트 벤치마크 2-3개",
+                  },
+                  recommendation: { type: "string", description: "종합 추천 의견 (2-3문장)" },
+                },
+                required: ["marketComparison", "costSavingTips", "qualityUpgradeTips", "timeline", "riskFactors", "benchmarkProjects", "recommendation"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        let analysis;
+        try {
+          const content = typeof result.choices[0]?.message?.content === "string"
+            ? result.choices[0].message.content
+            : "{}";
+          analysis = JSON.parse(content);
+        } catch {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "AI 분석 응답 파싱 실패" });
+        }
+
+        return { analysis };
+      }),
   }),
 
   // ===== 리드 마그넷 (Lead Magnet) =====

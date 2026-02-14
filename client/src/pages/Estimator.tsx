@@ -14,7 +14,8 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, ArrowLeft, ArrowUpRight, Building2, Maximize2,
-  Palette, Calculator, Sparkles, Settings2, Download, RotateCcw
+  Palette, Calculator, Sparkles, Settings2, Download, RotateCcw,
+  Brain, TrendingDown, TrendingUp, AlertTriangle, Landmark, Loader2, ChevronDown, ChevronUp
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { analytics } from "@/lib/analytics";
@@ -104,6 +105,9 @@ export default function Estimator() {
   const [sessionId] = useState(() => nanoid(12));
 
   const saveEstimate = trpc.estimate.save.useMutation();
+  const aiAnalysis = trpc.estimate.aiAnalysis.useMutation();
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [analysisExpanded, setAnalysisExpanded] = useState(true);
 
   useEffect(() => {
     if (step === 1 && !spaceType) {
@@ -507,6 +511,157 @@ export default function Estimator() {
                         {pyeong <= 30 ? "3~4주" : pyeong <= 100 ? "4~6주" : pyeong <= 300 ? "6~10주" : "10~16주"}
                       </p>
                     </div>
+                  </div>
+
+                  {/* AI 상세 분석 섹션 */}
+                  <div className="mb-8">
+                    {!showAnalysis ? (
+                      <button
+                        onClick={() => {
+                          setShowAnalysis(true);
+                          aiAnalysis.mutate({
+                            spaceType: selectedType?.label || spaceType,
+                            area,
+                            grade: selectedGrade?.label || grade,
+                            options: selectedOptions.map(id => EXTRA_OPTIONS.find(o => o.id === id)?.label || id),
+                            totalCost,
+                            breakdown: breakdownItems.map(b => ({ name: b.name, cost: b.cost })),
+                          });
+                        }}
+                        className="w-full p-5 border border-gold/30 bg-gold/5 hover:bg-gold/10 transition-all duration-300 flex items-center justify-center gap-3"
+                      >
+                        <Brain className="w-5 h-5 text-gold" />
+                        <span className="font-heading font-bold text-ink">AI 상세 분석 보기</span>
+                        <span className="text-xs text-muted-foreground">고감도 실적 데이터 기반</span>
+                      </button>
+                    ) : aiAnalysis.isPending ? (
+                      <div className="border border-gold/30 bg-gold/5 p-8 text-center">
+                        <Loader2 className="w-8 h-8 text-gold animate-spin mx-auto mb-3" />
+                        <p className="text-sm text-ink/70">AI가 거래처원장 데이터를 분석하고 있습니다...</p>
+                        <p className="text-xs text-muted-foreground mt-1">70개 거래처, 44억원 실적 데이터 기반 분석</p>
+                      </div>
+                    ) : aiAnalysis.data?.analysis ? (
+                      <div className="border border-gold/30">
+                        <button
+                          onClick={() => setAnalysisExpanded(!analysisExpanded)}
+                          className="w-full p-4 bg-gold/5 flex items-center justify-between hover:bg-gold/10 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Brain className="w-5 h-5 text-gold" />
+                            <span className="font-heading font-bold text-ink">AI 상세 분석 결과</span>
+                          </div>
+                          {analysisExpanded ? <ChevronUp className="w-4 h-4 text-ink/50" /> : <ChevronDown className="w-4 h-4 text-ink/50" />}
+                        </button>
+                        {analysisExpanded && (
+                          <div className="p-6 space-y-6">
+                            {/* 시장 비교 */}
+                            <div className="p-4 bg-paper-warm">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Landmark className="w-4 h-4 text-gold" />
+                                <span className="font-heading font-semibold text-ink text-sm">시장 비교 평가</span>
+                              </div>
+                              <p className="text-sm text-ink/70 leading-relaxed">{aiAnalysis.data.analysis.marketComparison}</p>
+                            </div>
+
+                            {/* 벤치마크 프로젝트 */}
+                            {aiAnalysis.data.analysis.benchmarkProjects?.length > 0 && (
+                              <div>
+                                <h4 className="font-heading font-semibold text-ink text-sm mb-3 flex items-center gap-2">
+                                  <Sparkles className="w-4 h-4 text-gold" /> 고감도 유사 프로젝트
+                                </h4>
+                                <div className="grid sm:grid-cols-3 gap-3">
+                                  {aiAnalysis.data.analysis.benchmarkProjects.map((p: any, i: number) => (
+                                    <div key={i} className="p-3 border border-border/50 bg-paper-warm">
+                                      <p className="font-medium text-ink text-sm mb-1">{p.name}</p>
+                                      <p className="text-xs text-muted-foreground">{p.scale}</p>
+                                      <p className="text-xs font-medium text-gold mt-1">{p.cost}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 비용 절감 팁 */}
+                            <div>
+                              <h4 className="font-heading font-semibold text-ink text-sm mb-3 flex items-center gap-2">
+                                <TrendingDown className="w-4 h-4 text-green-600" /> 비용 절감 팁
+                              </h4>
+                              <div className="space-y-2">
+                                {aiAnalysis.data.analysis.costSavingTips?.map((tip: string, i: number) => (
+                                  <div key={i} className="flex items-start gap-2 text-sm text-ink/70">
+                                    <span className="text-green-600 font-bold mt-0.5">{i + 1}.</span>
+                                    <span>{tip}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* 품질 업그레이드 팁 */}
+                            <div>
+                              <h4 className="font-heading font-semibold text-ink text-sm mb-3 flex items-center gap-2">
+                                <TrendingUp className="w-4 h-4 text-blue-600" /> 품질 업그레이드 팁
+                              </h4>
+                              <div className="space-y-2">
+                                {aiAnalysis.data.analysis.qualityUpgradeTips?.map((tip: string, i: number) => (
+                                  <div key={i} className="flex items-start gap-2 text-sm text-ink/70">
+                                    <span className="text-blue-600 font-bold mt-0.5">{i + 1}.</span>
+                                    <span>{tip}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* 예상 일정 */}
+                            <div className="p-4 bg-paper-warm">
+                              <h4 className="font-heading font-semibold text-ink text-sm mb-2">예상 공사 일정</h4>
+                              <p className="text-sm text-ink/70 leading-relaxed">{aiAnalysis.data.analysis.timeline}</p>
+                            </div>
+
+                            {/* 리스크 요인 */}
+                            {aiAnalysis.data.analysis.riskFactors?.length > 0 && (
+                              <div>
+                                <h4 className="font-heading font-semibold text-ink text-sm mb-3 flex items-center gap-2">
+                                  <AlertTriangle className="w-4 h-4 text-amber-500" /> 주의 사항
+                                </h4>
+                                <div className="space-y-2">
+                                  {aiAnalysis.data.analysis.riskFactors.map((risk: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-2 text-sm text-ink/70">
+                                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+                                      <span>{risk}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 종합 추천 */}
+                            <div className="p-4 border border-gold/20 bg-gold/5">
+                              <h4 className="font-heading font-semibold text-ink text-sm mb-2">종합 추천</h4>
+                              <p className="text-sm text-ink/70 leading-relaxed">{aiAnalysis.data.analysis.recommendation}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : aiAnalysis.isError ? (
+                      <div className="border border-red-200 bg-red-50 p-4 text-center">
+                        <p className="text-sm text-red-600">AI 분석 중 오류가 발생했습니다. 다시 시도해 주세요.</p>
+                        <button
+                          onClick={() => {
+                            aiAnalysis.mutate({
+                              spaceType: selectedType?.label || spaceType,
+                              area,
+                              grade: selectedGrade?.label || grade,
+                              options: selectedOptions.map(id => EXTRA_OPTIONS.find(o => o.id === id)?.label || id),
+                              totalCost,
+                              breakdown: breakdownItems.map(b => ({ name: b.name, cost: b.cost })),
+                            });
+                          }}
+                          className="mt-2 text-sm text-gold hover:underline"
+                        >
+                          다시 시도
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
 
                   <p className="text-xs text-muted-foreground text-center mb-8">
