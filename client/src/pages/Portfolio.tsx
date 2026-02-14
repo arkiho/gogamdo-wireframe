@@ -93,7 +93,7 @@ export default function Portfolio() {
               Projects
             </p>
             <h1 className="font-heading text-4xl lg:text-6xl font-bold text-ink leading-tight mb-8 max-w-3xl">
-              150건 이상의
+              36년, 500건 이상의
               <br />프로젝트가 증명합니다
             </h1>
           </FadeUp>

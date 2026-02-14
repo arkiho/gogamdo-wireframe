@@ -59,10 +59,10 @@ const CLIENT_LOGOS = [
 ];
 
 const STATS = [
-  { number: 150, suffix: "+", label: "완료 프로젝트" },
-  { number: 50000, suffix: "㎡+", label: "시공 면적" },
+  { number: 36, suffix: "년", label: "업력" },
+  { number: 100000, suffix: "㎡+", label: "누적 시공 면적" },
   { number: 98, suffix: "%", label: "고객 만족도" },
-  { number: 12, suffix: "년", label: "업력" },
+  { number: 500, suffix: "+", label: "완료 프로젝트" },
 ];
 
 const PAIN_POINTS = [
@@ -173,8 +173,8 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="text-white/60 text-lg lg:text-xl leading-relaxed mb-10 max-w-xl"
             >
-              데이터 기반 설계부터 시공까지 원스톱 솔루션. 150건 이상의 프로젝트에서
-              축적한 실측 데이터로 기업의 비전을 공간에 담습니다.
+              36년간 대한민국 면적만큼의 공간을 설계하고 시공해 온 경험.
+              데이터 기반 설계부터 시공까지 원스톱 솔루션으로 기업의 비전을 공간에 담습니다.
             </motion.p>
 
             <motion.div
@@ -295,7 +295,7 @@ export default function Home() {
                   </h3>
                   <p className="text-white/50 leading-relaxed">
                     데이터 기반의 투명한 견적, 체계적인 프로젝트 관리, 검증된 시공 품질.
-                    12년간 150건 이상의 프로젝트에서 축적한 실측 데이터로 증명해 왔습니다.
+                    36년간 대한민국 면적만큼의 공간을 시공하며 축적한 실측 데이터로 증명해 왔습니다.
                   </p>
                 </div>
               </div>
@@ -368,7 +368,7 @@ export default function Home() {
                   <br />설계합니다
                 </h2>
                 <p className="text-white/50 leading-relaxed mb-10 max-w-lg">
-                  고감도는 150건 이상의 프로젝트에서 축적한 실측 데이터와 거래처 원가 정보를 기반으로 공간을 설계합니다.
+                  고감도는 36년간 대한민국 면적만큼의 공간을 시공하며 축적한 실측 데이터와 거래처 원가 정보를 기반으로 공간을 설계합니다.
                   직감이 아닌 데이터가 설계의 출발점이 되면, 예산 낭비는 줄고 공간 효율은 높아집니다.
                 </p>
               </FadeUp>
