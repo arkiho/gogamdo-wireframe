@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { storagePut } from "../storage";
+import sensorApiRouter from "../routers/sensorApi";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -66,6 +67,9 @@ async function startServer() {
       res.status(500).json({ error: err.message || "Upload failed" });
     }
   });
+  // Sensor hardware API (REST, API-key auth)
+  app.use("/api/sensor", sensorApiRouter);
+
   // tRPC API
   app.use(
     "/api/trpc",

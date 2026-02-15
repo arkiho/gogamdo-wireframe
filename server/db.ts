@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1944,4 +1944,93 @@ export async function getZoneTransitions(projectId: number, from: Date, to: Date
   }
   
   return transitions.sort((a, b) => b.count - a.count);
+}
+
+
+// ============================================================
+// 센서 API 키 관리
+// ============================================================
+export async function createSensorApiKey(data: InsertSensorApiKey) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(sensorApiKeys).values(data);
+  return result;
+}
+
+export async function listSensorApiKeys(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(sensorApiKeys).where(eq(sensorApiKeys.projectId, projectId)).orderBy(desc(sensorApiKeys.createdAt));
+}
+
+export async function getSensorApiKeyByKey(apiKey: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(sensorApiKeys).where(eq(sensorApiKeys.apiKey, apiKey)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function revokeSensorApiKey(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(sensorApiKeys).set({ active: "no" }).where(eq(sensorApiKeys.id, id));
+}
+
+export async function incrementApiKeyUsage(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(sensorApiKeys).set({
+    requestCount: sql`${sensorApiKeys.requestCount} + 1`,
+    lastUsedAt: new Date(),
+  }).where(eq(sensorApiKeys.id, id));
+}
+
+// ============================================================
+// 고객 계정 관리
+// ============================================================
+export async function createClient(data: InsertClient) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(clients).values(data);
+  return result;
+}
+
+export async function getClientByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(clients).where(eq(clients.email, email)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getClientById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(clients).where(eq(clients.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updateClient(id: number, data: Partial<InsertClient>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(clients).set(data).where(eq(clients.id, id));
+}
+
+export async function listClients() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clients).orderBy(desc(clients.createdAt));
+}
+
+export async function getClientByVerifyToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(clients).where(eq(clients.emailVerifyToken, token)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getClientByResetToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(clients).where(eq(clients.passwordResetToken, token)).limit(1);
+  return rows[0] ?? null;
 }

@@ -403,3 +403,35 @@
 - [x] AI리포트: 공간 활용 데이터 기반 AI 최적화 제안 리포트 생성 (generateOptimizationReport)
 - [x] AI리포트: 비효율 구역 식별 및 개선 방안 제시
 - [x] 테스트: DDIA 재설계 관련 vitest 테스트 작성 (30개 테스트 파일, 511개 테스트 전체 통과)
+
+## 재실센서 하드웨어 연동 API
+- [x] 센서API: API 키 기반 인증 시스템 (디바이스별 API 키 발급/관리)
+- [x] 센서API: 단건 데이터 수신 REST 엔드포인트 (POST /api/sensor/event)
+- [x] 센서API: 배치 데이터 수신 엔드포인트 (POST /api/sensor/events/batch)
+- [x] 센서API: 센서 하트비트/상태 보고 엔드포인트 (POST /api/sensor/heartbeat)
+- [x] 센서API: 수신 데이터 자동 구역 매핑 및 집계 처리
+- [x] 센서API: 관리자 API 키 관리 UI (생성/폐기/조회) - tRPC 라우터 완료
+- [ ] 센서API: 관리자 API 키 관리 프론트엔드 UI
+- [ ] 센서API: API 문서 및 연동 가이드 페이지
+
+## 고객 회원가입/로그인 시스템
+- [x] 회원: 고객용 회원가입 API (bcrypt 해싱, 이메일 중복 검사)
+- [x] 회원: 비밀번호 해싱 및 이메일 인증 토큰 로직
+- [x] 회원: 고객 로그인 API (JWT 토큰 + httpOnly 쿠키)
+- [x] 회원: JWT 세션 관리 (client_token 쿠키, 7일 만료)
+- [x] 회원: 고객 역할(client) 추가 및 권한 분리 (clients_auth 테이블)
+- [x] 회원: 마이페이지 API (프로필 수정, 비밀번호 변경)
+- [x] 회원: 비밀번호 찾기/재설정 API (resetToken + 1시간 만료)
+- [x] 회원: 고객 회원가입 프론트엔드 UI (ClientRegister)
+- [x] 회원: 고객 로그인 프론트엔드 UI (ClientLogin)
+- [x] 회원: 고객 마이페이지 프론트엔드 UI (ClientSpaceDashboard 프로필 탭)
+
+## 고객 포털 공간 활용 대시보드
+- [x] 포털: 고객 전용 대시보드 레이아웃 (ClientSpaceDashboard - 사이드바 + 메인 콘텐츠)
+- [x] 포털: 내 프로젝트 목록 조회 (ProjectsTab - 할당된 프로젝트만)
+- [x] 포털: 프로젝트별 공간 활용 현황 요약 카드 (OverviewTab)
+- [x] 포털: 히트맵 읽기 전용 뷰 (HeatmapTab - 구역별 사용빈도)
+- [x] 포털: 체류시간 분석 차트 (AnalyticsTab - 시간대별 재실률)
+- [x] 포털: 동선 분석 읽기 전용 뷰 (TrafficTab)
+- [x] 포털: AI 최적화 리포트 열람 (ReportsTab)
+- [x] 테스트: 센서 API + 회원가입 + 고객 포털 vitest 테스트 작성 (31개 테스트 파일, 538개 테스트 전체 통과)

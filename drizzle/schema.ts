@@ -1803,3 +1803,48 @@ export const downloadLogs = mysqlTable("download_logs", {
 });
 export type DownloadLog = typeof downloadLogs.$inferSelect;
 export type InsertDownloadLog = typeof downloadLogs.$inferInsert;
+
+// ============================================================
+// 센서 API 키 관리 (하드웨어 연동)
+// ============================================================
+export const sensorApiKeys = mysqlTable("sensor_api_keys", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  name: varchar("name", { length: 100 }).notNull(), // "1층 로비 게이트웨이" 등
+  apiKey: varchar("apiKey", { length: 64 }).notNull().unique(),
+  active: mysqlEnum("active", ["yes", "no"]).default("yes").notNull(),
+  lastUsedAt: timestamp("lastUsedAt"),
+  requestCount: int("requestCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SensorApiKey = typeof sensorApiKeys.$inferSelect;
+export type InsertSensorApiKey = typeof sensorApiKeys.$inferInsert;
+
+// ============================================================
+// 고객 계정 (회원가입/로그인)
+// ============================================================
+export const clients = mysqlTable("clients_auth", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  company: varchar("company", { length: 200 }),
+  phone: varchar("phone", { length: 20 }),
+  /** 이메일 인증 여부 */
+  emailVerified: mysqlEnum("emailVerified", ["yes", "no"]).default("no").notNull(),
+  emailVerifyToken: varchar("emailVerifyToken", { length: 64 }),
+  emailVerifyExpires: timestamp("emailVerifyExpires"),
+  /** 비밀번호 재설정 */
+  passwordResetToken: varchar("passwordResetToken", { length: 64 }),
+  passwordResetExpires: timestamp("passwordResetExpires"),
+  /** 상태 */
+  status: mysqlEnum("status", ["active", "suspended", "pending"]).default("pending").notNull(),
+  /** 프로젝트 접근 권한 (JSON 배열) */
+  assignedProjectIds: json("assignedProjectIds").$type<number[]>(),
+  lastLoginAt: timestamp("lastLoginAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = typeof clients.$inferInsert;

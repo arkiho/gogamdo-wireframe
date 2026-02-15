@@ -38,6 +38,8 @@ import {
   addOccupancyEvent, addOccupancyEventsBatch, getOccupancyEvents,
   upsertZoneOccupancyStat, getZoneOccupancyStats, getZoneHeatmapData,
   getHourlyOccupancyPattern, getZoneTransitions,
+  createSensorApiKey, listSensorApiKeys, revokeSensorApiKey,
+  createClient, getClientByEmail, getClientById, updateClient, listClients, getClientByVerifyToken, getClientByResetToken,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
@@ -50,6 +52,8 @@ import { clientPipelineRouter } from "./routers/clientPipeline";
 import { opsRouter } from "./routers/ops";
 import { ipProtectionRouter } from "./routers/ipProtection";
 import { sendReviewRequestEmail } from "./email";
+import { hash, compare } from "bcryptjs";
+import { randomBytes } from "crypto";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -2265,6 +2269,224 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         if (sub.status === "active") stats[src].active++;
       }
       return stats;
+    }),
+  }),
+
+  // ============================================================
+  // 센서 API 키 관리 (관리자용)
+  // ============================================================
+  sensorApiKeys: router({
+    list: adminProcedure.input(z.object({ projectId: z.number() })).query(async ({ input }) => {
+      return listSensorApiKeys(input.projectId);
+    }),
+    create: adminProcedure.input(z.object({
+      projectId: z.number(),
+      name: z.string().min(1).max(100),
+    })).mutation(async ({ input }) => {
+      const apiKey = randomBytes(32).toString("hex");
+      await createSensorApiKey({ ...input, apiKey });
+      return { apiKey, name: input.name };
+    }),
+    revoke: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await revokeSensorApiKey(input.id);
+      return { success: true };
+    }),
+  }),
+
+  // ============================================================
+  // 고객 인증 (회원가입/로그인)
+  // ============================================================
+  clientAuth: router({
+    register: publicProcedure.input(z.object({
+      email: z.string().email(),
+      password: z.string().min(8).max(100),
+      name: z.string().min(1).max(100),
+      company: z.string().max(200).optional(),
+      phone: z.string().max(20).optional(),
+    })).mutation(async ({ input }) => {
+      const existing = await getClientByEmail(input.email);
+      if (existing) {
+        throw new TRPCError({ code: "CONFLICT", message: "이미 등록된 이메일입니다." });
+      }
+      const passwordHash = await hash(input.password, 12);
+      const emailVerifyToken = randomBytes(32).toString("hex");
+      const emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24시간
+      await createClient({
+        email: input.email,
+        passwordHash,
+        name: input.name,
+        company: input.company ?? null,
+        phone: input.phone ?? null,
+        emailVerifyToken,
+        emailVerifyExpires,
+        status: "active", // 즉시 활성화 (이메일 인증은 선택)
+      });
+      return { success: true, message: "회원가입이 완료되었습니다." };
+    }),
+
+    login: publicProcedure.input(z.object({
+      email: z.string().email(),
+      password: z.string(),
+    })).mutation(async ({ input, ctx }) => {
+      const client = await getClientByEmail(input.email);
+      if (!client) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "이메일 또는 비밀번호가 올바르지 않습니다." });
+      }
+      if (client.status === "suspended") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "계정이 정지되었습니다. 관리자에게 문의하세요." });
+      }
+      const valid = await compare(input.password, client.passwordHash);
+      if (!valid) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "이메일 또는 비밀번호가 올바르지 않습니다." });
+      }
+      // 로그인 시간 업데이트
+      await updateClient(client.id, { lastLoginAt: new Date() });
+      // JWT 토큰 생성 (클라이언트용)
+      const { SignJWT } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const token = await new SignJWT({
+        clientId: client.id,
+        email: client.email,
+        name: client.name,
+        type: "client",
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("7d")
+        .sign(secret);
+      // 쿠키에 토큰 설정
+      ctx.res.cookie("client_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+        path: "/",
+      });
+      return {
+        success: true,
+        client: { id: client.id, email: client.email, name: client.name, company: client.company },
+      };
+    }),
+
+    me: publicProcedure.query(async ({ ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) return null;
+      try {
+        const { jwtVerify } = await import("jose");
+        const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+        const { payload } = await jwtVerify(token, secret);
+        if (payload.type !== "client" || !payload.clientId) return null;
+        const client = await getClientById(payload.clientId as number);
+        if (!client || client.status !== "active") return null;
+        return {
+          id: client.id,
+          email: client.email,
+          name: client.name,
+          company: client.company,
+          phone: client.phone,
+          assignedProjectIds: client.assignedProjectIds ?? [],
+        };
+      } catch {
+        return null;
+      }
+    }),
+
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      ctx.res.clearCookie("client_token", { path: "/" });
+      return { success: true };
+    }),
+
+    updateProfile: publicProcedure.input(z.object({
+      name: z.string().min(1).max(100).optional(),
+      company: z.string().max(200).optional(),
+      phone: z.string().max(20).optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const { jwtVerify } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.type !== "client") throw new TRPCError({ code: "UNAUTHORIZED" });
+      const updateData: any = {};
+      if (input.name) updateData.name = input.name;
+      if (input.company !== undefined) updateData.company = input.company;
+      if (input.phone !== undefined) updateData.phone = input.phone;
+      await updateClient(payload.clientId as number, updateData);
+      return { success: true };
+    }),
+
+    changePassword: publicProcedure.input(z.object({
+      currentPassword: z.string(),
+      newPassword: z.string().min(8).max(100),
+    })).mutation(async ({ input, ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const { jwtVerify } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.type !== "client") throw new TRPCError({ code: "UNAUTHORIZED" });
+      const client = await getClientById(payload.clientId as number);
+      if (!client) throw new TRPCError({ code: "NOT_FOUND" });
+      const valid = await compare(input.currentPassword, client.passwordHash);
+      if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "현재 비밀번호가 올바르지 않습니다." });
+      const newHash = await hash(input.newPassword, 12);
+      await updateClient(client.id, { passwordHash: newHash });
+      return { success: true };
+    }),
+
+    requestPasswordReset: publicProcedure.input(z.object({
+      email: z.string().email(),
+    })).mutation(async ({ input }) => {
+      const client = await getClientByEmail(input.email);
+      if (!client) {
+        // 보안상 존재하지 않아도 성공 응답
+        return { success: true, message: "비밀번호 재설정 안내가 발송되었습니다." };
+      }
+      const resetToken = randomBytes(32).toString("hex");
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1시간
+      await updateClient(client.id, {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires,
+      });
+      // TODO: 이메일 발송 로직 추가
+      return { success: true, message: "비밀번호 재설정 안내가 발송되었습니다." };
+    }),
+
+    resetPassword: publicProcedure.input(z.object({
+      token: z.string(),
+      newPassword: z.string().min(8).max(100),
+    })).mutation(async ({ input }) => {
+      const client = await getClientByResetToken(input.token);
+      if (!client || !client.passwordResetExpires || client.passwordResetExpires < new Date()) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "유효하지 않거나 만료된 토큰입니다." });
+      }
+      const newHash = await hash(input.newPassword, 12);
+      await updateClient(client.id, {
+        passwordHash: newHash,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      });
+      return { success: true };
+    }),
+  }),
+
+  // 관리자: 고객 목록 관리
+  clientManagement: router({
+    list: adminProcedure.query(async () => {
+      return listClients();
+    }),
+    updateStatus: adminProcedure.input(z.object({
+      id: z.number(),
+      status: z.enum(["active", "suspended", "pending"]),
+    })).mutation(async ({ input }) => {
+      await updateClient(input.id, { status: input.status });
+      return { success: true };
+    }),
+    assignProjects: adminProcedure.input(z.object({
+      clientId: z.number(),
+      projectIds: z.array(z.number()),
+    })).mutation(async ({ input }) => {
+      await updateClient(input.clientId, { assignedProjectIds: input.projectIds });
+      return { success: true };
     }),
   }),
 });

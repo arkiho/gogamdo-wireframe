@@ -39,6 +39,9 @@ import OpsProjectDetail from "./pages/ops/OpsProjectDetail";
 import SubPortal from "./pages/ops/SubPortal";
 import OpsStaffManagement from "./pages/ops/OpsStaffManagement";
 import OpsCalendar from "./pages/ops/OpsCalendar";
+import ClientRegister from "./pages/ClientRegister";
+import ClientLogin from "./pages/ClientLogin";
+import ClientSpaceDashboard from "./pages/ClientSpaceDashboard";
 import Layout from "./components/Layout";
 
 function PublicRouter() {
@@ -79,6 +82,10 @@ function Router() {
       <Route path="/survey/:token" component={CompanySurvey} />
       {/* 하도급 업체 포털 - Layout 없이 독립 페이지 */}
       <Route path="/ops/sub-portal/:subId" component={SubPortal} />
+      {/* 고객 인증 및 공간 활용 대시보드 */}
+      <Route path="/client/register" component={ClientRegister} />
+      <Route path="/client/login" component={ClientLogin} />
+      <Route path="/client/dashboard" component={ClientSpaceDashboard} />
       {/* OpsX 직원 대시보드 */}
       <Route path="/ops" component={OpsHome} />
       <Route path="/ops/project/:id" component={OpsProjectDetail} />
