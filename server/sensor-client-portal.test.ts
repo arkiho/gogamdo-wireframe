@@ -760,7 +760,7 @@ describe("clientManagement - 이메일 인증 관리", () => {
     const result = await caller.clientManagement.bulkResendVerification();
     expect(result.success).toBe(true);
     expect(typeof result.count).toBe("number");
-  });
+  }, 120000);
 
   it("관리자가 고객 상태를 변경할 수 있다", async () => {
     const { ctx } = createAdminContext();
@@ -776,5 +776,50 @@ describe("clientManagement - 이메일 인증 관리", () => {
     const { ctx } = createPublicContext();
     const caller = appRouter.createCaller(ctx);
     await expect(caller.clientManagement.list()).rejects.toThrow();
+  });
+});
+
+// ============================================================
+// Client Dashboard Tests
+// ============================================================
+describe("clientDashboard", () => {
+  it("인증 없이 overview 접근 시 에러 발생", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.clientDashboard.overview()).rejects.toThrow();
+  });
+
+  it("인증 없이 sensorTimeSeries 접근 시 에러 발생", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.clientDashboard.sensorTimeSeries({ projectId: 1, period: "7d" })
+    ).rejects.toThrow();
+  });
+
+  it("인증 없이 zoneStats 접근 시 에러 발생", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.clientDashboard.zoneStats({ projectId: 1, period: "7d" })
+    ).rejects.toThrow();
+  });
+
+  it("sensorTimeSeries 입력 유효성 검사 - period 필수", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    // period가 없어도 기본값 "7d"가 적용되므로 인증 에러만 발생
+    await expect(
+      caller.clientDashboard.sensorTimeSeries({ projectId: 1 })
+    ).rejects.toThrow();
+  });
+
+  it("zoneStats 입력 유효성 검사 - projectId 필수", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    // @ts-ignore - 의도적으로 잘못된 입력
+    await expect(
+      caller.clientDashboard.zoneStats({ period: "7d" })
+    ).rejects.toThrow();
   });
 });

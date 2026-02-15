@@ -2642,6 +2642,152 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       return { success: true, count: sentCount, total: unverified.length, message: `${sentCount}건의 인증 메일을 발송했습니다.` };
     }),
   }),
+
+  // ===== 고객 포털 대시보드 =====
+  clientDashboard: router({
+    // 대시보드 요약 데이터
+    overview: publicProcedure.query(async ({ ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const { jwtVerify } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const client = await getClientById(payload.clientId as number);
+      if (!client || client.status !== "active") throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const projectIds = client.assignedProjectIds ?? [];
+      const projects = [];
+      let totalSensors = 0;
+      let activeSensors = 0;
+
+      for (const pid of projectIds) {
+        const project = await getSpaceProject(pid);
+        if (!project) continue;
+        const sensorList = await listSensors(pid);
+        const active = sensorList.filter(s => s.active === "yes");
+        totalSensors += sensorList.length;
+        activeSensors += active.length;
+
+        const latestData = await getSensorLatestData(pid);
+        const zones = await listSpaceZones(pid);
+
+        projects.push({
+          id: project.id,
+          name: project.name,
+          location: project.location,
+          area: project.area,
+          status: project.status,
+          sensorCount: sensorList.length,
+          activeSensorCount: active.length,
+          zoneCount: zones.length,
+          latestReadings: latestData.map(d => ({
+            sensorName: d.sensor.name,
+            sensorType: d.sensor.type,
+            zone: d.sensor.zone,
+            value: d.latestValue,
+            unit: d.sensor.unit,
+            recordedAt: d.latestAt,
+          })),
+        });
+      }
+
+      // 견적 이력 (이메일 기준)
+      const allEstimates = await listEstimates();
+      const myEstimates = allEstimates.filter(e => e.contactEmail === client.email).slice(0, 10);
+
+      return {
+        client: { id: client.id, name: client.name, email: client.email, company: client.company },
+        summary: {
+          projectCount: projects.length,
+          totalSensors,
+          activeSensors,
+        },
+        projects,
+        recentEstimates: myEstimates.map(e => ({
+          id: e.id,
+          spaceType: e.spaceType,
+          area: e.area,
+          grade: e.grade,
+          totalMin: e.totalMin,
+          totalMax: e.totalMax,
+          createdAt: e.createdAt,
+        })),
+      };
+    }),
+
+    // 프로젝트별 센서 데이터 시계열 (차트용)
+    sensorTimeSeries: publicProcedure.input(z.object({
+      projectId: z.number(),
+      sensorId: z.number().optional(),
+      period: z.enum(["1d", "7d", "30d"]).default("7d"),
+    })).query(async ({ input, ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const { jwtVerify } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const client = await getClientById(payload.clientId as number);
+      if (!client || !client.assignedProjectIds?.includes(input.projectId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "접근 권한이 없습니다." });
+      }
+
+      const now = new Date();
+      const periodMs = input.period === "1d" ? 86400000 : input.period === "7d" ? 604800000 : 2592000000;
+      const from = new Date(now.getTime() - periodMs);
+
+      const sensorList = await listSensors(input.projectId);
+      const targetSensors = input.sensorId
+        ? sensorList.filter(s => s.id === input.sensorId)
+        : sensorList;
+
+      const series = [];
+      for (const sensor of targetSensors) {
+        const data = await getSensorDataRange(sensor.id, from, now);
+        series.push({
+          sensorId: sensor.id,
+          sensorName: sensor.name,
+          sensorType: sensor.type,
+          zone: sensor.zone,
+          unit: sensor.unit,
+          data: data.map(d => ({
+            value: parseFloat(d.value) || 0,
+            recordedAt: d.recordedAt,
+          })),
+        });
+      }
+
+      return { projectId: input.projectId, period: input.period, from, to: now, series };
+    }),
+
+    // 구역별 점유율 통계
+    zoneStats: publicProcedure.input(z.object({
+      projectId: z.number(),
+      period: z.enum(["1d", "7d", "30d"]).default("7d"),
+    })).query(async ({ input, ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const { jwtVerify } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const client = await getClientById(payload.clientId as number);
+      if (!client || !client.assignedProjectIds?.includes(input.projectId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "접근 권한이 없습니다." });
+      }
+
+      const now = new Date();
+      const periodMs = input.period === "1d" ? 86400000 : input.period === "7d" ? 604800000 : 2592000000;
+      const from = new Date(now.getTime() - periodMs);
+
+      const zones = await listSpaceZones(input.projectId);
+      const stats = await getZoneOccupancyStats(input.projectId, from, now);
+      const heatmap = await getZoneHeatmapData(input.projectId, from, now);
+
+      return { zones, stats, heatmap };
+    }),
+  }),
 });
 
 // 뉴스레터 HTML 생성 헬퍼

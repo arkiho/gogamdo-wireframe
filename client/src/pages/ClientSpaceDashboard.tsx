@@ -1,20 +1,27 @@
 /**
  * 고객 공간 활용 대시보드 - 재실센서 기반 공간 분석 뷰
- * 고객이 자기 프로젝트의 공간 활용 현황을 확인하는 읽기 전용 대시보드
+ * 실제 데이터 연동: 프로젝트 진행 상황, 센서 데이터 차트, 견적 이력, 알림
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LayoutDashboard, FolderOpen, User, LogOut, Settings,
   Building2, MapPin, Activity, BarChart3, ChevronRight,
   Loader2, AlertCircle, Eye, EyeOff, Flame, Route, FileText,
-  ArrowLeft, TrendingUp, Users, Clock
+  ArrowLeft, TrendingUp, Users, Clock, Thermometer, Droplets,
+  Wind, Zap, Receipt, Bell, RefreshCw, ChevronDown
 } from "lucide-react";
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from "recharts";
 
 // ============================================================
 // Client Auth Hook (reusable)
@@ -33,6 +40,23 @@ function useClientAuth() {
 }
 
 // ============================================================
+// Sensor Type Config
+// ============================================================
+const SENSOR_TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
+  temperature: { icon: <Thermometer className="w-4 h-4" />, color: "#ef4444", label: "온도" },
+  humidity: { icon: <Droplets className="w-4 h-4" />, color: "#3b82f6", label: "습도" },
+  co2: { icon: <Wind className="w-4 h-4" />, color: "#8b5cf6", label: "CO₂" },
+  illuminance: { icon: <Zap className="w-4 h-4" />, color: "#f59e0b", label: "조도" },
+  noise: { icon: <Activity className="w-4 h-4" />, color: "#10b981", label: "소음" },
+  occupancy: { icon: <Users className="w-4 h-4" />, color: "#06b6d4", label: "재실" },
+  motion: { icon: <Activity className="w-4 h-4" />, color: "#ec4899", label: "동작" },
+  air_quality: { icon: <Wind className="w-4 h-4" />, color: "#14b8a6", label: "공기질" },
+  power: { icon: <Zap className="w-4 h-4" />, color: "#f97316", label: "전력" },
+};
+
+const CHART_COLORS = ["#c8a97e", "#3b82f6", "#ef4444", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899", "#06b6d4"];
+
+// ============================================================
 // Portal Sidebar Layout
 // ============================================================
 function PortalLayout({ children, activeTab, onTabChange }: {
@@ -49,6 +73,8 @@ function PortalLayout({ children, activeTab, onTabChange }: {
   const navItems = [
     { id: "overview", label: "대시보드", icon: LayoutDashboard },
     { id: "projects", label: "내 프로젝트", icon: FolderOpen },
+    { id: "sensors", label: "센서 데이터", icon: Activity },
+    { id: "estimates", label: "견적 이력", icon: Receipt },
     { id: "heatmap", label: "히트맵", icon: Flame },
     { id: "traffic", label: "동선 분석", icon: Route },
     { id: "reports", label: "리포트", icon: FileText },
@@ -118,17 +144,60 @@ function PortalLayout({ children, activeTab, onTabChange }: {
 }
 
 // ============================================================
-// Overview Tab
+// Overview Tab (Enhanced with real data)
 // ============================================================
 function OverviewTab() {
   const { client } = useClientAuth();
-  const projectIds = client?.assignedProjectIds ?? [];
+  const dashboardQuery = trpc.clientDashboard.overview.useQuery(undefined, {
+    retry: false,
+    staleTime: 30 * 1000,
+  });
+
+  if (dashboardQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-gold mr-2" />
+        <span className="text-muted-foreground">대시보드 데이터를 불러오는 중...</span>
+      </div>
+    );
+  }
+
+  if (dashboardQuery.error) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-1">안녕하세요, {client?.name}님</h1>
+        <p className="text-muted-foreground mb-8">공간 활용 현황을 한눈에 확인하세요.</p>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <AlertCircle className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+            <p className="text-muted-foreground">데이터를 불러올 수 없습니다.</p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => dashboardQuery.refetch()}>
+              <RefreshCw className="w-3 h-3 mr-2" />
+              다시 시도
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const data = dashboardQuery.data;
+  if (!data) return null;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-1">안녕하세요, {client?.name}님</h1>
-      <p className="text-muted-foreground mb-8">공간 활용 현황을 한눈에 확인하세요.</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">안녕하세요, {data.client.name}님</h1>
+          <p className="text-muted-foreground">공간 활용 현황을 한눈에 확인하세요.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => dashboardQuery.refetch()}>
+          <RefreshCw className="w-3 h-3 mr-2" />
+          새로고침
+        </Button>
+      </div>
 
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="pt-5 pb-5">
@@ -137,7 +206,7 @@ function OverviewTab() {
                 <FolderOpen className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-xl font-bold">{projectIds.length}</p>
+                <p className="text-xl font-bold">{data.summary.projectCount}</p>
                 <p className="text-xs text-muted-foreground">프로젝트</p>
               </div>
             </div>
@@ -151,7 +220,10 @@ function OverviewTab() {
                 <Activity className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xl font-bold">-</p>
+                <p className="text-xl font-bold">
+                  {data.summary.activeSensors}
+                  <span className="text-sm font-normal text-muted-foreground">/{data.summary.totalSensors}</span>
+                </p>
                 <p className="text-xs text-muted-foreground">활성 센서</p>
               </div>
             </div>
@@ -162,11 +234,11 @@ function OverviewTab() {
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-amber-600" />
+                <Receipt className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-xl font-bold">-</p>
-                <p className="text-xs text-muted-foreground">평균 재실률</p>
+                <p className="text-xl font-bold">{data.recentEstimates.length}</p>
+                <p className="text-xs text-muted-foreground">견적 이력</p>
               </div>
             </div>
           </CardContent>
@@ -179,64 +251,147 @@ function OverviewTab() {
                 <TrendingUp className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-xl font-bold">-</p>
-                <p className="text-xs text-muted-foreground">공간 효율</p>
+                <p className="text-xl font-bold">
+                  {data.projects.reduce((sum, p) => sum + p.zoneCount, 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">관리 구역</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {projectIds.length === 0 ? (
+      {/* Projects with Latest Readings */}
+      {data.projects.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
             <Building2 className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">아직 할당된 프로젝트가 없습니다</h3>
             <p className="text-muted-foreground text-sm max-w-md mx-auto">
-              프로젝트가 시작되면 이곳에서 공간 활용 현황, 히트맵, 동선 분석 등을 확인할 수 있습니다.
-              고감도 담당자에게 문의하세요.
+              프로젝트가 시작되면 이곳에서 공간 활용 현황, 센서 데이터, 히트맵 등을 확인할 수 있습니다.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">프로젝트 요약</h2>
-          {projectIds.map((pid: number) => (
-            <Card key={pid} className="hover:shadow-md transition-shadow">
-              <CardContent className="py-5">
+        <div className="space-y-6">
+          <h2 className="text-lg font-semibold">프로젝트 현황</h2>
+          {data.projects.map((project) => (
+            <Card key={project.id} className="overflow-hidden">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gold/10 rounded-lg flex items-center justify-center">
                       <Building2 className="w-5 h-5 text-gold" />
                     </div>
                     <div>
-                      <h3 className="font-medium">프로젝트 #{pid}</h3>
-                      <p className="text-sm text-muted-foreground">공간 활용 데이터 수집 중</p>
+                      <CardTitle className="text-base">{project.name}</CardTitle>
+                      <CardDescription className="flex items-center gap-2">
+                        {project.location && <><MapPin className="w-3 h-3" />{project.location}</>}
+                        {project.area && <span>· {project.area}</span>}
+                      </CardDescription>
                     </div>
                   </div>
-                  <span className="px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded">활성</span>
+                  <span className={`px-2.5 py-1 text-xs font-medium rounded ${
+                    project.status === "completed" ? "bg-green-50 text-green-700" :
+                    project.status === "analyzing" ? "bg-blue-50 text-blue-700" :
+                    project.status === "collecting" ? "bg-amber-50 text-amber-700" :
+                    "bg-gray-50 text-gray-700"
+                  }`}>
+                    {project.status === "completed" ? "완료" :
+                     project.status === "analyzing" ? "분석 중" :
+                     project.status === "collecting" ? "데이터 수집" : "설정 중"}
+                  </span>
                 </div>
-                <div className="mt-4 grid grid-cols-4 gap-4 pt-4 border-t border-border">
+              </CardHeader>
+              <CardContent>
+                {/* Project Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-border">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground mb-1">구역</p>
-                    <p className="text-sm font-medium">-</p>
+                    <p className="text-sm font-semibold">{project.zoneCount}개</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground mb-1">센서</p>
-                    <p className="text-sm font-medium">-</p>
+                    <p className="text-sm font-semibold">{project.activeSensorCount}/{project.sensorCount}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">재실률</p>
-                    <p className="text-sm font-medium">-</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">체류시간</p>
-                    <p className="text-sm font-medium">-</p>
+                    <p className="text-xs text-muted-foreground mb-1">상태</p>
+                    <p className="text-sm font-semibold text-green-600">정상</p>
                   </div>
                 </div>
+
+                {/* Latest Readings */}
+                {project.latestReadings.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-3">최근 측정값</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {project.latestReadings.slice(0, 8).map((reading, idx) => {
+                        const config = SENSOR_TYPE_CONFIG[reading.sensorType] || { icon: <Activity className="w-4 h-4" />, color: "#666", label: reading.sensorType };
+                        return (
+                          <div key={idx} className="p-3 bg-muted/50 rounded-lg">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span style={{ color: config.color }}>{config.icon}</span>
+                              <span className="text-xs text-muted-foreground truncate">{reading.sensorName}</span>
+                            </div>
+                            <p className="text-lg font-bold">
+                              {reading.value ?? "-"}
+                              <span className="text-xs font-normal text-muted-foreground ml-1">{reading.unit}</span>
+                            </p>
+                            {reading.zone && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5">{reading.zone}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">센서 데이터 수집 대기 중</p>
+                )}
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Recent Estimates */}
+      {data.recentEstimates.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold mb-4">최근 견적 이력</h2>
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left p-3 font-medium text-muted-foreground">공간유형</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">면적</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">등급</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">예상 견적</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">일자</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.recentEstimates.slice(0, 5).map((est) => (
+                      <tr key={est.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                        <td className="p-3">{est.spaceType || "-"}</td>
+                        <td className="p-3">{est.area ? `${est.area}㎡` : "-"}</td>
+                        <td className="p-3">{est.grade || "-"}</td>
+                        <td className="p-3 text-right font-medium">
+                          {est.totalMin && est.totalMax
+                            ? `${(est.totalMin / 10000).toFixed(0)}~${(est.totalMax / 10000).toFixed(0)}만원`
+                            : "-"}
+                        </td>
+                        <td className="p-3 text-right text-muted-foreground">
+                          {est.createdAt ? new Date(est.createdAt).toLocaleDateString("ko-KR") : "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -250,8 +405,8 @@ function OverviewTab() {
                 <span className="text-xs font-bold text-gold">1</span>
               </div>
               <div>
-                <p className="text-sm font-medium">히트맵 확인</p>
-                <p className="text-xs text-muted-foreground">구역별 사용 빈도를 색상으로 확인하세요.</p>
+                <p className="text-sm font-medium">센서 데이터 확인</p>
+                <p className="text-xs text-muted-foreground">시간대별 온도/습도/CO₂ 추이를 차트로 확인하세요.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -259,8 +414,8 @@ function OverviewTab() {
                 <span className="text-xs font-bold text-gold">2</span>
               </div>
               <div>
-                <p className="text-sm font-medium">동선 분석</p>
-                <p className="text-xs text-muted-foreground">구역 간 이동 패턴과 체류 시간을 분석하세요.</p>
+                <p className="text-sm font-medium">히트맵 분석</p>
+                <p className="text-xs text-muted-foreground">구역별 사용 빈도를 색상으로 확인하세요.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -275,6 +430,291 @@ function OverviewTab() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ============================================================
+// Sensor Data Tab (Charts)
+// ============================================================
+function SensorDataTab() {
+  const { client } = useClientAuth();
+  const projectIds = client?.assignedProjectIds ?? [];
+  const [selectedProject, setSelectedProject] = useState<number | null>(projectIds[0] ?? null);
+  const [period, setPeriod] = useState<"1d" | "7d" | "30d">("7d");
+  const [selectedSensorType, setSelectedSensorType] = useState<string>("all");
+
+  const timeSeriesQuery = trpc.clientDashboard.sensorTimeSeries.useQuery(
+    { projectId: selectedProject!, period },
+    { enabled: !!selectedProject, staleTime: 60 * 1000, refetchInterval: 5 * 60 * 1000 }
+  );
+
+  useEffect(() => {
+    if (projectIds.length > 0 && !selectedProject) {
+      setSelectedProject(projectIds[0]);
+    }
+  }, [projectIds, selectedProject]);
+
+  if (projectIds.length === 0) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-6">센서 데이터</h1>
+        <EmptyState message="할당된 프로젝트가 없어 센서 데이터를 표시할 수 없습니다." />
+      </div>
+    );
+  }
+
+  const filteredSeries = timeSeriesQuery.data?.series?.filter(
+    s => selectedSensorType === "all" || s.sensorType === selectedSensorType
+  ) ?? [];
+
+  // Group sensors by type for chart rendering
+  const sensorTypes = [...new Set(timeSeriesQuery.data?.series?.map(s => s.sensorType) ?? [])];
+
+  // Format chart data for combined view
+  const chartDataByType = useMemo(() => {
+    const result: Record<string, any[]> = {};
+    for (const series of filteredSeries) {
+      const type = series.sensorType;
+      if (!result[type]) result[type] = [];
+      // Merge data points by time
+      for (const point of series.data) {
+        const timeKey = new Date(point.recordedAt).toISOString();
+        let existing = result[type].find(d => d.time === timeKey);
+        if (!existing) {
+          existing = { time: timeKey, timestamp: new Date(point.recordedAt).getTime() };
+          result[type].push(existing);
+        }
+        existing[series.sensorName] = point.value;
+      }
+    }
+    // Sort each type by time
+    for (const type of Object.keys(result)) {
+      result[type].sort((a, b) => a.timestamp - b.timestamp);
+    }
+    return result;
+  }, [filteredSeries]);
+
+  const formatTime = (time: string) => {
+    const d = new Date(time);
+    if (period === "1d") return d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">센서 데이터</h1>
+          <p className="text-muted-foreground text-sm">시간대별 환경 데이터 추이를 확인하세요.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => timeSeriesQuery.refetch()}>
+          <RefreshCw className={`w-3 h-3 mr-2 ${timeSeriesQuery.isFetching ? "animate-spin" : ""}`} />
+          새로고침
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        {projectIds.length > 1 && (
+          <Select value={String(selectedProject)} onValueChange={(v) => setSelectedProject(Number(v))}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="프로젝트 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {projectIds.map((pid: number) => (
+                <SelectItem key={pid} value={String(pid)}>프로젝트 #{pid}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        <div className="flex bg-muted rounded-md p-0.5">
+          {(["1d", "7d", "30d"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                period === p ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p === "1d" ? "1일" : p === "7d" ? "7일" : "30일"}
+            </button>
+          ))}
+        </div>
+
+        <Select value={selectedSensorType} onValueChange={setSelectedSensorType}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="센서 유형" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체 센서</SelectItem>
+            {sensorTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                {SENSOR_TYPE_CONFIG[type]?.label || type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Charts */}
+      {timeSeriesQuery.isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-gold mr-2" />
+          <span className="text-muted-foreground">센서 데이터를 불러오는 중...</span>
+        </div>
+      ) : filteredSeries.length === 0 ? (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <Activity className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">센서 데이터가 없습니다</h3>
+            <p className="text-sm text-muted-foreground">
+              선택한 기간에 수집된 센서 데이터가 없습니다. 센서가 정상 작동 중인지 확인해주세요.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(chartDataByType).map(([type, data]) => {
+            const config = SENSOR_TYPE_CONFIG[type] || { label: type, color: "#666" };
+            const sensorNames = filteredSeries.filter(s => s.sensorType === type).map(s => s.sensorName);
+            const unit = filteredSeries.find(s => s.sensorType === type)?.unit || "";
+
+            return (
+              <Card key={type}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: config.color }}>{SENSOR_TYPE_CONFIG[type]?.icon}</span>
+                    <CardTitle className="text-base">{config.label}</CardTitle>
+                    <span className="text-xs text-muted-foreground">({unit})</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <AreaChart data={data}>
+                      <defs>
+                        {sensorNames.map((name, i) => (
+                          <linearGradient key={name} id={`gradient-${type}-${i}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0.2} />
+                            <stop offset="95%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0} />
+                          </linearGradient>
+                        ))}
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                      <XAxis
+                        dataKey="time"
+                        tickFormatter={formatTime}
+                        tick={{ fontSize: 11 }}
+                        stroke="#999"
+                      />
+                      <YAxis tick={{ fontSize: 11 }} stroke="#999" />
+                      <Tooltip
+                        labelFormatter={(label) => new Date(label).toLocaleString("ko-KR")}
+                        formatter={(value: number) => [`${value} ${unit}`, ""]}
+                        contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e5e5" }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                      {sensorNames.map((name, i) => (
+                        <Area
+                          key={name}
+                          type="monotone"
+                          dataKey={name}
+                          stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                          fill={`url(#gradient-${type}-${i})`}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      ))}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Estimates Tab
+// ============================================================
+function EstimatesTab() {
+  const dashboardQuery = trpc.clientDashboard.overview.useQuery(undefined, {
+    retry: false,
+    staleTime: 60 * 1000,
+  });
+
+  if (dashboardQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-gold" />
+      </div>
+    );
+  }
+
+  const estimates = dashboardQuery.data?.recentEstimates ?? [];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">견적 이력</h1>
+          <p className="text-muted-foreground text-sm">AI 예상 견적 기록을 확인하세요.</p>
+        </div>
+        <Link href="/estimator">
+          <Button className="bg-gold hover:bg-gold-light text-ink">
+            새 견적 받기
+          </Button>
+        </Link>
+      </div>
+
+      {estimates.length === 0 ? (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <Receipt className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">견적 이력이 없습니다</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              AI 예상 견적 서비스를 이용해보세요.
+            </p>
+            <Link href="/estimator">
+              <Button variant="outline">견적 받으러 가기</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {estimates.map((est) => (
+            <Card key={est.id}>
+              <CardContent className="py-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-gold/10 rounded-lg flex items-center justify-center">
+                      <Receipt className="w-5 h-5 text-gold" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">{est.spaceType || "일반"} · {est.grade || "표준"}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {est.area ? `${est.area}㎡` : "-"} · {est.createdAt ? new Date(est.createdAt).toLocaleDateString("ko-KR") : "-"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-lg">
+                      {est.totalMin && est.totalMax
+                        ? `${(est.totalMin / 10000).toLocaleString()}~${(est.totalMax / 10000).toLocaleString()}만원`
+                        : "-"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">예상 견적</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -311,7 +751,6 @@ function HeatmapTab() {
         </CardContent>
       </Card>
 
-      {/* Legend */}
       <Card className="mt-4">
         <CardHeader>
           <CardTitle className="text-sm">히트맵 범례</CardTitle>
@@ -416,6 +855,80 @@ function ReportsTab() {
           </p>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ============================================================
+// Projects Tab
+// ============================================================
+function ProjectsTab() {
+  const dashboardQuery = trpc.clientDashboard.overview.useQuery(undefined, {
+    retry: false,
+    staleTime: 30 * 1000,
+  });
+
+  if (dashboardQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-gold" />
+      </div>
+    );
+  }
+
+  const projects = dashboardQuery.data?.projects ?? [];
+
+  if (projects.length === 0) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-6">내 프로젝트</h1>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <FolderOpen className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">할당된 프로젝트가 없습니다</h3>
+            <p className="text-sm text-muted-foreground">고감도 담당자에게 문의하세요.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-6">내 프로젝트</h1>
+      <div className="grid gap-4">
+        {projects.map((project) => (
+          <Card key={project.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="py-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gold/10 rounded-lg flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-gold" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">{project.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {project.location && <>{project.location} · </>}
+                      {project.area && <>{project.area} · </>}
+                      센서 {project.activeSensorCount}/{project.sensorCount} · 구역 {project.zoneCount}개
+                    </p>
+                  </div>
+                </div>
+                <span className={`px-2.5 py-1 text-xs font-medium rounded ${
+                  project.status === "completed" ? "bg-green-50 text-green-700" :
+                  project.status === "analyzing" ? "bg-blue-50 text-blue-700" :
+                  project.status === "collecting" ? "bg-amber-50 text-amber-700" :
+                  "bg-gray-50 text-gray-700"
+                }`}>
+                  {project.status === "completed" ? "완료" :
+                   project.status === "analyzing" ? "분석 중" :
+                   project.status === "collecting" ? "데이터 수집" : "설정 중"}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -618,55 +1131,6 @@ function ProfileTab() {
 }
 
 // ============================================================
-// Projects Tab
-// ============================================================
-function ProjectsTab() {
-  const { client } = useClientAuth();
-  const projectIds = client?.assignedProjectIds ?? [];
-
-  if (projectIds.length === 0) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold mb-6">내 프로젝트</h1>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <FolderOpen className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">할당된 프로젝트가 없습니다</h3>
-            <p className="text-sm text-muted-foreground">고감도 담당자에게 문의하세요.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">내 프로젝트</h1>
-      <div className="grid gap-4">
-        {projectIds.map((pid: number) => (
-          <Card key={pid} className="hover:shadow-md transition-shadow">
-            <CardContent className="py-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gold/10 rounded-lg flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-gold" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">프로젝트 #{pid}</h3>
-                    <p className="text-sm text-muted-foreground">공간 활용 데이터 확인</p>
-                  </div>
-                </div>
-                <span className="px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded">활성</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
 // Empty State Component
 // ============================================================
 function EmptyState({ message }: { message: string }) {
@@ -724,6 +1188,8 @@ export default function ClientSpaceDashboard() {
     <PortalLayout activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === "overview" && <OverviewTab />}
       {activeTab === "projects" && <ProjectsTab />}
+      {activeTab === "sensors" && <SensorDataTab />}
+      {activeTab === "estimates" && <EstimatesTab />}
       {activeTab === "heatmap" && <HeatmapTab />}
       {activeTab === "traffic" && <TrafficTab />}
       {activeTab === "reports" && <ReportsTab />}
@@ -731,4 +1197,3 @@ export default function ClientSpaceDashboard() {
     </PortalLayout>
   );
 }
-

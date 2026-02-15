@@ -178,7 +178,7 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="text-white/60 text-lg lg:text-xl leading-relaxed mb-10 max-w-xl"
             >
-              1991년 창업 이래 35년간 대한민국 면적만큼의 공간을 설계하고 시공해 온 경험.
+              1991년 창업 이래 35년간 2,800건 이상의 프로젝트를 설계하고 시공해 온 경험.
               데이터 기반 설계부터 시공까지 원스톱 솔루션으로 기업의 비전을 공간에 담습니다.
             </motion.p>
 
