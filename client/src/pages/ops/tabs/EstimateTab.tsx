@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useRef } from "react";
-import { Plus, FileSpreadsheet, Download } from "lucide-react";
+import { Plus, FileSpreadsheet, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { generateEstimatePdf, type EstimatePdfData } from "@/lib/estimatePdf";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: "초안", color: "bg-gray-100 text-gray-600" },
@@ -19,9 +20,17 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   revised: { label: "수정", color: "bg-purple-100 text-purple-700" },
 };
 
-export default function EstimateTab({ projectId }: { projectId: string }) {
+interface EstimateTabProps {
+  projectId: string;
+  projectName?: string;
+  clientName?: string;
+  siteAddress?: string;
+}
+
+export default function EstimateTab({ projectId, projectName, clientName, siteAddress }: EstimateTabProps) {
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     title: "", version: "1", totalAmount: "", description: "", fileUrl: "",
@@ -85,6 +94,38 @@ export default function EstimateTab({ projectId }: { projectId: string }) {
       description: form.description || undefined,
       fileUrl: form.fileUrl || undefined,
     });
+  };
+
+  const handleDownloadPdf = (estimate: any) => {
+    setGeneratingPdf(estimate.id);
+    try {
+      const pdfData: EstimatePdfData = {
+        estimateNumber: estimate.estimateNumber || `EST-${estimate.id}`,
+        title: estimate.title,
+        version: estimate.version || 1,
+        items: estimate.items || [],
+        subtotal: estimate.subtotal || estimate.totalAmount || "0",
+        overhead: estimate.overhead || "0",
+        profit: estimate.profit || "0",
+        vat: estimate.vat || "0",
+        grandTotal: estimate.grandTotal || estimate.totalAmount || "0",
+        notes: estimate.notes || estimate.description || "",
+        validUntil: estimate.validUntil,
+        status: estimate.status,
+        createdAt: estimate.createdAt,
+        projectName: projectName || "프로젝트",
+        clientName: clientName || undefined,
+        siteAddress: siteAddress || undefined,
+        authorName: estimate.authorName,
+      };
+      generateEstimatePdf(pdfData);
+      toast.success("견적서 PDF가 다운로드되었습니다.");
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      toast.error("PDF 생성에 실패했습니다.");
+    } finally {
+      setGeneratingPdf(null);
+    }
   };
 
   return (
@@ -158,6 +199,7 @@ export default function EstimateTab({ projectId }: { projectId: string }) {
                     <th className="text-left py-2 px-3 font-medium">상태</th>
                     <th className="text-left py-2 px-3 font-medium">등록일</th>
                     <th className="text-right py-2 px-3 font-medium">파일</th>
+                    <th className="text-right py-2 px-3 font-medium">PDF</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -183,6 +225,17 @@ export default function EstimateTab({ projectId }: { projectId: string }) {
                             <span className="text-muted-foreground text-xs">-</span>
                           )}
                         </td>
+                        <td className="py-2.5 px-3 text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDownloadPdf(e)}
+                            disabled={generatingPdf === e.id}
+                            title="견적서 PDF 다운로드"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-amber-600" />
+                          </Button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -207,13 +260,25 @@ export default function EstimateTab({ projectId }: { projectId: string }) {
                       <span className="text-muted-foreground">{new Date(e.createdAt).toLocaleDateString()}</span>
                       <span className="font-semibold">{Number(e.totalAmount).toLocaleString()}원</span>
                     </div>
-                    {e.fileUrl && (
-                      <Button size="sm" variant="outline" className="w-full h-9" asChild>
-                        <a href={e.fileUrl} target="_blank" rel="noopener noreferrer">
-                          <Download className="w-3.5 h-3.5 mr-1" />파일 다운로드
-                        </a>
+                    <div className="flex gap-2">
+                      {e.fileUrl && (
+                        <Button size="sm" variant="outline" className="flex-1 h-9" asChild>
+                          <a href={e.fileUrl} target="_blank" rel="noopener noreferrer">
+                            <Download className="w-3.5 h-3.5 mr-1" />파일
+                          </a>
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={`${e.fileUrl ? "flex-1" : "w-full"} h-9`}
+                        onClick={() => handleDownloadPdf(e)}
+                        disabled={generatingPdf === e.id}
+                      >
+                        <FileText className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                        {generatingPdf === e.id ? "생성 중..." : "PDF 다운로드"}
                       </Button>
-                    )}
+                    </div>
                   </div>
                 );
               })}

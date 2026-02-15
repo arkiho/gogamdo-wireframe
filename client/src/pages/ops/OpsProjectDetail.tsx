@@ -277,7 +277,7 @@ export default function OpsProjectDetail() {
           <SubcontractorTab projectId={id!} />
         </TabsContent>
         <TabsContent value="estimates" className="mt-4">
-          <EstimateTab projectId={id!} />
+          <EstimateTab projectId={id!} projectName={p.name} clientName={p.clientName} siteAddress={p.address} />
         </TabsContent>
         <TabsContent value="contracts" className="mt-4">
           <ContractTab projectId={id!} />
