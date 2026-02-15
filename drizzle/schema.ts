@@ -1152,3 +1152,476 @@ export const meetingBookings = mysqlTable("meeting_bookings", {
 
 export type MeetingBooking = typeof meetingBookings.$inferSelect;
 export type InsertMeetingBooking = typeof meetingBookings.$inferInsert;
+
+
+// ============================================================
+// OpsX 직원용 프로젝트 관리 대시보드
+// 프로젝트 관리, 공정표, 작업보고서, 회의록, 지출결의서(결재라인),
+// 하도급 관리, 견적서, 계약서, 원가관리, 고객사/하도급 초대
+// ============================================================
+
+/**
+ * OpsX 시공 프로젝트(Construction Projects)
+ * 직원이 관리하는 시공 프로젝트 단위
+ */
+export const opsProjects = mysqlTable("ops_projects", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 300 }).notNull(),
+  code: varchar("code", { length: 50 }).notNull(), // 프로젝트 코드 (예: GGD-2026-001)
+  clientName: varchar("clientName", { length: 200 }).notNull(),
+  clientContact: varchar("clientContact", { length: 100 }),
+  clientEmail: varchar("clientEmail", { length: 320 }),
+  clientPhone: varchar("clientPhone", { length: 30 }),
+  siteAddress: text("siteAddress"),
+  totalArea: decimal("totalArea", { precision: 10, scale: 2 }), // ㎡
+  contractAmount: decimal("contractAmount", { precision: 15, scale: 0 }), // 계약금액 (원)
+  startDate: varchar("startDate", { length: 20 }), // YYYY-MM-DD
+  endDate: varchar("endDate", { length: 20 }),
+  status: mysqlEnum("status", [
+    "planning",      // 기획
+    "designing",     // 설계
+    "permit",        // 인허가
+    "construction",  // 시공중
+    "inspection",    // 검수
+    "completed",     // 완료
+    "warranty",      // 하자보수
+    "closed",        // 종료
+  ]).default("planning").notNull(),
+  managerId: int("managerId"), // 담당 PM (users.id)
+  teamMembers: json("teamMembers").$type<number[]>(), // 팀원 user IDs
+  description: text("description"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsProject = typeof opsProjects.$inferSelect;
+export type InsertOpsProject = typeof opsProjects.$inferInsert;
+
+/**
+ * 공정표 항목(Schedule Items)
+ * 간트차트 형태의 공정 관리
+ */
+export const opsScheduleItems = mysqlTable("ops_schedule_items", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  parentId: int("parentId"), // 상위 공정 (트리 구조)
+  name: varchar("name", { length: 300 }).notNull(),
+  category: varchar("category", { length: 100 }), // 공종 (철거, 전기, 설비, 목공, 도장 등)
+  startDate: varchar("startDate", { length: 20 }),
+  endDate: varchar("endDate", { length: 20 }),
+  progress: int("progress").default(0), // 진행률 0-100%
+  status: mysqlEnum("status", ["not_started", "in_progress", "delayed", "completed", "on_hold"]).default("not_started").notNull(),
+  assignedTo: varchar("assignedTo", { length: 200 }), // 담당자/업체명
+  subcontractorId: int("subcontractorId"), // 하도급 업체 ID
+  sortOrder: int("sortOrder").default(0),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsScheduleItem = typeof opsScheduleItems.$inferSelect;
+export type InsertOpsScheduleItem = typeof opsScheduleItems.$inferInsert;
+
+/**
+ * 작업보고서(Work Reports)
+ * 일일/주간 작업 보고
+ */
+export const opsWorkReports = mysqlTable("ops_work_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  authorId: int("authorId").notNull(), // 작성자 (users.id)
+  authorName: varchar("authorName", { length: 100 }),
+  reportDate: varchar("reportDate", { length: 20 }).notNull(), // YYYY-MM-DD
+  reportType: mysqlEnum("reportType", ["daily", "weekly", "special"]).default("daily").notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  content: text("content").notNull(), // 마크다운
+  weatherCondition: varchar("weatherCondition", { length: 50 }), // 날씨
+  workersCount: int("workersCount"), // 투입 인원
+  safetyIssues: text("safetyIssues"), // 안전 이슈
+  photoUrls: json("photoUrls").$type<string[]>(), // 현장 사진
+  attachmentUrls: json("attachmentUrls").$type<string[]>(), // 첨부파일
+  status: mysqlEnum("status", ["draft", "submitted", "reviewed"]).default("draft").notNull(),
+  reviewedBy: int("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsWorkReport = typeof opsWorkReports.$inferSelect;
+export type InsertOpsWorkReport = typeof opsWorkReports.$inferInsert;
+
+/**
+ * 회의록(Meeting Notes)
+ */
+export const opsMeetingNotes = mysqlTable("ops_meeting_notes", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  authorId: int("authorId").notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  meetingDate: varchar("meetingDate", { length: 20 }).notNull(),
+  meetingTime: varchar("meetingTime", { length: 10 }),
+  location: varchar("location", { length: 200 }),
+  meetingType: mysqlEnum("meetingType", ["internal", "client", "subcontractor", "inspection"]).default("internal").notNull(),
+  attendees: json("attendees").$type<Array<{ name: string; role?: string; company?: string }>>(),
+  agenda: text("agenda"), // 안건
+  content: text("content").notNull(), // 회의 내용 (마크다운)
+  decisions: json("decisions").$type<string[]>(), // 결정사항
+  actionItems: json("actionItems").$type<Array<{ task: string; assignee: string; dueDate?: string }>>(), // 후속 조치
+  attachmentUrls: json("attachmentUrls").$type<string[]>(),
+  status: mysqlEnum("status", ["draft", "finalized"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsMeetingNote = typeof opsMeetingNotes.$inferSelect;
+export type InsertOpsMeetingNote = typeof opsMeetingNotes.$inferInsert;
+
+/**
+ * 결재라인 설정(Approval Line Templates)
+ * 지출결의서 등의 결재 흐름 설정
+ */
+export const opsApprovalLines = mysqlTable("ops_approval_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(), // 결재라인 이름 (예: "일반 지출결의", "긴급 결재")
+  documentType: mysqlEnum("documentType", ["expense", "contract", "estimate", "general"]).default("expense").notNull(),
+  steps: json("steps").$type<Array<{
+    stepOrder: number;
+    approverType: string; // "specific_user" | "role" | "manager"
+    approverId?: number; // users.id (specific_user인 경우)
+    approverRole?: string; // 역할명 (role인 경우)
+    approverName: string; // 표시용 이름
+    isRequired: boolean;
+  }>>().notNull(),
+  isDefault: tinyint("isDefault").default(0),
+  isActive: tinyint("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsApprovalLine = typeof opsApprovalLines.$inferSelect;
+export type InsertOpsApprovalLine = typeof opsApprovalLines.$inferInsert;
+
+/**
+ * 지출결의서(Expense Reports)
+ */
+export const opsExpenses = mysqlTable("ops_expenses", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  authorId: int("authorId").notNull(), // 작성자
+  approvalLineId: int("approvalLineId"), // 사용된 결재라인
+  expenseNumber: varchar("expenseNumber", { length: 50 }).notNull(), // 결의서 번호
+  title: varchar("title", { length: 300 }).notNull(),
+  category: mysqlEnum("category", [
+    "material",       // 자재비
+    "labor",          // 인건비
+    "subcontract",    // 하도급비
+    "equipment",      // 장비비
+    "transportation", // 운반비
+    "utility",        // 공과금
+    "office",         // 사무용품
+    "meal",           // 식대
+    "other",          // 기타
+  ]).default("other").notNull(),
+  items: json("items").$type<Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    remarks?: string;
+  }>>().notNull(),
+  totalAmount: decimal("totalAmount", { precision: 15, scale: 0 }).notNull(),
+  paymentMethod: mysqlEnum("paymentMethod", ["bank_transfer", "card", "cash", "check"]).default("bank_transfer"),
+  payeeName: varchar("payeeName", { length: 200 }), // 수취인
+  payeeBank: varchar("payeeBank", { length: 100 }), // 은행명
+  payeeAccount: varchar("payeeAccount", { length: 50 }), // 계좌번호
+  receiptUrls: json("receiptUrls").$type<string[]>(), // 증빙 첨부
+  attachmentUrls: json("attachmentUrls").$type<string[]>(),
+  notes: text("notes"),
+  status: mysqlEnum("status", [
+    "draft",      // 작성중
+    "submitted",  // 상신됨
+    "in_review",  // 결재중
+    "approved",   // 승인됨
+    "rejected",   // 반려됨
+    "paid",       // 지급완료
+  ]).default("draft").notNull(),
+  submittedAt: timestamp("submittedAt"),
+  approvedAt: timestamp("approvedAt"),
+  paidAt: timestamp("paidAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsExpense = typeof opsExpenses.$inferSelect;
+export type InsertOpsExpense = typeof opsExpenses.$inferInsert;
+
+/**
+ * 결재 단계(Approval Steps)
+ * 각 지출결의서/계약서 등에 대한 결재 진행 상태
+ */
+export const opsApprovalSteps = mysqlTable("ops_approval_steps", {
+  id: int("id").autoincrement().primaryKey(),
+  documentType: mysqlEnum("documentType", ["expense", "contract", "estimate", "general"]).notNull(),
+  documentId: int("documentId").notNull(), // 해당 문서 ID
+  stepOrder: int("stepOrder").notNull(),
+  approverId: int("approverId").notNull(), // users.id
+  approverName: varchar("approverName", { length: 100 }).notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "skipped"]).default("pending").notNull(),
+  comment: text("comment"), // 결재 의견
+  actionAt: timestamp("actionAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OpsApprovalStep = typeof opsApprovalSteps.$inferSelect;
+export type InsertOpsApprovalStep = typeof opsApprovalSteps.$inferInsert;
+
+/**
+ * 하도급 업체(Subcontractors)
+ */
+export const opsSubcontractors = mysqlTable("ops_subcontractors", {
+  id: int("id").autoincrement().primaryKey(),
+  companyName: varchar("companyName", { length: 200 }).notNull(),
+  businessNumber: varchar("businessNumber", { length: 20 }), // 사업자번호
+  representativeName: varchar("representativeName", { length: 100 }),
+  contactName: varchar("contactName", { length: 100 }),
+  contactPhone: varchar("contactPhone", { length: 30 }),
+  contactEmail: varchar("contactEmail", { length: 320 }),
+  specialty: varchar("specialty", { length: 200 }), // 전문 분야 (전기, 설비, 목공 등)
+  bankName: varchar("bankName", { length: 100 }),
+  bankAccount: varchar("bankAccount", { length: 50 }),
+  bankHolder: varchar("bankHolder", { length: 100 }),
+  rating: int("rating"), // 평가 점수 1-5
+  notes: text("notes"),
+  isActive: tinyint("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsSubcontractor = typeof opsSubcontractors.$inferSelect;
+export type InsertOpsSubcontractor = typeof opsSubcontractors.$inferInsert;
+
+/**
+ * 하도급 초대(Subcontractor Invites)
+ * 하도급 업체를 프로젝트에 초대하는 토큰
+ */
+export const opsSubInvites = mysqlTable("ops_sub_invites", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  subcontractorId: int("subcontractorId").notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt"),
+  isActive: tinyint("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OpsSubInvite = typeof opsSubInvites.$inferSelect;
+export type InsertOpsSubInvite = typeof opsSubInvites.$inferInsert;
+
+/**
+ * 하도급 견적(Subcontractor Quotes)
+ * 하도급 업체가 제출하는 견적
+ */
+export const opsSubQuotes = mysqlTable("ops_sub_quotes", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  subcontractorId: int("subcontractorId").notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  items: json("items").$type<Array<{
+    category: string;
+    item: string;
+    specification: string;
+    unit: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    remarks?: string;
+  }>>(),
+  totalAmount: decimal("totalAmount", { precision: 15, scale: 0 }),
+  fileUrl: text("fileUrl"), // 엑셀 파일 URL
+  fileKey: varchar("fileKey", { length: 500 }),
+  notes: text("notes"),
+  status: mysqlEnum("status", ["submitted", "reviewing", "approved", "rejected", "revised"]).default("submitted").notNull(),
+  reviewComment: text("reviewComment"),
+  reviewedBy: int("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsSubQuote = typeof opsSubQuotes.$inferSelect;
+export type InsertOpsSubQuote = typeof opsSubQuotes.$inferInsert;
+
+/**
+ * 하도급 작업보고(Subcontractor Work Reports)
+ * 하도급 업체가 제출하는 일일 작업 보고
+ */
+export const opsSubWorkReports = mysqlTable("ops_sub_work_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  subcontractorId: int("subcontractorId").notNull(),
+  reportDate: varchar("reportDate", { length: 20 }).notNull(),
+  workDescription: text("workDescription").notNull(),
+  workersCount: int("workersCount"),
+  materialsUsed: text("materialsUsed"),
+  photoUrls: json("photoUrls").$type<string[]>(),
+  issues: text("issues"),
+  status: mysqlEnum("status", ["submitted", "acknowledged", "approved", "rejected"]).default("submitted").notNull(),
+  approvedBy: int("approvedBy"),
+  approvedAt: timestamp("approvedAt"),
+  approvalComment: text("approvalComment"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OpsSubWorkReport = typeof opsSubWorkReports.$inferSelect;
+export type InsertOpsSubWorkReport = typeof opsSubWorkReports.$inferInsert;
+
+/**
+ * 견적서(Project Estimates)
+ * 엑셀 방식의 견적서 관리
+ */
+export const opsEstimates = mysqlTable("ops_estimates", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  authorId: int("authorId").notNull(),
+  estimateNumber: varchar("estimateNumber", { length: 50 }).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  version: int("version").default(1),
+  items: json("items").$type<Array<{
+    category: string;      // 대분류 (철거공사, 전기공사, 설비공사 등)
+    subcategory: string;   // 중분류
+    item: string;          // 품목
+    specification: string; // 규격
+    unit: string;          // 단위
+    quantity: number;      // 수량
+    materialUnitPrice: number;  // 재료 단가
+    materialAmount: number;     // 재료비
+    laborUnitPrice: number;     // 노무 단가
+    laborAmount: number;        // 노무비
+    totalAmount: number;        // 합계
+    remarks?: string;
+  }>>(),
+  subtotal: decimal("subtotal", { precision: 15, scale: 0 }),
+  overhead: decimal("overhead", { precision: 15, scale: 0 }), // 경비
+  profit: decimal("profit", { precision: 15, scale: 0 }), // 이윤
+  vat: decimal("vat", { precision: 15, scale: 0 }),
+  grandTotal: decimal("grandTotal", { precision: 15, scale: 0 }),
+  fileUrl: text("fileUrl"), // 엑셀 파일 URL
+  fileKey: varchar("fileKey", { length: 500 }),
+  notes: text("notes"),
+  validUntil: varchar("validUntil", { length: 20 }),
+  status: mysqlEnum("status", ["draft", "submitted", "approved", "rejected", "sent"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsEstimate = typeof opsEstimates.$inferSelect;
+export type InsertOpsEstimate = typeof opsEstimates.$inferInsert;
+
+/**
+ * 계약서(Contracts)
+ */
+export const opsContracts = mysqlTable("ops_contracts", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  authorId: int("authorId").notNull(),
+  contractNumber: varchar("contractNumber", { length: 50 }).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  contractType: mysqlEnum("contractType", ["main", "subcontract", "design", "consulting", "maintenance", "other"]).default("main").notNull(),
+  partyA: varchar("partyA", { length: 200 }).notNull(), // 갑 (발주자)
+  partyB: varchar("partyB", { length: 200 }).notNull(), // 을 (수급자)
+  contractAmount: decimal("contractAmount", { precision: 15, scale: 0 }),
+  startDate: varchar("startDate", { length: 20 }),
+  endDate: varchar("endDate", { length: 20 }),
+  paymentTerms: text("paymentTerms"), // 대금 지급 조건
+  specialTerms: text("specialTerms"), // 특약 사항
+  fileUrl: text("fileUrl"), // 계약서 파일 URL
+  fileKey: varchar("fileKey", { length: 500 }),
+  attachmentUrls: json("attachmentUrls").$type<string[]>(),
+  status: mysqlEnum("status", ["draft", "reviewing", "signed", "active", "completed", "terminated"]).default("draft").notNull(),
+  signedAt: timestamp("signedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsContract = typeof opsContracts.$inferSelect;
+export type InsertOpsContract = typeof opsContracts.$inferInsert;
+
+/**
+ * 원가관리 항목(Cost Management Items)
+ * 프로젝트별 실제 비용 추적
+ */
+export const opsCostItems = mysqlTable("ops_cost_items", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  category: mysqlEnum("category", [
+    "material",       // 자재비
+    "labor",          // 인건비
+    "subcontract",    // 하도급비
+    "equipment",      // 장비비
+    "overhead",       // 경비
+    "design",         // 설계비
+    "permit",         // 인허가비
+    "other",          // 기타
+  ]).notNull(),
+  subcategory: varchar("subcategory", { length: 200 }),
+  description: varchar("description", { length: 500 }).notNull(),
+  budgetAmount: decimal("budgetAmount", { precision: 15, scale: 0 }), // 예산
+  actualAmount: decimal("actualAmount", { precision: 15, scale: 0 }), // 실제 지출
+  paidAmount: decimal("paidAmount", { precision: 15, scale: 0 }), // 지급 완료액
+  vendor: varchar("vendor", { length: 200 }), // 거래처
+  expenseId: int("expenseId"), // 관련 지출결의서
+  invoiceDate: varchar("invoiceDate", { length: 20 }),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsCostItem = typeof opsCostItems.$inferSelect;
+export type InsertOpsCostItem = typeof opsCostItems.$inferInsert;
+
+/**
+ * 고객사 초대(Client Invites)
+ * 고객사에게 프로젝트 진행 현황을 공유하는 토큰
+ */
+export const opsClientInvites = mysqlTable("ops_client_invites", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  clientName: varchar("clientName", { length: 200 }).notNull(),
+  clientEmail: varchar("clientEmail", { length: 320 }),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  permissions: json("permissions").$type<{
+    viewSchedule: boolean;
+    viewReports: boolean;
+    viewPhotos: boolean;
+    viewCamera: boolean;
+    viewCost: boolean;
+  }>(),
+  expiresAt: timestamp("expiresAt"),
+  isActive: tinyint("isActive").default(1).notNull(),
+  lastAccessedAt: timestamp("lastAccessedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OpsClientInvite = typeof opsClientInvites.$inferSelect;
+export type InsertOpsClientInvite = typeof opsClientInvites.$inferInsert;
+
+/**
+ * 현장 카메라(Site Cameras)
+ * 실시간 현장 모니터링 카메라 정보
+ */
+export const opsCameras = mysqlTable("ops_cameras", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  location: varchar("location", { length: 300 }), // 설치 위치
+  streamUrl: text("streamUrl"), // 스트리밍 URL
+  thumbnailUrl: text("thumbnailUrl"), // 최근 스냅샷
+  isOnline: tinyint("isOnline").default(0),
+  lastOnlineAt: timestamp("lastOnlineAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsCamera = typeof opsCameras.$inferSelect;
+export type InsertOpsCamera = typeof opsCameras.$inferInsert;

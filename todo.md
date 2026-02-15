@@ -238,3 +238,34 @@
 
 ## 카카오톡 공유 기능
 - [x] 카카오: AI 분석 보고서 카카오톡 공유하기 버튼 추가 (SDK 로드 + 보고서/서베이 링크 공유)
+
+## 직원용 프로젝트 관리 대시보드 (OpsX)
+- [x] 카스웍스 참고 분석 및 기능 설계
+- [x] DB 스키마 설계 (opsProjects, opsSchedules, opsWorkReports, opsMeetingNotes, opsExpenses, opsApprovalLines, opsSubcontractors, opsSubQuotes, opsSubWorkReports, opsEstimates, opsContracts, opsCosts, opsClientInvites, opsCameras)
+- [x] DB 마이그레이션
+- [x] 백엔드 API: 프로젝트 CRUD + 통계
+- [x] 백엔드 API: 공정표 관리 (CRUD + 진행률 업데이트)
+- [x] 백엔드 API: 작업보고서 관리 (CRUD)
+- [x] 백엔드 API: 회의록 관리 (CRUD + AI 요약)
+- [x] 백엔드 API: 지출결의서 + 결재라인 (CRUD + 상신/승인/반려)
+- [x] 백엔드 API: 하도급 관리 (초대, 견적, 작업보고, 승인 + 공개 포털)
+- [x] 백엔드 API: 견적서/계약서 관리 (CRUD + 파일 업로드)
+- [x] 백엔드 API: 공사 원가관리 (CRUD)
+- [x] 백엔드 API: 고객사 초대 링크 (CRUD + 토큰 기반 공개 뷰)
+- [x] 백엔드 API: 현장 카메라 관리 (CRUD)
+- [x] 프론트: 직원 대시보드 레이아웃 (/ops - 사이드바 네비게이션 + 통계 개요)
+- [x] 프론트: 프로젝트 목록 및 프로젝트별 대시보드 (/ops/project/:id - 10개 탭)
+- [x] 프론트: 공정표 UI (간트차트 스타일 타임라인)
+- [x] 프론트: 작업보고서 작성/열람
+- [x] 프론트: 회의록 작성/열람 (AI 요약 기능 포함)
+- [x] 프론트: 지출결의서 작성/상신/결재 UI (상태 표시 + 결재 이력)
+- [x] 프론트: 결재라인 설정/수정 (1차~3차 결재자 설정)
+- [x] 프론트: 하도급 관리 (업체 초대, 견적 업로드, 작업보고, 승인 + 공개 포털)
+- [x] 프론트: 견적서 엑셀 방식 편집/업로드
+- [x] 프론트: 계약서 관리
+- [x] 프론트: 공사 원가관리 대시보드 (예산 대비 실적 비교)
+- [x] 프론트: 고객사 초대 링크 생성/공유 (토큰 기반)
+- [x] 프론트: 실시간 현장 카메라 연동 (IP/웹칠/CCTV 등록 + 스트림 뷰어)
+- [x] 프론트: 하도급 업체 공개 포털 (/ops/sub-portal/:subId - 작업보고 + 견적서 제출)
+- [x] 라우트 등록 및 네비게이션 통합 (/ops, /ops/project/:id, /ops/sub-portal/:subId)
+- [x] Vitest 테스트 작성 (전체 277개 통과)

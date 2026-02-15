@@ -33,6 +33,9 @@ import AIChat from "./pages/AIChat";
 import AIStyle from "./pages/AIStyle";
 import FAQ from "./pages/FAQ";
 import OpsXProcess from "./pages/OpsXProcess";
+import OpsHome from "./pages/ops/OpsHome";
+import OpsProjectDetail from "./pages/ops/OpsProjectDetail";
+import SubPortal from "./pages/ops/SubPortal";
 import Layout from "./components/Layout";
 
 function PublicRouter() {
@@ -71,6 +74,11 @@ function Router() {
     <Switch>
       {/* 전사 서베이 - Layout 없이 독립 페이지 */}
       <Route path="/survey/:token" component={CompanySurvey} />
+      {/* 하도급 업체 포털 - Layout 없이 독립 페이지 */}
+      <Route path="/ops/sub-portal/:subId" component={SubPortal} />
+      {/* OpsX 직원 대시보드 */}
+      <Route path="/ops" component={OpsHome} />
+      <Route path="/ops/project/:id" component={OpsProjectDetail} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />

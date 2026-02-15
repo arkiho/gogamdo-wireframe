@@ -43,6 +43,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { designAutomationRouter } from "./routers/designAutomation";
 import { clientPipelineRouter } from "./routers/clientPipeline";
+import { opsRouter } from "./routers/ops";
 import { sendReviewRequestEmail } from "./email";
 
 // Admin-only procedure
@@ -1577,6 +1578,9 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
 
   // ===== 고객 셀프서비스 파이프라인 (Client Pipeline) =====
   clientPipeline: clientPipelineRouter,
+
+  // ===== 직원용 프로젝트 관리 대시보드 (OpsX) =====
+  ops: opsRouter,
 
   // ===== 팝업 알림 관리 (Popups) =====
   popup: router({
