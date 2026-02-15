@@ -326,6 +326,22 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
+            {/* 뉴스레터 관리 바로가기 */}
+            <Card className="border-emerald-300/30 bg-gradient-to-r from-emerald-50/50 to-transparent cursor-pointer hover:border-emerald-400/50 transition-colors" onClick={() => navigate("/admin/newsletter")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <Mail className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">뉴스레터 관리</h3>
+                    <p className="text-xs text-muted-foreground">구독자 관리, 캠페인 생성 및 발송</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
             {/* CRM 바로가기 */}
             <Card className="border-blue-300/30 bg-gradient-to-r from-blue-50/50 to-transparent cursor-pointer hover:border-blue-400/50 transition-colors" onClick={() => navigate("/admin/crm")}>
               <CardContent className="py-6 flex items-center justify-between">

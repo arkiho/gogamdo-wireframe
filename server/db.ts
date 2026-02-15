@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1116,4 +1116,151 @@ export async function getApprovedReviewsForPortfolio(portfolioId: number) {
       eq(portfolioReviews.status, "approved")
     ))
     .orderBy(desc(portfolioReviews.approvedAt));
+}
+
+// ==================== 인사이트 아티클 ====================
+
+export async function createInsightArticle(data: InsertInsightArticle) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(insightArticles).values(data);
+  return result[0].insertId;
+}
+
+export async function getInsightArticleBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(insightArticles).where(eq(insightArticles.slug, slug)).limit(1);
+  return result[0] || null;
+}
+
+export async function getInsightArticleById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(insightArticles).where(eq(insightArticles.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function getPublishedArticles(category?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(insightArticles.status, "published")];
+  if (category && category !== "all") {
+    conditions.push(eq(insightArticles.category, category as any));
+  }
+  return db.select().from(insightArticles)
+    .where(and(...conditions))
+    .orderBy(desc(insightArticles.publishedAt));
+}
+
+export async function getAllArticles() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(insightArticles).orderBy(desc(insightArticles.createdAt));
+}
+
+export async function updateInsightArticle(id: number, data: Partial<InsertInsightArticle>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(insightArticles).set(data).where(eq(insightArticles.id, id));
+}
+
+export async function incrementArticleViewCount(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(insightArticles)
+    .set({ viewCount: sql`${insightArticles.viewCount} + 1` })
+    .where(eq(insightArticles.id, id));
+}
+
+export async function deleteInsightArticle(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(insightArticles).where(eq(insightArticles.id, id));
+}
+
+// ==================== 뉴스레터 구독자 ====================
+
+export async function createNewsletterSubscriber(data: InsertNewsletterSubscriber) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(newsletterSubscribers).values(data);
+  return result[0].insertId;
+}
+
+export async function getSubscriberByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(newsletterSubscribers).where(eq(newsletterSubscribers.email, email)).limit(1);
+  return result[0] || null;
+}
+
+export async function getSubscriberByToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(newsletterSubscribers).where(eq(newsletterSubscribers.unsubscribeToken, token)).limit(1);
+  return result[0] || null;
+}
+
+export async function getActiveSubscribers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(newsletterSubscribers)
+    .where(eq(newsletterSubscribers.status, "active"))
+    .orderBy(desc(newsletterSubscribers.subscribedAt));
+}
+
+export async function getAllNewsletterSubscribers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(newsletterSubscribers).orderBy(desc(newsletterSubscribers.subscribedAt));
+}
+
+export async function updateNewsletterSubscriber(id: number, data: Partial<InsertNewsletterSubscriber>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(newsletterSubscribers).set(data).where(eq(newsletterSubscribers.id, id));
+}
+
+export async function unsubscribeByToken(token: string) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(newsletterSubscribers)
+    .set({ status: "unsubscribed", unsubscribedAt: new Date() })
+    .where(and(eq(newsletterSubscribers.unsubscribeToken, token), eq(newsletterSubscribers.status, "active")));
+  return (result[0] as any).affectedRows > 0;
+}
+
+// ==================== 뉴스레터 캠페인 ====================
+
+export async function createNewsletterCampaign(data: InsertNewsletterCampaign) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(newsletterCampaigns).values(data);
+  return result[0].insertId;
+}
+
+export async function getNewsletterCampaign(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(newsletterCampaigns).where(eq(newsletterCampaigns.id, id)).limit(1);
+  return result[0] || null;
+}
+
+export async function getAllCampaigns() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(newsletterCampaigns).orderBy(desc(newsletterCampaigns.createdAt));
+}
+
+export async function updateCampaign(id: number, data: Partial<InsertNewsletterCampaign>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(newsletterCampaigns).set(data).where(eq(newsletterCampaigns.id, id));
+}
+
+export async function deleteCampaign(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
 }

@@ -791,3 +791,99 @@ export const portfolioReviews = mysqlTable("portfolio_reviews", {
 
 export type PortfolioReview = typeof portfolioReviews.$inferSelect;
 export type InsertPortfolioReview = typeof portfolioReviews.$inferInsert;
+
+/**
+ * 인사이트 아티클(Insight Articles)
+ * 블로그/인사이트 콘텐츠 관리
+ */
+export const insightArticles = mysqlTable("insight_articles", {
+  id: int("id").autoincrement().primaryKey(),
+  slug: varchar("slug", { length: 200 }).notNull().unique(),
+  title: varchar("title", { length: 500 }).notNull(),
+  subtitle: varchar("subtitle", { length: 500 }),
+  category: mysqlEnum("category", ["trend", "cost_guide", "case_study", "tip", "news"]).notNull(),
+  
+  // 콘텐츠
+  excerpt: text("excerpt").notNull(), // 요약문
+  content: text("content").notNull(), // 마크다운 본문
+  coverImageUrl: text("coverImageUrl"), // 커버 이미지
+  
+  // 메타
+  author: varchar("author", { length: 100 }).default("고감도 편집팀"),
+  readTimeMinutes: int("readTimeMinutes").default(5),
+  tags: json("tags").$type<string[]>(),
+  
+  // SEO
+  metaTitle: varchar("metaTitle", { length: 200 }),
+  metaDescription: text("metaDescription"),
+  
+  // 상태
+  featured: boolean("featured").default(false),
+  status: mysqlEnum("status", ["draft", "published", "archived"]).default("draft").notNull(),
+  publishedAt: timestamp("publishedAt"),
+  
+  // 통계
+  viewCount: int("viewCount").default(0),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type InsightArticle = typeof insightArticles.$inferSelect;
+export type InsertInsightArticle = typeof insightArticles.$inferInsert;
+
+/**
+ * 뉴스레터 구독자(Newsletter Subscribers)
+ */
+export const newsletterSubscribers = mysqlTable("newsletter_subscribers", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  name: varchar("name", { length: 100 }),
+  company: varchar("company", { length: 200 }),
+  
+  // 구독 관리
+  status: mysqlEnum("status", ["active", "unsubscribed", "bounced"]).default("active").notNull(),
+  unsubscribeToken: varchar("unsubscribeToken", { length: 64 }).notNull().unique(),
+  
+  // 출처
+  source: mysqlEnum("source", ["website", "contact_form", "manual", "lead_magnet"]).default("website"),
+  
+  subscribedAt: timestamp("subscribedAt").defaultNow().notNull(),
+  unsubscribedAt: timestamp("unsubscribedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
+export type InsertNewsletterSubscriber = typeof newsletterSubscribers.$inferInsert;
+
+/**
+ * 뉴스레터 캠페인(Newsletter Campaigns)
+ * 발송 이력 관리
+ */
+export const newsletterCampaigns = mysqlTable("newsletter_campaigns", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 500 }).notNull(),
+  subject: varchar("subject", { length: 500 }).notNull(), // 이메일 제목
+  previewText: varchar("previewText", { length: 300 }), // 미리보기 텍스트
+  
+  // 콘텐츠
+  articleIds: json("articleIds").$type<number[]>(), // 포함할 아티클 ID 목록
+  customContent: text("customContent"), // 추가 커스텀 콘텐츠 (마크다운)
+  htmlContent: text("htmlContent"), // 생성된 HTML 이메일
+  
+  // 발송 정보
+  status: mysqlEnum("status", ["draft", "scheduled", "sending", "sent", "failed"]).default("draft").notNull(),
+  scheduledAt: timestamp("scheduledAt"),
+  sentAt: timestamp("sentAt"),
+  
+  // 통계
+  recipientCount: int("recipientCount").default(0),
+  openCount: int("openCount").default(0),
+  clickCount: int("clickCount").default(0),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type NewsletterCampaign = typeof newsletterCampaigns.$inferSelect;
+export type InsertNewsletterCampaign = typeof newsletterCampaigns.$inferInsert;

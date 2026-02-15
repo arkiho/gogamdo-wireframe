@@ -13,6 +13,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import PortfolioDbDetail from "./pages/PortfolioDbDetail";
 import Estimator from "./pages/Estimator";
 import Insights from "./pages/Insights";
+import InsightDetail from "./pages/InsightDetail";
 import Contact from "./pages/Contact";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminPortfolioDetail from "./pages/AdminPortfolioDetail";
@@ -20,6 +21,8 @@ import AdminDDIA from "./pages/AdminDDIA";
 import AdminCRM from "./pages/AdminCRM";
 import AdminDesignAuto from "./pages/AdminDesignAuto";
 import AdminReviews from "./pages/AdminReviews";
+import AdminNewsletter from "./pages/AdminNewsletter";
+import Unsubscribe from "./pages/Unsubscribe";
 import ReviewWrite from "./pages/ReviewWrite";
 import Resources from "./pages/Resources";
 import AIChat from "./pages/AIChat";
@@ -41,6 +44,8 @@ function PublicRouter() {
         <Route path="/portfolio/:slug" component={ProjectDetail} />
         <Route path="/estimator" component={Estimator} />
         <Route path="/insights" component={Insights} />
+        <Route path="/insights/:slug" component={InsightDetail} />
+        <Route path="/unsubscribe/:token" component={Unsubscribe} />
         <Route path="/resources" component={Resources} />
         <Route path="/ai-chat" component={AIChat} />
         <Route path="/ai-style" component={AIStyle} />
@@ -63,6 +68,7 @@ function Router() {
       <Route path="/admin/crm" component={AdminCRM} />
       <Route path="/admin/design-auto" component={AdminDesignAuto} />
       <Route path="/admin/reviews" component={AdminReviews} />
+      <Route path="/admin/newsletter" component={AdminNewsletter} />
       <Route component={PublicRouter} />
     </Switch>
   );

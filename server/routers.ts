@@ -28,6 +28,9 @@ import {
   createPopup, listPopups, getActivePopups, updatePopup, deletePopup,
   createNotification, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification,
   createPortfolioReview, listPortfolioReviews, getPortfolioReview, getPortfolioReviewByToken, updatePortfolioReview, deletePortfolioReview, getApprovedReviewsForPortfolio,
+  createInsightArticle, getInsightArticleBySlug, getInsightArticleById, getPublishedArticles, getAllArticles, updateInsightArticle, incrementArticleViewCount, deleteInsightArticle,
+  createNewsletterSubscriber, getSubscriberByEmail, getSubscriberByToken, getActiveSubscribers, getAllNewsletterSubscribers, updateNewsletterSubscriber, unsubscribeByToken,
+  createNewsletterCampaign, getNewsletterCampaign, getAllCampaigns, updateCampaign, deleteCampaign,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
@@ -1701,6 +1704,261 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         return deleteNotification(input.id);
       }),
   }),
+
+  // ===== 인사이트 아티클 =====
+  insight: router({
+    // 공개: 발행된 아티클 목록
+    published: publicProcedure
+      .input(z.object({ category: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        return getPublishedArticles(input?.category);
+      }),
+    // 공개: 슬러그로 아티클 조회 + 조회수 증가
+    bySlug: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        const article = await getInsightArticleBySlug(input.slug);
+        if (!article) throw new TRPCError({ code: "NOT_FOUND", message: "아티클을 찾을 수 없습니다." });
+        await incrementArticleViewCount(article.id);
+        return article;
+      }),
+    // 관리자: 전체 아티클 목록
+    all: adminProcedure.query(async () => {
+      return getAllArticles();
+    }),
+    // 관리자: 아티클 생성
+    create: adminProcedure
+      .input(z.object({
+        slug: z.string(),
+        title: z.string(),
+        subtitle: z.string().optional(),
+        category: z.enum(["trend", "cost_guide", "case_study", "tip", "news"]),
+        excerpt: z.string(),
+        content: z.string(),
+        coverImageUrl: z.string().optional(),
+        author: z.string().optional(),
+        readTimeMinutes: z.number().optional(),
+        tags: z.array(z.string()).optional(),
+        featured: z.boolean().optional(),
+        status: z.enum(["draft", "published", "archived"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const data: any = { ...input };
+        if (input.status === "published") data.publishedAt = new Date();
+        return createInsightArticle(data);
+      }),
+    // 관리자: 아티클 수정
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        slug: z.string().optional(),
+        title: z.string().optional(),
+        subtitle: z.string().optional(),
+        category: z.enum(["trend", "cost_guide", "case_study", "tip", "news"]).optional(),
+        excerpt: z.string().optional(),
+        content: z.string().optional(),
+        coverImageUrl: z.string().optional(),
+        author: z.string().optional(),
+        readTimeMinutes: z.number().optional(),
+        tags: z.array(z.string()).optional(),
+        featured: z.boolean().optional(),
+        status: z.enum(["draft", "published", "archived"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        if (data.status === "published") (data as any).publishedAt = new Date();
+        return updateInsightArticle(id, data as any);
+      }),
+    // 관리자: 아티클 삭제
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteInsightArticle(input.id);
+      }),
+  }),
+
+  // ===== 뉴스레터 구독 =====
+  newsletter: router({
+    // 공개: 구독 신청
+    subscribe: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        name: z.string().optional(),
+        company: z.string().optional(),
+        source: z.enum(["website", "contact_form", "manual", "lead_magnet"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await getSubscriberByEmail(input.email);
+        if (existing) {
+          if (existing.status === "active") {
+            return { success: true, message: "이미 구독 중입니다." };
+          }
+          // 재구독
+          await updateNewsletterSubscriber(existing.id, { status: "active", unsubscribedAt: null as any });
+          return { success: true, message: "구독이 재활성화되었습니다." };
+        }
+        const crypto = await import("crypto");
+        const token = crypto.randomBytes(32).toString("hex");
+        await createNewsletterSubscriber({
+          ...input,
+          unsubscribeToken: token,
+        });
+        await notifyOwner({ title: "새 뉴스레터 구독자", content: `${input.email}${input.name ? ` (${input.name})` : ""}${input.company ? ` - ${input.company}` : ""}` });
+        return { success: true, message: "구독이 완료되었습니다." };
+      }),
+    // 공개: 구독 해지
+    unsubscribe: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ input }) => {
+        const result = await unsubscribeByToken(input.token);
+        if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "유효하지 않은 구독 해지 링크입니다." });
+        return { success: true, message: "구독이 해지되었습니다." };
+      }),
+    // 관리자: 구독자 목록
+    subscribers: adminProcedure.query(async () => {
+      return getAllNewsletterSubscribers();
+    }),
+    // 관리자: 활성 구독자 수
+    activeCount: adminProcedure.query(async () => {
+      const active = await getActiveSubscribers();
+      return { count: active.length };
+    }),
+    // 관리자: 캠페인 목록
+    campaigns: adminProcedure.query(async () => {
+      return getAllCampaigns();
+    }),
+    // 관리자: 캠페인 생성
+    createCampaign: adminProcedure
+      .input(z.object({
+        title: z.string(),
+        subject: z.string(),
+        previewText: z.string().optional(),
+        articleIds: z.array(z.number()).optional(),
+        customContent: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return createNewsletterCampaign(input);
+      }),
+    // 관리자: 캠페인 수정
+    updateCampaign: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        subject: z.string().optional(),
+        previewText: z.string().optional(),
+        articleIds: z.array(z.number()).optional(),
+        customContent: z.string().optional(),
+        htmlContent: z.string().optional(),
+        status: z.enum(["draft", "scheduled", "sending", "sent", "failed"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updateCampaign(id, data as any);
+      }),
+    // 관리자: 캠페인 발송
+    sendCampaign: adminProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        origin: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const campaign = await getNewsletterCampaign(input.campaignId);
+        if (!campaign) throw new TRPCError({ code: "NOT_FOUND" });
+        const activeSubscribers = await getActiveSubscribers();
+        if (activeSubscribers.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "활성 구독자가 없습니다." });
+
+        // 아티클 정보 가져오기
+        let articleContents: Array<{ title: string; excerpt: string; slug: string; coverImageUrl?: string | null }> = [];
+        if (campaign.articleIds && campaign.articleIds.length > 0) {
+          for (const aid of campaign.articleIds) {
+            const article = await getInsightArticleById(aid);
+            if (article) articleContents.push({ title: article.title, excerpt: article.excerpt, slug: article.slug, coverImageUrl: article.coverImageUrl });
+          }
+        }
+
+        // HTML 이메일 생성
+        const htmlContent = generateNewsletterHtml({
+          subject: campaign.subject,
+          previewText: campaign.previewText || "",
+          articles: articleContents,
+          customContent: campaign.customContent || "",
+          origin: input.origin,
+        });
+
+        // 캠페인 상태 업데이트
+        await updateCampaign(input.campaignId, {
+          status: "sending",
+          htmlContent,
+          recipientCount: activeSubscribers.length,
+        });
+
+        // 발송 (비동기 - 실패해도 에러 안 던짐)
+        let sentCount = 0;
+        for (const sub of activeSubscribers) {
+          try {
+            await notifyOwner({
+              title: `뉴스레터: ${campaign.subject}`,
+              content: `수신자: ${sub.email} | 캠페인: ${campaign.title}`,
+            });
+            sentCount++;
+          } catch (e) {
+            console.error(`Newsletter send failed for ${sub.email}:`, e);
+          }
+        }
+
+        await updateCampaign(input.campaignId, {
+          status: "sent",
+          sentAt: new Date(),
+        });
+
+        return { success: true, sentCount, totalRecipients: activeSubscribers.length };
+      }),
+    // 관리자: 캠페인 삭제
+    deleteCampaign: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteCampaign(input.id);
+      }),
+  }),
 });
+
+// 뉴스레터 HTML 생성 헬퍼
+function generateNewsletterHtml(opts: {
+  subject: string;
+  previewText: string;
+  articles: Array<{ title: string; excerpt: string; slug: string; coverImageUrl?: string | null }>;
+  customContent: string;
+  origin: string;
+}) {
+  const articleCards = opts.articles.map(a => `
+    <tr><td style="padding:20px 0;border-bottom:1px solid #eee;">
+      <h3 style="margin:0 0 8px;font-size:18px;color:#1a1a1a;"><a href="${opts.origin}/insights/${a.slug}" style="color:#1a1a1a;text-decoration:none;">${a.title}</a></h3>
+      <p style="margin:0;color:#666;font-size:14px;line-height:1.6;">${a.excerpt}</p>
+      <a href="${opts.origin}/insights/${a.slug}" style="display:inline-block;margin-top:12px;color:#b8860b;font-size:13px;font-weight:600;text-decoration:none;">자세히 읽기 →</a>
+    </td></tr>
+  `).join("");
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#fff;">
+  <div style="padding:32px;background:#1a1a1a;text-align:center;">
+    <h1 style="margin:0;color:#b8860b;font-size:24px;letter-spacing:2px;">고감도</h1>
+    <p style="margin:8px 0 0;color:#999;font-size:12px;letter-spacing:1px;">GOGAMDO INTERIOR</p>
+  </div>
+  <div style="padding:32px;">
+    <h2 style="margin:0 0 24px;font-size:22px;color:#1a1a1a;">${opts.subject}</h2>
+    ${opts.customContent ? `<div style="margin-bottom:24px;color:#333;font-size:15px;line-height:1.7;">${opts.customContent}</div>` : ""}
+    ${articleCards ? `<table width="100%" cellpadding="0" cellspacing="0">${articleCards}</table>` : ""}
+    <div style="margin-top:32px;text-align:center;">
+      <a href="${opts.origin}/insights" style="display:inline-block;padding:12px 32px;background:#b8860b;color:#fff;text-decoration:none;font-weight:600;font-size:14px;">더 많은 인사이트 보기</a>
+    </div>
+  </div>
+  <div style="padding:24px 32px;background:#f5f5f0;text-align:center;">
+    <p style="margin:0;color:#999;font-size:12px;">© 2026 (주)고감도. All rights reserved.</p>
+    <p style="margin:8px 0 0;color:#999;font-size:11px;">이 메일은 고감도 뉴스레터를 구독하신 분께 발송됩니다.</p>
+  </div>
+</div>
+</body></html>`;
+}
 
 export type AppRouter = typeof appRouter;
