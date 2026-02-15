@@ -15,7 +15,7 @@ interface SEOProps {
 }
 
 const BASE_URL = "https://kokamdo.co.kr";
-const DEFAULT_TITLE = "고감도 KOKAMDO | 사무공간 인테리어 전문기업";
+const DEFAULT_TITLE = "고감도 KOKAMDO | 사무실 인테리어 설계·시공 전문기업 - AI 견적";
 const DEFAULT_DESC = "1991년 창업, 35년 경력의 여성기업 인증 사무공간 인테리어 전문기업 고감도. 대한민국 면적만큼의 공간을 설계하고 시공한 경험, 2,800건 이상 프로젝트 완료. AI 예상 견적 서비스 제공.";
 
 function setMeta(property: string, content: string) {

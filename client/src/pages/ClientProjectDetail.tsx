@@ -23,6 +23,7 @@ import {
   Loader2, CheckCircle2, Clock, Send, Link2, Copy, Users, Star,
   ChevronRight, Building2, Mail, Phone, MapPin,
 } from "lucide-react";
+import KakaoShareButton from "@/components/KakaoShareButton";
 
 const STATUS_STEP: Record<string, number> = {
   created: 1, floor_plan_uploaded: 2, survey_completed: 3,
@@ -661,12 +662,26 @@ export default function ClientProjectDetail() {
                           <div className="prose prose-sm max-w-none">
                             <Streamdown>{report.content}</Streamdown>
                           </div>
-                          {report.emailSentAt && (
-                            <div className="mt-4 flex items-center gap-2 text-xs text-green-600">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              {report.emailSentTo}로 발송됨
-                            </div>
-                          )}
+                          <div className="mt-4 flex items-center gap-3 flex-wrap">
+                            <KakaoShareButton
+                              type="report"
+                              reportParams={{
+                                title: `[${p.companyName}] ${report.title}`,
+                                description: report.type === "analysis"
+                                  ? `${p.companyName}의 업무환경 AI 분석 보고서입니다. 고감도 인테리어 전문 컨설팅.`
+                                  : `${p.companyName}을 위한 맞춤형 인테리어 제안서입니다. 고감도 인테리어 전문 컨설팅.`,
+                                pageUrl: window.location.href,
+                                buttonTitle: "보고서 확인하기",
+                              }}
+                              label="카카오톡으로 공유"
+                            />
+                            {report.emailSentAt && (
+                              <div className="flex items-center gap-2 text-xs text-green-600">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                {report.emailSentTo}로 발송됨
+                              </div>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -726,18 +741,30 @@ export default function ClientProjectDetail() {
                             {cs.expiresAt && ` · 만료: ${new Date(cs.expiresAt).toLocaleDateString("ko-KR")}`}
                           </p>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1"
-                          onClick={() => {
-                            const url = `${window.location.origin}/survey/${cs.token}`;
-                            navigator.clipboard.writeText(url);
-                            toast.success("설문 링크가 복사되었습니다!");
-                          }}
-                        >
-                          <Copy className="w-3 h-3" /> 링크 복사
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => {
+                              const url = `${window.location.origin}/survey/${cs.token}`;
+                              navigator.clipboard.writeText(url);
+                              toast.success("설문 링크가 복사되었습니다!");
+                            }}
+                          >
+                            <Copy className="w-3 h-3" /> 링크 복사
+                          </Button>
+                          <KakaoShareButton
+                            type="survey"
+                            surveyParams={{
+                              title: cs.title || "업무환경 설문조사",
+                              description: `${p.companyName}의 업무환경 개선을 위한 설문조사에 참여해주세요. 익명으로 응답됩니다.`,
+                              surveyUrl: `${window.location.origin}/survey/${cs.token}`,
+                              buttonTitle: "설문 참여하기",
+                            }}
+                            label="카카오톡 공유"
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
