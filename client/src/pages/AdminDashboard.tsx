@@ -294,6 +294,22 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
+            {/* 설계 자동화 바로가기 */}
+            <Card className="border-emerald-300/30 bg-gradient-to-r from-emerald-50/50 to-transparent cursor-pointer hover:border-emerald-400/50 transition-colors" onClick={() => navigate("/admin/design-auto")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <Wand2 className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">설계 자동화</h3>
+                    <p className="text-xs text-muted-foreground">도면 → RFP → 레이아웃 → 렌더링 → 제안서 → 견적서 자동 생성</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
             {/* CRM 바로가기 */}
             <Card className="border-blue-300/30 bg-gradient-to-r from-blue-50/50 to-transparent cursor-pointer hover:border-blue-400/50 transition-colors" onClick={() => navigate("/admin/crm")}>
               <CardContent className="py-6 flex items-center justify-between">

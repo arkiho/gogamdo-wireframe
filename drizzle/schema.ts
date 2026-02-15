@@ -455,3 +455,299 @@ export const notifications = mysqlTable("notifications", {
 
 export type NotificationRow = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+/**
+ * ============================================================
+ * 설계 자동화 시스템 (Design Automation Pipeline)
+ * ============================================================
+ */
+
+/**
+ * 설계 자동화: 프로젝트(Design Projects)
+ * 도면 업로드 → RFP → 레이아웃 → 렌더링 → 제안서 → 견적서 전체 파이프라인 관리
+ */
+export const designProjects = mysqlTable("design_projects", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 300 }).notNull(),
+  clientId: int("clientId"),
+  crmDealId: int("crmDealId"),
+  companyName: varchar("companyName", { length: 200 }),
+  contactName: varchar("contactName", { length: 100 }),
+  contactEmail: varchar("contactEmail", { length: 320 }),
+  contactPhone: varchar("contactPhone", { length: 30 }),
+  stage: mysqlEnum("stage", [
+    "floorplan", "rfp", "analysis", "layout", "rendering", "proposal", "estimate", "completed"
+  ]).default("floorplan").notNull(),
+  status: mysqlEnum("status", ["active", "paused", "completed", "archived"]).default("active").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DesignProject = typeof designProjects.$inferSelect;
+export type InsertDesignProject = typeof designProjects.$inferInsert;
+
+/**
+ * 설계 자동화: 도면(Floor Plans)
+ * 업로드된 PDF/이미지 도면 및 AI 분석 결과
+ */
+export const floorPlans = mysqlTable("floor_plans", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: varchar("fileKey", { length: 500 }),
+  fileName: varchar("fileName", { length: 300 }),
+  fileType: varchar("fileType", { length: 50 }),
+  fileSize: int("fileSize"),
+  totalArea: varchar("totalArea", { length: 50 }),
+  floors: int("floors"),
+  roomCount: int("roomCount"),
+  aiAnalysis: json("aiAnalysis"),
+  analysisStatus: mysqlEnum("analysisStatus", ["pending", "analyzing", "done", "error"]).default("pending").notNull(),
+  analysisError: text("analysisError"),
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FloorPlan = typeof floorPlans.$inferSelect;
+export type InsertFloorPlan = typeof floorPlans.$inferInsert;
+
+/**
+ * 설계 자동화: RFP 데이터(RFP Data)
+ * 고객 요구사항 수집 결과 (직접 입력 / AI 생성 / 챗봇 수집)
+ */
+export const rfpData = mysqlTable("rfp_data", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  collectionMethod: mysqlEnum("collectionMethod", ["form", "ai_generator", "chatbot"]).default("form").notNull(),
+  
+  // 기본 정보
+  companyName: varchar("companyName", { length: 200 }),
+  industry: varchar("industry", { length: 100 }),
+  foundedYear: int("foundedYear"),
+  projectType: mysqlEnum("projectType", ["new_office", "relocation", "renovation", "expansion"]),
+  currentAddress: text("currentAddress"),
+  newAddress: text("newAddress"),
+  
+  // 공간 요구사항
+  totalArea: varchar("totalArea", { length: 50 }),
+  currentHeadcount: int("currentHeadcount"),
+  plannedHeadcount1y: int("plannedHeadcount1y"),
+  plannedHeadcount3y: int("plannedHeadcount3y"),
+  departments: json("departments").$type<Array<{name: string; headcount: number; characteristics?: string}>>(),
+  spaceRequirements: json("spaceRequirements").$type<{
+    workstationType?: string;
+    executiveRooms?: number;
+    meetingRoomsSmall?: number;
+    meetingRoomsMedium?: number;
+    meetingRoomsLarge?: number;
+    conferenceRoom?: boolean;
+    lounge?: boolean;
+    cafeteria?: boolean;
+    phoneBooth?: number;
+    focusRoom?: number;
+    serverRoom?: boolean;
+    storageRoom?: boolean;
+    reception?: boolean;
+    nursingRoom?: boolean;
+    prayerRoom?: boolean;
+    otherSpaces?: string;
+  }>(),
+  
+  // 디자인 선호도
+  preferredStyle: varchar("preferredStyle", { length: 100 }),
+  brandColors: json("brandColors").$type<string[]>(),
+  brandGuidelineUrl: text("brandGuidelineUrl"),
+  referenceImages: json("referenceImages").$type<string[]>(),
+  referenceUrls: json("referenceUrls").$type<string[]>(),
+  preferredMaterials: json("preferredMaterials").$type<string[]>(),
+  lightingPreference: varchar("lightingPreference", { length: 200 }),
+  
+  // 기능 요구사항
+  avItRequirements: text("avItRequirements"),
+  networkInfra: text("networkInfra"),
+  securitySystem: text("securitySystem"),
+  acousticPrivacy: varchar("acousticPrivacy", { length: 100 }),
+  hvacRequirements: text("hvacRequirements"),
+  esgRequirements: text("esgRequirements"),
+  
+  // 예산 및 일정
+  budgetRange: varchar("budgetRange", { length: 100 }),
+  budgetInclDesign: mysqlEnum("budgetInclDesign", ["yes", "no", "separate"]),
+  priorityOrder: varchar("priorityOrder", { length: 200 }),
+  desiredStartDate: timestamp("desiredStartDate"),
+  desiredEndDate: timestamp("desiredEndDate"),
+  occupiedDuringWork: mysqlEnum("occupiedDuringWork", ["yes", "no", "partial"]),
+  
+  // 기타
+  buildingRestrictions: text("buildingRestrictions"),
+  reuseExistingFurniture: mysqlEnum("reuseExistingFurniture", ["yes", "no", "partial"]),
+  specialRequests: text("specialRequests"),
+  competitorBenchmarks: text("competitorBenchmarks"),
+  
+  // AI 요약
+  aiSummary: text("aiSummary"),
+  completionRate: int("completionRate").default(0),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type RfpDataRow = typeof rfpData.$inferSelect;
+export type InsertRfpData = typeof rfpData.$inferInsert;
+
+/**
+ * 설계 자동화: AI 레이아웃(Layout Options)
+ * AI가 생성한 공간 배치 옵션들
+ */
+export const layoutOptions = mysqlTable("layout_options", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  optionName: varchar("optionName", { length: 100 }).notNull(),
+  concept: text("concept"),
+  layoutImageUrl: text("layoutImageUrl"),
+  layoutData: json("layoutData"),
+  spaceAllocation: json("spaceAllocation").$type<Array<{
+    zone: string;
+    area: string;
+    percentage: number;
+    description: string;
+  }>>(),
+  pros: json("pros").$type<string[]>(),
+  cons: json("cons").$type<string[]>(),
+  aiScore: int("aiScore"),
+  isSelected: mysqlEnum("isSelected", ["yes", "no"]).default("no").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type LayoutOption = typeof layoutOptions.$inferSelect;
+export type InsertLayoutOption = typeof layoutOptions.$inferInsert;
+
+/**
+ * 설계 자동화: AI 렌더링(Renderings)
+ * 주요 공간별 포토리얼리스틱 렌더링 이미지
+ */
+export const renderings = mysqlTable("renderings", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  layoutId: int("layoutId"),
+  spaceType: varchar("spaceType", { length: 100 }).notNull(),
+  spaceName: varchar("spaceName", { length: 200 }),
+  prompt: text("prompt"),
+  imageUrl: text("imageUrl"),
+  thumbnailUrl: text("thumbnailUrl"),
+  style: varchar("style", { length: 100 }),
+  status: mysqlEnum("status", ["pending", "generating", "done", "error"]).default("pending").notNull(),
+  error: text("error"),
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Rendering = typeof renderings.$inferSelect;
+export type InsertRendering = typeof renderings.$inferInsert;
+
+/**
+ * 설계 자동화: 투어 영상(Tour Videos)
+ * 렌더링 기반 워크스루 영상
+ */
+export const tourVideos = mysqlTable("tour_videos", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  title: varchar("title", { length: 300 }),
+  videoUrl: text("videoUrl"),
+  thumbnailUrl: text("thumbnailUrl"),
+  duration: int("duration"),
+  renderingIds: json("renderingIds").$type<number[]>(),
+  status: mysqlEnum("status", ["pending", "generating", "done", "error"]).default("pending").notNull(),
+  error: text("error"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TourVideo = typeof tourVideos.$inferSelect;
+export type InsertTourVideo = typeof tourVideos.$inferInsert;
+
+/**
+ * 설계 자동화: 제안서(Proposals)
+ * AI가 생성한 프로젝트 제안서
+ */
+export const proposals = mysqlTable("proposals", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  version: int("version").default(1),
+  title: varchar("title", { length: 300 }).notNull(),
+  
+  // 제안서 구성 요소
+  clientAnalysis: json("clientAnalysis"),
+  designConcept: text("designConcept"),
+  spaceProgram: json("spaceProgram"),
+  materialPlan: json("materialPlan"),
+  furniturePlan: json("furniturePlan"),
+  projectTimeline: json("projectTimeline"),
+  companyIntro: text("companyIntro"),
+  differentiators: json("differentiators").$type<string[]>(),
+  
+  // 생성된 파일
+  pdfUrl: text("pdfUrl"),
+  pptUrl: text("pptUrl"),
+  
+  status: mysqlEnum("status", ["draft", "generating", "review", "final"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Proposal = typeof proposals.$inferSelect;
+export type InsertProposal = typeof proposals.$inferInsert;
+
+/**
+ * 설계 자동화: 견적서(Detailed Estimates)
+ * 공종별 상세 견적 산출
+ */
+export const detailedEstimates = mysqlTable("detailed_estimates", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  proposalId: int("proposalId"),
+  version: int("version").default(1),
+  title: varchar("title", { length: 300 }).notNull(),
+  
+  // 견적 항목
+  items: json("items").$type<Array<{
+    category: string;
+    subcategory: string;
+    item: string;
+    specification: string;
+    unit: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    remarks?: string;
+  }>>(),
+  
+  // 합계
+  subtotal: int("subtotal"),
+  vat: int("vat"),
+  totalAmount: int("totalAmount"),
+  
+  // 옵션별 견적
+  optionItems: json("optionItems").$type<Array<{
+    name: string;
+    description: string;
+    amount: number;
+  }>>(),
+  
+  // 생성된 파일
+  pdfUrl: text("pdfUrl"),
+  excelUrl: text("excelUrl"),
+  
+  notes: text("notes"),
+  validUntil: timestamp("validUntil"),
+  status: mysqlEnum("status", ["draft", "generating", "review", "final", "sent"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DetailedEstimate = typeof detailedEstimates.$inferSelect;
+export type InsertDetailedEstimate = typeof detailedEstimates.$inferInsert;

@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminPortfolioDetail from "./pages/AdminPortfolioDetail";
 import AdminDDIA from "./pages/AdminDDIA";
 import AdminCRM from "./pages/AdminCRM";
+import AdminDesignAuto from "./pages/AdminDesignAuto";
 import Resources from "./pages/Resources";
 import AIChat from "./pages/AIChat";
 import AIStyle from "./pages/AIStyle";
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />
       <Route path="/admin/ddia" component={AdminDDIA} />
       <Route path="/admin/crm" component={AdminCRM} />
+      <Route path="/admin/design-auto" component={AdminDesignAuto} />
       <Route component={PublicRouter} />
     </Switch>
   );

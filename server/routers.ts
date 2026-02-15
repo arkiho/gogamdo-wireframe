@@ -34,6 +34,7 @@ import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { designAutomationRouter } from "./routers/designAutomation";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -1438,6 +1439,9 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         return { id };
       }),
   }),
+
+  // ===== 설계 자동화 시스템 (Design Automation) =====
+  designAuto: designAutomationRouter,
 
   // ===== 팝업 알림 관리 (Popups) =====
   popup: router({

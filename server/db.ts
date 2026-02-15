@@ -821,3 +821,237 @@ export async function deleteNotification(id: number) {
   await db.delete(notifications).where(eq(notifications.id, id));
   return { success: true };
 }
+
+// ============================================================
+// 설계 자동화 시스템 (Design Automation Pipeline)
+// ============================================================
+import {
+  designProjects, floorPlans, rfpData, layoutOptions, renderings, tourVideos, proposals, detailedEstimates,
+  type InsertDesignProject, type InsertFloorPlan, type InsertRfpData, type InsertLayoutOption,
+  type InsertRendering, type InsertTourVideo, type InsertProposal, type InsertDetailedEstimate,
+} from "../drizzle/schema";
+
+// --- Design Projects ---
+export async function createDesignProject(data: Omit<InsertDesignProject, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(designProjects).values(data as any);
+  return result[0].insertId;
+}
+
+export async function listDesignProjects() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(designProjects).orderBy(desc(designProjects.createdAt));
+}
+
+export async function getDesignProject(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(designProjects).where(eq(designProjects.id, id));
+  return rows[0] ?? null;
+}
+
+export async function updateDesignProject(id: number, data: Partial<InsertDesignProject>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(designProjects).set(data as any).where(eq(designProjects.id, id));
+  return { success: true };
+}
+
+export async function deleteDesignProject(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(designProjects).where(eq(designProjects.id, id));
+  return { success: true };
+}
+
+// --- Floor Plans ---
+export async function addFloorPlan(data: Omit<InsertFloorPlan, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(floorPlans).values(data as any);
+  return result[0].insertId;
+}
+
+export async function listFloorPlans(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(floorPlans).where(eq(floorPlans.projectId, projectId)).orderBy(floorPlans.sortOrder);
+}
+
+export async function getFloorPlan(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(floorPlans).where(eq(floorPlans.id, id));
+  return rows[0] ?? null;
+}
+
+export async function updateFloorPlan(id: number, data: Partial<InsertFloorPlan>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(floorPlans).set(data as any).where(eq(floorPlans.id, id));
+  return { success: true };
+}
+
+export async function deleteFloorPlan(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(floorPlans).where(eq(floorPlans.id, id));
+  return { success: true };
+}
+
+// --- RFP Data ---
+export async function createRfpData(data: Omit<InsertRfpData, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(rfpData).values(data as any);
+  return result[0].insertId;
+}
+
+export async function getRfpData(projectId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(rfpData).where(eq(rfpData.projectId, projectId)).orderBy(desc(rfpData.updatedAt));
+  return rows[0] ?? null;
+}
+
+export async function updateRfpData(id: number, data: Partial<InsertRfpData>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(rfpData).set(data as any).where(eq(rfpData.id, id));
+  return { success: true };
+}
+
+// --- Layout Options ---
+export async function createLayoutOption(data: Omit<InsertLayoutOption, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(layoutOptions).values(data as any);
+  return result[0].insertId;
+}
+
+export async function listLayoutOptions(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(layoutOptions).where(eq(layoutOptions.projectId, projectId));
+}
+
+export async function updateLayoutOption(id: number, data: Partial<InsertLayoutOption>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(layoutOptions).set(data as any).where(eq(layoutOptions.id, id));
+  return { success: true };
+}
+
+export async function deleteLayoutOption(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(layoutOptions).where(eq(layoutOptions.id, id));
+  return { success: true };
+}
+
+// --- Renderings ---
+export async function createRendering(data: Omit<InsertRendering, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(renderings).values(data as any);
+  return result[0].insertId;
+}
+
+export async function listRenderings(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(renderings).where(eq(renderings.projectId, projectId)).orderBy(renderings.sortOrder);
+}
+
+export async function updateRendering(id: number, data: Partial<InsertRendering>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(renderings).set(data as any).where(eq(renderings.id, id));
+  return { success: true };
+}
+
+export async function deleteRendering(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(renderings).where(eq(renderings.id, id));
+  return { success: true };
+}
+
+// --- Tour Videos ---
+export async function createTourVideo(data: Omit<InsertTourVideo, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(tourVideos).values(data as any);
+  return result[0].insertId;
+}
+
+export async function listTourVideos(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(tourVideos).where(eq(tourVideos.projectId, projectId));
+}
+
+export async function updateTourVideo(id: number, data: Partial<InsertTourVideo>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(tourVideos).set(data as any).where(eq(tourVideos.id, id));
+  return { success: true };
+}
+
+// --- Proposals ---
+export async function createProposal(data: Omit<InsertProposal, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(proposals).values(data as any);
+  return result[0].insertId;
+}
+
+export async function listProposals(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(proposals).where(eq(proposals.projectId, projectId)).orderBy(desc(proposals.version));
+}
+
+export async function getProposal(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(proposals).where(eq(proposals.id, id));
+  return rows[0] ?? null;
+}
+
+export async function updateProposal(id: number, data: Partial<InsertProposal>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(proposals).set(data as any).where(eq(proposals.id, id));
+  return { success: true };
+}
+
+// --- Detailed Estimates ---
+export async function createDetailedEstimate(data: Omit<InsertDetailedEstimate, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(detailedEstimates).values(data as any);
+  return result[0].insertId;
+}
+
+export async function listDetailedEstimates(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(detailedEstimates).where(eq(detailedEstimates.projectId, projectId)).orderBy(desc(detailedEstimates.version));
+}
+
+export async function getDetailedEstimate(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(detailedEstimates).where(eq(detailedEstimates.id, id));
+  return rows[0] ?? null;
+}
+
+export async function updateDetailedEstimate(id: number, data: Partial<InsertDetailedEstimate>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(detailedEstimates).set(data as any).where(eq(detailedEstimates.id, id));
+  return { success: true };
+}

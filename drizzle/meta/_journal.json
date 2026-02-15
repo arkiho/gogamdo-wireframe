@@ -71,6 +71,13 @@
       "when": 1771079959477,
       "tag": "0009_last_tinkerer",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1771120602303,
+      "tag": "0010_mighty_galactus",
+      "breakpoints": true
     }
   ]
 }
