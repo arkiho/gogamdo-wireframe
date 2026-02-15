@@ -47,6 +47,7 @@ function formatNumber(n: number | null | undefined) {
 
 export default function AdminDashboard() {
   const { user, loading, logout } = useAuth();
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [expandedInquiry, setExpandedInquiry] = useState<number | null>(null);
 
@@ -138,7 +139,6 @@ export default function AdminDashboard() {
   ];
 
   // DDIA 바로가기 링크
-  const [, navigate] = useLocation();
 
   return (
     <div className="min-h-screen bg-paper">
@@ -336,6 +336,22 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="font-heading font-bold text-ink">뉴스레터 관리</h3>
                     <p className="text-xs text-muted-foreground">구독자 관리, 캠페인 생성 및 발송</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            {/* 고객 파이프라인 바로가기 */}
+            <Card className="border-orange-300/30 bg-gradient-to-r from-orange-50/50 to-transparent cursor-pointer hover:border-orange-400/50 transition-colors" onClick={() => navigate("/admin/client-pipeline")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">고객 셀프서비스 파이프라인</h3>
+                    <p className="text-xs text-muted-foreground">고객 프로젝트, 도면 업로드, 서베이, AI 보고서, 미팅 예약 관리</p>
                   </div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-muted-foreground" />

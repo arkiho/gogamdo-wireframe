@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean, decimal, tinyint, longtext } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -936,3 +936,219 @@ export const subscriberTags = mysqlTable("subscriber_tags", {
 
 export type SubscriberTag = typeof subscriberTags.$inferSelect;
 export type InsertSubscriberTag = typeof subscriberTags.$inferInsert;
+
+
+// ============================================================
+// 고객 셀프서비스 파이프라인 (Client Self-Service Pipeline)
+// 회원가입 → 도면 업로드 → 업무환경 서베이 → AI 보고서/제안서 → 전사 서베이 → 미팅 예약
+// ============================================================
+
+/**
+ * 고객 프로젝트(Client Projects)
+ * 고객이 회원가입 후 생성하는 프로젝트 단위
+ */
+export const clientProjects = mysqlTable("client_projects", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  companyName: varchar("companyName", { length: 200 }).notNull(),
+  contactName: varchar("contactName", { length: 100 }).notNull(),
+  contactEmail: varchar("contactEmail", { length: 320 }).notNull(),
+  contactPhone: varchar("contactPhone", { length: 30 }),
+  employeeCount: int("employeeCount"),
+  currentAddress: text("currentAddress"),
+  desiredMoveDate: varchar("desiredMoveDate", { length: 50 }),
+  budgetRange: varchar("budgetRange", { length: 100 }),
+  status: mysqlEnum("status", [
+    "created",           // 프로젝트 생성됨
+    "floor_plan_uploaded", // 도면 업로드 완료
+    "survey_completed",    // 업무환경 서베이 완료
+    "report_generated",    // AI 보고서/제안서 생성됨
+    "report_sent",         // 보고서 이메일 발송됨
+    "company_survey_shared", // 전사 서베이 링크 공유됨
+    "company_survey_done",   // 전사 서베이 완료
+    "meeting_requested",     // 미팅 요청됨
+    "meeting_confirmed",     // 미팅 확정됨
+    "completed",             // 완료
+  ]).default("created").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ClientProject = typeof clientProjects.$inferSelect;
+export type InsertClientProject = typeof clientProjects.$inferInsert;
+
+/**
+ * 고객 도면 업로드(Client Floor Plans)
+ */
+export const clientFloorPlans = mysqlTable("client_floor_plans", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  fileName: varchar("fileName", { length: 500 }).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: varchar("fileKey", { length: 500 }).notNull(),
+  fileType: varchar("fileType", { length: 50 }).notNull(), // pdf, image, cad
+  fileSize: int("fileSize"), // bytes
+  floorNumber: int("floorNumber"),
+  floorName: varchar("floorName", { length: 100 }),
+  totalArea: decimal("totalArea", { precision: 10, scale: 2 }),
+  aiAnalysis: json("aiAnalysis"), // AI 도면 분석 결과
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ClientFloorPlan = typeof clientFloorPlans.$inferSelect;
+export type InsertClientFloorPlan = typeof clientFloorPlans.$inferInsert;
+
+/**
+ * 업무환경 서베이(Work Environment Survey)
+ * 고객 담당자가 직접 작성하는 1차 서베이
+ */
+export const workSurveys = mysqlTable("work_surveys", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  respondentName: varchar("respondentName", { length: 100 }).notNull(),
+  respondentRole: varchar("respondentRole", { length: 100 }),
+  respondentEmail: varchar("respondentEmail", { length: 320 }),
+  
+  // 업무 스타일
+  workStyle: mysqlEnum("workStyle", ["collaborative", "focused", "hybrid", "flexible"]),
+  remoteWorkRatio: int("remoteWorkRatio"), // 재택근무 비율 (0-100%)
+  meetingFrequency: mysqlEnum("meetingFrequency", ["rarely", "few_weekly", "daily", "very_frequent"]),
+  
+  // 공간 요구사항
+  privateOfficeCount: int("privateOfficeCount"),
+  meetingRoomCount: int("meetingRoomCount"),
+  needsLounge: tinyint("needsLounge"),
+  needsCafeteria: tinyint("needsCafeteria"),
+  needsPhoneBooth: tinyint("needsPhoneBooth"),
+  needsLibrary: tinyint("needsLibrary"),
+  needsGym: tinyint("needsGym"),
+  needsNapRoom: tinyint("needsNapRoom"),
+  specialSpaces: text("specialSpaces"), // 기타 특수 공간 요구사항
+  
+  // 디자인 선호
+  designStyle: mysqlEnum("designStyle", ["modern", "minimal", "warm", "industrial", "natural", "luxury", "creative"]),
+  colorPreference: varchar("colorPreference", { length: 200 }),
+  brandColors: varchar("brandColors", { length: 200 }),
+  inspirationNotes: text("inspirationNotes"),
+  
+  // 현재 불편사항
+  currentPainPoints: json("currentPainPoints"), // string[]
+  priorityAreas: json("priorityAreas"), // string[] - 우선순위 영역
+  
+  // 기능 요구사항
+  acRequirements: text("acRequirements"), // 냉난방
+  lightingPreference: mysqlEnum("lightingPreference", ["natural", "warm", "cool", "mixed"]),
+  noiseControl: mysqlEnum("noiseControl", ["critical", "important", "moderate", "not_important"]),
+  storageNeeds: mysqlEnum("storageNeeds", ["minimal", "moderate", "extensive"]),
+  techRequirements: text("techRequirements"), // IT/기술 요구사항
+  
+  // 예산/일정
+  budgetPriority: mysqlEnum("budgetPriority", ["cost_saving", "balanced", "quality_first"]),
+  timelineUrgency: mysqlEnum("timelineUrgency", ["flexible", "within_6months", "within_3months", "urgent"]),
+  additionalNotes: text("additionalNotes"),
+  
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WorkSurvey = typeof workSurveys.$inferSelect;
+export type InsertWorkSurvey = typeof workSurveys.$inferInsert;
+
+/**
+ * 전사 서베이(Company-Wide Survey)
+ * 고객사 전 직원이 참여하는 서베이
+ */
+export const companyWideSurveys = mysqlTable("company_wide_surveys", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  expiresAt: timestamp("expiresAt"),
+  maxResponses: int("maxResponses"),
+  isActive: tinyint("isActive").default(1).notNull(),
+  responseCount: int("responseCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CompanyWideSurvey = typeof companyWideSurveys.$inferSelect;
+export type InsertCompanyWideSurvey = typeof companyWideSurveys.$inferInsert;
+
+/**
+ * 전사 서베이 응답(Company Survey Responses)
+ */
+export const companySurveyResponses = mysqlTable("company_survey_responses", {
+  id: int("id").autoincrement().primaryKey(),
+  surveyId: int("surveyId").notNull(),
+  department: varchar("department", { length: 100 }),
+  role: varchar("role", { length: 100 }),
+  tenure: mysqlEnum("tenure", ["less_1y", "1_3y", "3_5y", "5_10y", "over_10y"]),
+  
+  // 현재 공간 만족도 (1-5)
+  overallSatisfaction: int("overallSatisfaction"),
+  noiseSatisfaction: int("noiseSatisfaction"),
+  lightingSatisfaction: int("lightingSatisfaction"),
+  temperatureSatisfaction: int("temperatureSatisfaction"),
+  spaceSatisfaction: int("spaceSatisfaction"),
+  privacySatisfaction: int("privacySatisfaction"),
+  
+  // 업무 스타일
+  deskUsageHours: int("deskUsageHours"), // 하루 평균 자리 사용 시간
+  meetingHoursPerDay: decimal("meetingHoursPerDay", { precision: 3, scale: 1 }),
+  collaborationFrequency: mysqlEnum("collaborationFrequency", ["rarely", "sometimes", "often", "always"]),
+  focusWorkNeed: mysqlEnum("focusWorkNeed", ["low", "medium", "high", "critical"]),
+  
+  // 희망 공간
+  desiredSpaces: json("desiredSpaces"), // string[]
+  improvementSuggestions: text("improvementSuggestions"),
+  
+  // 추가 의견
+  additionalComments: text("additionalComments"),
+  
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+});
+
+export type CompanySurveyResponse = typeof companySurveyResponses.$inferSelect;
+export type InsertCompanySurveyResponse = typeof companySurveyResponses.$inferInsert;
+
+/**
+ * AI 분석 보고서(AI Analysis Reports)
+ */
+export const aiReports = mysqlTable("ai_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  type: mysqlEnum("type", ["analysis", "proposal"]).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  content: longtext("content").notNull(), // 마크다운 형식 보고서 내용
+  summary: text("summary"),
+  emailSentAt: timestamp("emailSentAt"),
+  emailSentTo: varchar("emailSentTo", { length: 320 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AiReport = typeof aiReports.$inferSelect;
+export type InsertAiReport = typeof aiReports.$inferInsert;
+
+/**
+ * 미팅 예약(Meeting Bookings)
+ */
+export const meetingBookings = mysqlTable("meeting_bookings", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  requestedDate: varchar("requestedDate", { length: 20 }).notNull(), // YYYY-MM-DD
+  requestedTime: varchar("requestedTime", { length: 10 }).notNull(), // HH:mm
+  duration: int("duration").default(60).notNull(), // 분
+  meetingType: mysqlEnum("meetingType", ["online", "visit", "office"]).default("office").notNull(),
+  location: text("location"),
+  agenda: text("agenda"),
+  status: mysqlEnum("status", ["requested", "confirmed", "rescheduled", "cancelled", "completed"]).default("requested").notNull(),
+  confirmedDate: varchar("confirmedDate", { length: 20 }),
+  confirmedTime: varchar("confirmedTime", { length: 10 }),
+  adminNotes: text("adminNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MeetingBooking = typeof meetingBookings.$inferSelect;
+export type InsertMeetingBooking = typeof meetingBookings.$inferInsert;

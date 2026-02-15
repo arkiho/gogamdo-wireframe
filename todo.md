@@ -209,3 +209,25 @@
 - [x] 타겟: 구독 폼에 source 파라미터 자동 전달 (각 페이지별)
 - [x] 타겟: 구독자 목록에 유입 경로 표시 + 태그 관리 + 필터링 + 유입경로별 통계 대시보드
 - [x] 타겟: Vitest 테스트 작성 (26개 테스트, 전체 231개 통과)
+
+## /admin 접근 문제 해결
+- [x] 버그: /admin 페이지 접근 불가 문제 수정 (useLocation 훅 순서 위반 - 조건부 return 전으로 이동)
+
+## 고객 셀프서비스 파이프라인 (Client Self-Service Pipeline)
+- [x] 셀프서비스: DB 스키마 설계 (clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings)
+- [x] 셀프서비스: DB 마이그레이션 실행
+- [x] 셀프서비스: 고객 포털 페이지 (/my) - 프로젝트 목록 + 생성 + 진행 프로세스 표시
+- [x] 셀프서비스: 프로젝트 상세 페이지 (/my/project/:id) - 도면 업로드 + 서베이 + 보고서 + 미팅 예약
+- [x] 셀프서비스: 도면 업로드 기능 (고객이 직접 PDF/이미지 업로드 → S3 저장)
+- [x] 셀프서비스: 업무환경 셀프 서베이 시스템 (구조화된 설문 - 업무 스타일/공간 요구/불편사항/선호도)
+- [x] 셀프서비스: 서베이 결과 기반 AI 분석 보고서 자동 생성 (LLM 연동)
+- [x] 셀프서비스: 전사 서베이 링크 생성 및 공유 기능 (토큰 기반 접근, /survey/:token)
+- [x] 셀프서비스: 전사 서베이 공개 페이지 (익명 응답 수집 + 집계)
+- [x] 셀프서비스: 관리자 고객 파이프라인 대시보드 (/admin/client-pipeline) - 프로젝트 목록 + 미팅 관리
+- [x] 셀프서비스: 1차 미팅 일정 예약 기능 (날짜/시간/유형 선택 + 관리자 확정/거절)
+- [x] 셀프서비스: 미팅 예약 시 관리자 알림 (notifyOwner)
+- [x] 셀프서비스: 관리자 대시보드에 고객 파이프라인 바로가기 카드 추가
+- [x] 셀프서비스: App.tsx 라우트 등록 (/my, /my/project/:id, /survey/:token, /admin/client-pipeline)
+- [x] 셀프서비스: newsletter 중복 라우터 문제 해결
+- [x] 셀프서비스: Vitest 테스트 작성 (전체 247개 통과)
+- [ ] 셀프서비스: 보고서/제안서 이메일 자동 발송 - 향후 구현

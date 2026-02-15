@@ -22,8 +22,12 @@ import AdminCRM from "./pages/AdminCRM";
 import AdminDesignAuto from "./pages/AdminDesignAuto";
 import AdminReviews from "./pages/AdminReviews";
 import AdminNewsletter from "./pages/AdminNewsletter";
+import AdminClientPipeline from "./pages/AdminClientPipeline";
 import Unsubscribe from "./pages/Unsubscribe";
 import ReviewWrite from "./pages/ReviewWrite";
+import CompanySurvey from "./pages/CompanySurvey";
+import ClientPortal from "./pages/ClientPortal";
+import ClientProjectDetail from "./pages/ClientProjectDetail";
 import Resources from "./pages/Resources";
 import AIChat from "./pages/AIChat";
 import AIStyle from "./pages/AIStyle";
@@ -52,6 +56,9 @@ function PublicRouter() {
         <Route path="/faq" component={FAQ} />
         <Route path="/opsx" component={OpsXProcess} />
         <Route path="/contact" component={Contact} />
+        {/* 고객 포털 (로그인 필요) */}
+        <Route path="/my" component={ClientPortal} />
+        <Route path="/my/project/:id" component={ClientProjectDetail} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -62,6 +69,9 @@ function PublicRouter() {
 function Router() {
   return (
     <Switch>
+      {/* 전사 서베이 - Layout 없이 독립 페이지 */}
+      <Route path="/survey/:token" component={CompanySurvey} />
+      {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />
       <Route path="/admin/ddia" component={AdminDDIA} />
@@ -69,6 +79,7 @@ function Router() {
       <Route path="/admin/design-auto" component={AdminDesignAuto} />
       <Route path="/admin/reviews" component={AdminReviews} />
       <Route path="/admin/newsletter" component={AdminNewsletter} />
+      <Route path="/admin/client-pipeline" component={AdminClientPipeline} />
       <Route component={PublicRouter} />
     </Switch>
   );

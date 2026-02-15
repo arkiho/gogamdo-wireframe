@@ -42,6 +42,7 @@ import { generateImage } from "./_core/imageGeneration";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { designAutomationRouter } from "./routers/designAutomation";
+import { clientPipelineRouter } from "./routers/clientPipeline";
 import { sendReviewRequestEmail } from "./email";
 
 // Admin-only procedure
@@ -172,42 +173,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ===== 뉴스레터 구독 (Newsletter) =====
-  newsletter: router({
-    subscribe: publicProcedure
-      .input(z.object({
-        email: z.string().email(),
-        name: z.string().optional(),
-        company: z.string().optional(),
-        source: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const result = await addSubscriber({
-          email: input.email,
-          name: input.name ?? null,
-          company: input.company ?? null,
-          source: input.source ?? "footer",
-        });
-        if (result.isNew) {
-          await notifyOwner({
-            title: `새 뉴스레터 구독: ${input.email}`,
-            content: `이메일: ${input.email}\n이름: ${input.name || "-"}\n회사: ${input.company || "-"}\n경로: ${input.source || "footer"}`,
-          }).catch(() => {});
-        }
-        return result;
-      }),
-    list: adminProcedure.query(async () => {
-      return listSubscribers();
-    }),
-    toggleActive: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        active: z.enum(["yes", "no"]),
-      }))
-      .mutation(async ({ input }) => {
-        return toggleSubscriberActive(input.id, input.active);
-      }),
-  }),
+  // (newsletter 라우터는 하단에 통합됨)
 
   // ===== AI 견적 (Estimates) =====
   estimate: router({
@@ -1609,6 +1575,9 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
   // ===== 설계 자동화 시스템 (Design Automation) =====
   designAuto: designAutomationRouter,
 
+  // ===== 고객 셀프서비스 파이프라인 (Client Pipeline) =====
+  clientPipeline: clientPipelineRouter,
+
   // ===== 팝업 알림 관리 (Popups) =====
   popup: router({
     // 공개: 활성화된 팝업만 반환
@@ -1817,7 +1786,19 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "유효하지 않은 구독 해지 링크입니다." });
         return { success: true, message: "구독이 해지되었습니다." };
       }),
-    // 관리자: 구독자 목록
+    // 관리자: 구독자 목록 (legacy)
+    list: adminProcedure.query(async () => {
+      return listSubscribers();
+    }),
+    toggleActive: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        active: z.enum(["yes", "no"]),
+      }))
+      .mutation(async ({ input }) => {
+        return toggleSubscriberActive(input.id, input.active);
+      }),
+    // 관리자: 구독자 목록 (v2)
     subscribers: adminProcedure.query(async () => {
       return getAllNewsletterSubscribers();
     }),

@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1406,4 +1406,205 @@ export async function bulkAddTags(subscriberIds: number[], tag: string) {
   for (const subId of subscriberIds) {
     await addSubscriberTag(subId, tag);
   }
+}
+
+
+// ============================================================
+// 고객 셀프서비스 파이프라인 DB 헬퍼
+// ============================================================
+
+// --- Client Projects ---
+export async function createClientProject(data: InsertClientProject) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(clientProjects).values(data).$returningId();
+  return result;
+}
+
+export async function getClientProjectsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clientProjects).where(eq(clientProjects.userId, userId)).orderBy(desc(clientProjects.createdAt));
+}
+
+export async function getClientProjectById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(clientProjects).where(eq(clientProjects.id, id));
+  return rows[0] ?? null;
+}
+
+export async function updateClientProjectStatus(id: number, status: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(clientProjects).set({ status: status as any }).where(eq(clientProjects.id, id));
+}
+
+export async function updateClientProject(id: number, data: Partial<InsertClientProject>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(clientProjects).set(data).where(eq(clientProjects.id, id));
+}
+
+export async function getAllClientProjects() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clientProjects).orderBy(desc(clientProjects.createdAt));
+}
+
+// --- Client Floor Plans ---
+export async function createClientFloorPlan(data: InsertClientFloorPlan) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(clientFloorPlans).values(data).$returningId();
+  return result;
+}
+
+export async function getFloorPlansByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clientFloorPlans).where(eq(clientFloorPlans.projectId, projectId)).orderBy(clientFloorPlans.floorNumber);
+}
+
+export async function updateFloorPlanAnalysis(id: number, analysis: any) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(clientFloorPlans).set({ aiAnalysis: analysis }).where(eq(clientFloorPlans.id, id));
+}
+
+// --- Work Surveys ---
+export async function createWorkSurvey(data: InsertWorkSurvey) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(workSurveys).values(data).$returningId();
+  return result;
+}
+
+export async function getWorkSurveyByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(workSurveys).where(eq(workSurveys.projectId, projectId));
+  return rows[0] ?? null;
+}
+
+export async function completeWorkSurvey(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(workSurveys).set({ completedAt: new Date() }).where(eq(workSurveys.id, id));
+}
+
+// --- Company-Wide Surveys ---
+export async function createCompanyWideSurvey(data: InsertCompanyWideSurvey) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(companyWideSurveys).values(data).$returningId();
+  return result;
+}
+
+export async function getCompanySurveyByToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(companyWideSurveys).where(eq(companyWideSurveys.token, token));
+  return rows[0] ?? null;
+}
+
+export async function getCompanySurveysByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(companyWideSurveys).where(eq(companyWideSurveys.projectId, projectId)).orderBy(desc(companyWideSurveys.createdAt));
+}
+
+export async function incrementSurveyResponseCount(surveyId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(companyWideSurveys).set({ responseCount: sql`${companyWideSurveys.responseCount} + 1` }).where(eq(companyWideSurveys.id, surveyId));
+}
+
+// --- Company Survey Responses ---
+export async function createCompanySurveyResponse(data: InsertCompanySurveyResponse) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(companySurveyResponses).values(data).$returningId();
+  return result;
+}
+
+export async function getResponsesBySurvey(surveyId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(companySurveyResponses).where(eq(companySurveyResponses.surveyId, surveyId)).orderBy(desc(companySurveyResponses.submittedAt));
+}
+
+export async function getSurveyResponseStats(surveyId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const responses = await getResponsesBySurvey(surveyId);
+  if (responses.length === 0) return null;
+  
+  const avg = (field: keyof typeof responses[0]) => {
+    const vals = responses.map(r => r[field]).filter(v => v != null) as number[];
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  };
+  
+  return {
+    totalResponses: responses.length,
+    avgOverallSatisfaction: avg("overallSatisfaction"),
+    avgNoiseSatisfaction: avg("noiseSatisfaction"),
+    avgLightingSatisfaction: avg("lightingSatisfaction"),
+    avgTemperatureSatisfaction: avg("temperatureSatisfaction"),
+    avgSpaceSatisfaction: avg("spaceSatisfaction"),
+    avgPrivacySatisfaction: avg("privacySatisfaction"),
+    avgDeskUsageHours: avg("deskUsageHours"),
+    departments: [...new Set(responses.map(r => r.department).filter(Boolean))],
+  };
+}
+
+// --- AI Reports ---
+export async function createAiReport(data: InsertAiReport) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(aiReports).values(data).$returningId();
+  return result;
+}
+
+export async function getReportsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(aiReports).where(eq(aiReports.projectId, projectId)).orderBy(desc(aiReports.createdAt));
+}
+
+export async function markReportSent(id: number, email: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(aiReports).set({ emailSentAt: new Date(), emailSentTo: email }).where(eq(aiReports.id, id));
+}
+
+// --- Meeting Bookings ---
+export async function createMeetingBooking(data: InsertMeetingBooking) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(meetingBookings).values(data).$returningId();
+  return result;
+}
+
+export async function getMeetingsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(meetingBookings).where(eq(meetingBookings.projectId, projectId)).orderBy(desc(meetingBookings.createdAt));
+}
+
+export async function getAllMeetings() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(meetingBookings).orderBy(desc(meetingBookings.createdAt));
+}
+
+export async function updateMeetingStatus(id: number, status: string, adminNotes?: string, confirmedDate?: string, confirmedTime?: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(meetingBookings).set({ 
+    status: status as any, 
+    adminNotes: adminNotes ?? undefined,
+    confirmedDate: confirmedDate ?? undefined,
+    confirmedTime: confirmedTime ?? undefined,
+  }).where(eq(meetingBookings.id, id));
 }
