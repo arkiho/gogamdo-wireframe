@@ -31,6 +31,9 @@ import {
   createInsightArticle, getInsightArticleBySlug, getInsightArticleById, getPublishedArticles, getAllArticles, updateInsightArticle, incrementArticleViewCount, deleteInsightArticle,
   createNewsletterSubscriber, getSubscriberByEmail, getSubscriberByToken, getActiveSubscribers, getAllNewsletterSubscribers, updateNewsletterSubscriber, unsubscribeByToken,
   createNewsletterCampaign, getNewsletterCampaign, getAllCampaigns, updateCampaign, deleteCampaign,
+  createSegment, getSegmentById, getAllSegments, updateSegment, deleteSegment,
+  getSubscribersBySegment, updateSegmentMatchCount,
+  addSubscriberTag, removeSubscriberTag, getSubscriberTags, getAllUniqueTags, bulkAddTags,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
@@ -1785,7 +1788,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         email: z.string().email(),
         name: z.string().optional(),
         company: z.string().optional(),
-        source: z.enum(["website", "contact_form", "manual", "lead_magnet"]).optional(),
+        source: z.enum(["website", "contact_form", "manual", "lead_magnet", "estimator", "portfolio", "insight", "ai_chat", "style_quiz"]).optional(),
       }))
       .mutation(async ({ input }) => {
         const existing = await getSubscriberByEmail(input.email);
@@ -1803,7 +1806,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
           ...input,
           unsubscribeToken: token,
         });
-        await notifyOwner({ title: "새 뉴스레터 구독자", content: `${input.email}${input.name ? ` (${input.name})` : ""}${input.company ? ` - ${input.company}` : ""}` });
+        await notifyOwner({ title: "새 뉴스레터 구독자", content: `${input.email}${input.name ? ` (${input.name})` : ""}${input.company ? ` - ${input.company}` : ""} | 유입: ${input.source || "website"}` });
         return { success: true, message: "구독이 완료되었습니다." };
       }),
     // 공개: 구독 해지
@@ -1835,6 +1838,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         previewText: z.string().optional(),
         articleIds: z.array(z.number()).optional(),
         customContent: z.string().optional(),
+        segmentId: z.number().optional(),
       }))
       .mutation(async ({ input }) => {
         return createNewsletterCampaign(input);
@@ -1855,7 +1859,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         const { id, ...data } = input;
         return updateCampaign(id, data as any);
       }),
-    // 관리자: 캠페인 발송
+    // 관리자: 캠페인 발송 (세그먼트 타겟팅 지원)
     sendCampaign: adminProcedure
       .input(z.object({
         campaignId: z.number(),
@@ -1864,8 +1868,18 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       .mutation(async ({ input }) => {
         const campaign = await getNewsletterCampaign(input.campaignId);
         if (!campaign) throw new TRPCError({ code: "NOT_FOUND" });
-        const activeSubscribers = await getActiveSubscribers();
-        if (activeSubscribers.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "활성 구독자가 없습니다." });
+        
+        // 세그먼트가 설정되어 있으면 해당 세그먼트 구독자만, 아니면 전체 활성 구독자
+        let activeSubscribers;
+        let segmentName = "전체";
+        if (campaign.segmentId) {
+          activeSubscribers = await getSubscribersBySegment(campaign.segmentId);
+          const seg = await getSegmentById(campaign.segmentId);
+          if (seg) segmentName = seg.name;
+        } else {
+          activeSubscribers = await getActiveSubscribers();
+        }
+        if (activeSubscribers.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: `${segmentName} 세그먼트에 활성 구독자가 없습니다.` });
 
         // 아티클 정보 가져오기
         let articleContents: Array<{ title: string; excerpt: string; slug: string; coverImageUrl?: string | null }> = [];
@@ -1919,6 +1933,118 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       .mutation(async ({ input }) => {
         return deleteCampaign(input.id);
       }),
+
+    // ===== 세그먼트 관리 =====
+    // 관리자: 세그먼트 목록
+    segments: adminProcedure.query(async () => {
+      return getAllSegments();
+    }),
+    // 관리자: 세그먼트 생성
+    createSegment: adminProcedure
+      .input(z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        color: z.string().optional(),
+        filterConditions: z.object({
+          sources: z.array(z.string()).optional(),
+          subscribedAfter: z.string().optional(),
+          subscribedBefore: z.string().optional(),
+          tags: z.array(z.string()).optional(),
+          hasCompany: z.boolean().optional(),
+        }),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await createSegment(input);
+        if (result) {
+          await updateSegmentMatchCount(result.id);
+        }
+        return result;
+      }),
+    // 관리자: 세그먼트 수정
+    updateSegment: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        color: z.string().optional(),
+        filterConditions: z.object({
+          sources: z.array(z.string()).optional(),
+          subscribedAfter: z.string().optional(),
+          subscribedBefore: z.string().optional(),
+          tags: z.array(z.string()).optional(),
+          hasCompany: z.boolean().optional(),
+        }).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateSegment(id, data as any);
+        await updateSegmentMatchCount(id);
+        return { success: true };
+      }),
+    // 관리자: 세그먼트 삭제
+    deleteSegment: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteSegment(input.id);
+      }),
+    // 관리자: 세그먼트 미리보기 (매칭 구독자 수 + 목록)
+    previewSegment: adminProcedure
+      .input(z.object({ segmentId: z.number() }))
+      .query(async ({ input }) => {
+        const subscribers = await getSubscribersBySegment(input.segmentId);
+        await updateSegmentMatchCount(input.segmentId);
+        return { count: subscribers.length, subscribers: subscribers.slice(0, 20) };
+      }),
+    // 관리자: 세그먼트 매칭 수 갱신
+    refreshSegmentCount: adminProcedure
+      .input(z.object({ segmentId: z.number() }))
+      .mutation(async ({ input }) => {
+        const count = await updateSegmentMatchCount(input.segmentId);
+        return { count };
+      }),
+
+    // ===== 구독자 태그 관리 =====
+    // 관리자: 구독자 태그 조회
+    subscriberTags: adminProcedure
+      .input(z.object({ subscriberId: z.number() }))
+      .query(async ({ input }) => {
+        return getSubscriberTags(input.subscriberId);
+      }),
+    // 관리자: 태그 추가
+    addTag: adminProcedure
+      .input(z.object({ subscriberId: z.number(), tag: z.string() }))
+      .mutation(async ({ input }) => {
+        return addSubscriberTag(input.subscriberId, input.tag);
+      }),
+    // 관리자: 태그 제거
+    removeTag: adminProcedure
+      .input(z.object({ subscriberId: z.number(), tag: z.string() }))
+      .mutation(async ({ input }) => {
+        return removeSubscriberTag(input.subscriberId, input.tag);
+      }),
+    // 관리자: 전체 태그 목록
+    allTags: adminProcedure.query(async () => {
+      return getAllUniqueTags();
+    }),
+    // 관리자: 일괄 태그 추가
+    bulkAddTag: adminProcedure
+      .input(z.object({ subscriberIds: z.array(z.number()), tag: z.string() }))
+      .mutation(async ({ input }) => {
+        await bulkAddTags(input.subscriberIds, input.tag);
+        return { success: true, count: input.subscriberIds.length };
+      }),
+    // 관리자: 유입 경로별 통계
+    sourceStats: adminProcedure.query(async () => {
+      const all = await getAllNewsletterSubscribers();
+      const stats: Record<string, { total: number; active: number }> = {};
+      for (const sub of all) {
+        const src = sub.source || "website";
+        if (!stats[src]) stats[src] = { total: 0, active: 0 };
+        stats[src].total++;
+        if (sub.status === "active") stats[src].active++;
+      }
+      return stats;
+    }),
   }),
 });
 

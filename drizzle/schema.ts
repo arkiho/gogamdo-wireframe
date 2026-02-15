@@ -846,7 +846,7 @@ export const newsletterSubscribers = mysqlTable("newsletter_subscribers", {
   unsubscribeToken: varchar("unsubscribeToken", { length: 64 }).notNull().unique(),
   
   // 출처
-  source: mysqlEnum("source", ["website", "contact_form", "manual", "lead_magnet"]).default("website"),
+  source: mysqlEnum("source", ["website", "contact_form", "manual", "lead_magnet", "estimator", "portfolio", "insight", "ai_chat", "style_quiz"]).default("website"),
   
   subscribedAt: timestamp("subscribedAt").defaultNow().notNull(),
   unsubscribedAt: timestamp("unsubscribedAt"),
@@ -871,6 +871,9 @@ export const newsletterCampaigns = mysqlTable("newsletter_campaigns", {
   customContent: text("customContent"), // 추가 커스텀 콘텐츠 (마크다운)
   htmlContent: text("htmlContent"), // 생성된 HTML 이메일
   
+  // 타겟 세그먼트 (null이면 전체 발송)
+  segmentId: int("segmentId"),
+  
   // 발송 정보
   status: mysqlEnum("status", ["draft", "scheduled", "sending", "sent", "failed"]).default("draft").notNull(),
   scheduledAt: timestamp("scheduledAt"),
@@ -887,3 +890,49 @@ export const newsletterCampaigns = mysqlTable("newsletter_campaigns", {
 
 export type NewsletterCampaign = typeof newsletterCampaigns.$inferSelect;
 export type InsertNewsletterCampaign = typeof newsletterCampaigns.$inferInsert;
+
+
+/**
+ * 뉴스레터 구독자 세그먼트(Subscriber Segments)
+ * 유입 경로, 구독일, 태그 등 조건 기반으로 구독자를 그룹화
+ */
+export const subscriberSegments = mysqlTable("subscriber_segments", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  color: varchar("color", { length: 20 }).default("#b8860b"), // 세그먼트 식별 색상
+  
+  // 필터 조건 (JSON)
+  // { sources: ["website","contact_form"], subscribedAfter: "2026-01-01", subscribedBefore: "2026-12-31", tags: ["vip"] }
+  filterConditions: json("filterConditions").$type<{
+    sources?: string[];
+    subscribedAfter?: string;
+    subscribedBefore?: string;
+    tags?: string[];
+    hasCompany?: boolean;
+  }>(),
+  
+  // 통계 (캐시)
+  matchCount: int("matchCount").default(0),
+  lastCalculatedAt: timestamp("lastCalculatedAt"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SubscriberSegment = typeof subscriberSegments.$inferSelect;
+export type InsertSubscriberSegment = typeof subscriberSegments.$inferInsert;
+
+/**
+ * 구독자 태그(Subscriber Tags)
+ * 구독자에게 수동/자동으로 부여하는 태그
+ */
+export const subscriberTags = mysqlTable("subscriber_tags", {
+  id: int("id").autoincrement().primaryKey(),
+  subscriberId: int("subscriberId").notNull(),
+  tag: varchar("tag", { length: 100 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SubscriberTag = typeof subscriberTags.$inferSelect;
+export type InsertSubscriberTag = typeof subscriberTags.$inferInsert;

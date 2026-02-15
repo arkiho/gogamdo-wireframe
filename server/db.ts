@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1263,4 +1263,147 @@ export async function deleteCampaign(id: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
+}
+
+// ===== 구독자 세그먼트 =====
+
+export async function createSegment(data: InsertSubscriberSegment) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(subscriberSegments).values(data).$returningId();
+  return result;
+}
+
+export async function getSegmentById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(subscriberSegments).where(eq(subscriberSegments.id, id));
+  return row || null;
+}
+
+export async function getAllSegments() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(subscriberSegments).orderBy(desc(subscriberSegments.createdAt));
+}
+
+export async function updateSegment(id: number, data: Partial<InsertSubscriberSegment>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(subscriberSegments).set(data).where(eq(subscriberSegments.id, id));
+}
+
+export async function deleteSegment(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(subscriberSegments).where(eq(subscriberSegments.id, id));
+}
+
+/**
+ * 세그먼트 조건에 맞는 활성 구독자 필터링
+ */
+export async function getSubscribersBySegment(segmentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const segment = await getSegmentById(segmentId);
+  if (!segment || !segment.filterConditions) return [];
+  
+  const conditions = segment.filterConditions;
+  const filters: any[] = [eq(newsletterSubscribers.status, "active")];
+  
+  // 유입 경로 필터
+  if (conditions.sources && conditions.sources.length > 0) {
+    filters.push(
+      or(...conditions.sources.map((s: string) => eq(newsletterSubscribers.source, s as any)))
+    );
+  }
+  
+  // 구독일 범위 필터
+  if (conditions.subscribedAfter) {
+    filters.push(gte(newsletterSubscribers.subscribedAt, new Date(conditions.subscribedAfter)));
+  }
+  if (conditions.subscribedBefore) {
+    filters.push(lte(newsletterSubscribers.subscribedAt, new Date(conditions.subscribedBefore)));
+  }
+  
+  // 회사 유무 필터
+  if (conditions.hasCompany === true) {
+    filters.push(and(
+      ne(newsletterSubscribers.company, ""),
+      sql`${newsletterSubscribers.company} IS NOT NULL`
+    ));
+  }
+  
+  const baseSubscribers = await db.select().from(newsletterSubscribers).where(and(...filters));
+  
+  // 태그 필터 (있는 경우)
+  if (conditions.tags && conditions.tags.length > 0) {
+    const subscriberIds = baseSubscribers.map(s => s.id);
+    if (subscriberIds.length === 0) return [];
+    
+    const taggedSubs = await db.select().from(subscriberTags)
+      .where(and(
+        or(...conditions.tags.map((t: string) => eq(subscriberTags.tag, t))),
+        or(...subscriberIds.map(id => eq(subscriberTags.subscriberId, id)))
+      ));
+    
+    const taggedIds = new Set(taggedSubs.map(t => t.subscriberId));
+    return baseSubscribers.filter(s => taggedIds.has(s.id));
+  }
+  
+  return baseSubscribers;
+}
+
+/**
+ * 세그먼트 매칭 구독자 수 업데이트
+ */
+export async function updateSegmentMatchCount(segmentId: number) {
+  const matched = await getSubscribersBySegment(segmentId);
+  await updateSegment(segmentId, { 
+    matchCount: matched.length, 
+    lastCalculatedAt: new Date() 
+  });
+  return matched.length;
+}
+
+// ===== 구독자 태그 =====
+
+export async function addSubscriberTag(subscriberId: number, tag: string) {
+  const db = await getDb();
+  if (!db) return null;
+  // 중복 방지
+  const existing = await db.select().from(subscriberTags)
+    .where(and(eq(subscriberTags.subscriberId, subscriberId), eq(subscriberTags.tag, tag)));
+  if (existing.length > 0) return existing[0];
+  const [result] = await db.insert(subscriberTags).values({ subscriberId, tag }).$returningId();
+  return result;
+}
+
+export async function removeSubscriberTag(subscriberId: number, tag: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(subscriberTags)
+    .where(and(eq(subscriberTags.subscriberId, subscriberId), eq(subscriberTags.tag, tag)));
+}
+
+export async function getSubscriberTags(subscriberId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(subscriberTags).where(eq(subscriberTags.subscriberId, subscriberId));
+}
+
+export async function getAllUniqueTags() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.selectDistinct({ tag: subscriberTags.tag }).from(subscriberTags);
+  return rows.map(r => r.tag);
+}
+
+export async function bulkAddTags(subscriberIds: number[], tag: string) {
+  const db = await getDb();
+  if (!db) return;
+  for (const subId of subscriberIds) {
+    await addSubscriberTag(subId, tag);
+  }
 }
