@@ -42,6 +42,7 @@ import {
   createClient, getClientByEmail, getClientById, updateClient, listClients, getClientByVerifyToken, getClientByResetToken,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
+import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
@@ -2303,7 +2304,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       name: z.string().min(1).max(100),
       company: z.string().max(200).optional(),
       phone: z.string().max(20).optional(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
       const existing = await getClientByEmail(input.email);
       if (existing) {
         throw new TRPCError({ code: "CONFLICT", message: "이미 등록된 이메일입니다." });
@@ -2321,13 +2322,26 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         emailVerifyExpires,
         status: "pending", // 이메일 인증 전까지 pending
       });
-      // 관리자에게 신규 회원가입 알림 + 인증 토큰 전달
+      // 이메일 인증 메일 발송 (Resend 또는 notifyOwner 폴백)
+      const origin = ctx.req?.headers?.origin || ctx.req?.headers?.referer?.replace(/\/$/, "") || "https://gogamdo.com";
+      try {
+        await sendVerificationEmail({
+          email: input.email,
+          name: input.name,
+          verifyToken: emailVerifyToken,
+          origin,
+        });
+      } catch (emailErr) {
+        console.warn("[Register] Email send failed:", emailErr);
+        // 이메일 발송 실패해도 회원가입은 진행
+      }
+      // 관리자에게 신규 회원가입 알림
       try {
         await notifyOwner({
           title: `[고감도] 신규 고객 회원가입: ${input.name}`,
-          content: `이메일: ${input.email}\n회사: ${input.company || '-'}\n전화: ${input.phone || '-'}\n인증토큰: ${emailVerifyToken}\n인증링크: /api/verify-email?token=${emailVerifyToken}`,
+          content: `이메일: ${input.email}\n회사: ${input.company || '-'}\n전화: ${input.phone || '-'}`,
         });
-      } catch { /* 알림 실패해도 회원가입은 진행 */ }
+      } catch { /* 알림 실패해도 진행 */ }
       return { success: true, message: "회원가입이 완료되었습니다. 이메일 인증을 완료해주세요.", emailVerifyToken };
     }),
 
@@ -2461,7 +2475,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
 
     resendVerification: publicProcedure.input(z.object({
       email: z.string().email(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
       const client = await getClientByEmail(input.email);
       if (!client || client.emailVerified === "yes") {
         return { success: true, message: "인증 메일이 재발송되었습니다." };
@@ -2472,18 +2486,24 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         emailVerifyToken: newToken,
         emailVerifyExpires: newExpires,
       });
+      // 인증 이메일 재발송
+      const origin = ctx.req?.headers?.origin || ctx.req?.headers?.referer?.replace(/\/$/, "") || "https://gogamdo.com";
       try {
-        await notifyOwner({
-          title: `[고감도] 이메일 인증 재발송: ${client.name}`,
-          content: `이메일: ${client.email}\n인증토큰: ${newToken}\n인증링크: /api/verify-email?token=${newToken}`,
+        await sendVerificationEmail({
+          email: client.email,
+          name: client.name,
+          verifyToken: newToken,
+          origin,
         });
-      } catch { /* ignore */ }
+      } catch (emailErr) {
+        console.warn("[ResendVerification] Email send failed:", emailErr);
+      }
       return { success: true, message: "인증 메일이 재발송되었습니다.", emailVerifyToken: newToken };
     }),
 
     requestPasswordReset: publicProcedure.input(z.object({
       email: z.string().email(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
       const client = await getClientByEmail(input.email);
       if (!client) {
         // 보안상 존재하지 않아도 성공 응답
@@ -2495,7 +2515,18 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         passwordResetToken: resetToken,
         passwordResetExpires: resetExpires,
       });
-      // TODO: 이메일 발송 로직 추가
+      // 비밀번호 재설정 이메일 발송
+      const origin = ctx.req?.headers?.origin || ctx.req?.headers?.referer?.replace(/\/$/, "") || "https://gogamdo.com";
+      try {
+        await sendPasswordResetEmail({
+          email: client.email,
+          name: client.name,
+          resetToken,
+          origin,
+        });
+      } catch (emailErr) {
+        console.warn("[PasswordReset] Email send failed:", emailErr);
+      }
       return { success: true, message: "비밀번호 재설정 안내가 발송되었습니다." };
     }),
 
@@ -2535,6 +2566,80 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
     })).mutation(async ({ input }) => {
       await updateClient(input.clientId, { assignedProjectIds: input.projectIds });
       return { success: true };
+    }),
+
+    // 수동 이메일 인증 처리 (관리자가 직접 인증)
+    manualVerify: adminProcedure.input(z.object({
+      clientId: z.number(),
+    })).mutation(async ({ input }) => {
+      const client = await getClientById(input.clientId);
+      if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "고객을 찾을 수 없습니다." });
+      if (client.emailVerified === "yes") {
+        return { success: true, message: "이미 인증된 계정입니다." };
+      }
+      await updateClient(input.clientId, {
+        emailVerified: "yes",
+        emailVerifyToken: null,
+        emailVerifyExpires: null,
+        status: "active",
+      });
+      return { success: true, message: "이메일 인증이 완료되었습니다." };
+    }),
+
+    // 개별 인증 메일 재발송
+    resendVerification: adminProcedure.input(z.object({
+      clientId: z.number(),
+    })).mutation(async ({ input, ctx }) => {
+      const client = await getClientById(input.clientId);
+      if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "고객을 찾을 수 없습니다." });
+      if (client.emailVerified === "yes") {
+        return { success: true, message: "이미 인증된 계정입니다." };
+      }
+      const newToken = randomBytes(32).toString("hex");
+      const newExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await updateClient(input.clientId, {
+        emailVerifyToken: newToken,
+        emailVerifyExpires: newExpires,
+      });
+      const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/$/, "") || `${ctx.req.protocol}://${ctx.req.headers.host}`;
+      try {
+        await sendVerificationEmail({
+          email: client.email,
+          name: client.name,
+          verifyToken: newToken,
+          origin,
+        });
+      } catch { /* ignore */ }
+      return { success: true, message: `${client.email}에 인증 메일을 재발송했습니다.` };
+    }),
+
+    // 미인증 고객 일괄 재발송
+    bulkResendVerification: adminProcedure.mutation(async ({ ctx }) => {
+      const clients = await listClients();
+      const unverified = clients.filter(c => c.emailVerified === "no" && c.status === "pending");
+      if (unverified.length === 0) {
+        return { success: true, count: 0, message: "미인증 고객이 없습니다." };
+      }
+      const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/$/, "") || `${ctx.req.protocol}://${ctx.req.headers.host}`;
+      let sentCount = 0;
+      for (const client of unverified) {
+        const newToken = randomBytes(32).toString("hex");
+        const newExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await updateClient(client.id, {
+          emailVerifyToken: newToken,
+          emailVerifyExpires: newExpires,
+        });
+        try {
+          await sendVerificationEmail({
+            email: client.email,
+            name: client.name,
+            verifyToken: newToken,
+            origin,
+          });
+          sentCount++;
+        } catch { /* continue */ }
+      }
+      return { success: true, count: sentCount, total: unverified.length, message: `${sentCount}건의 인증 메일을 발송했습니다.` };
     }),
   }),
 });

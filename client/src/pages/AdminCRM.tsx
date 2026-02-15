@@ -17,8 +17,10 @@ import {
   ArrowLeft, LogOut, Plus, Search, Users, TrendingUp, DollarSign, Phone,
   Mail, Building2, Calendar, ChevronRight, MessageSquare, FileText,
   Video, MapPin, Edit, Trash2, BarChart3, Activity, Clock, User,
+  ShieldCheck, Send, CheckCircle, AlertCircle, Filter,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
 
 // Stage configuration
 const STAGES = [
@@ -65,7 +67,7 @@ function formatCurrency(v: number | null | undefined) {
   return v.toLocaleString() + "원";
 }
 
-type CrmView = "dashboard" | "clients" | "deals" | "client-detail";
+type CrmView = "dashboard" | "clients" | "deals" | "client-detail" | "portal-members";
 
 export default function AdminCRM() {
   const { user, logout } = useAuth();
@@ -113,6 +115,7 @@ export default function AdminCRM() {
             { id: "dashboard" as CrmView, label: "대시보드", icon: <BarChart3 className="w-4 h-4" /> },
             { id: "clients" as CrmView, label: "고객", icon: <Users className="w-4 h-4" /> },
             { id: "deals" as CrmView, label: "딜 파이프라인", icon: <TrendingUp className="w-4 h-4" /> },
+            { id: "portal-members" as CrmView, label: "포털 회원", icon: <ShieldCheck className="w-4 h-4" /> },
           ].map(tab => (
             <button
               key={tab.id}
@@ -229,6 +232,11 @@ export default function AdminCRM() {
             clientId={selectedClientId}
             onBack={() => { setView("clients"); setSelectedClientId(null); }}
           />
+        )}
+
+        {/* Portal Members View */}
+        {view === "portal-members" && (
+          <PortalMembersView />
         )}
 
         {/* Deals Pipeline View */}
@@ -775,6 +783,261 @@ function DealsPipelineView({ deals, clients }: { deals: any[]; clients: any[] })
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+// ========== Portal Members (고객 포털 회원 관리) ==========
+function PortalMembersView() {
+  const utils = trpc.useUtils();
+  const members = trpc.clientManagement.list.useQuery();
+  const manualVerify = trpc.clientManagement.manualVerify.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      utils.clientManagement.list.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const resendVerification = trpc.clientManagement.resendVerification.useMutation({
+    onSuccess: (data) => toast.success(data.message),
+    onError: (err) => toast.error(err.message),
+  });
+  const bulkResend = trpc.clientManagement.bulkResendVerification.useMutation({
+    onSuccess: (data) => toast.success(data.message),
+    onError: (err) => toast.error(err.message),
+  });
+  const updateStatus = trpc.clientManagement.updateStatus.useMutation({
+    onSuccess: () => {
+      toast.success("상태가 변경되었습니다.");
+      utils.clientManagement.list.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterVerified, setFilterVerified] = useState<"all" | "verified" | "unverified">("all");
+
+  const memberList = members.data || [];
+
+  const filtered = useMemo(() => {
+    let list = memberList;
+    if (filterVerified === "verified") list = list.filter((m: any) => m.emailVerified === "yes");
+    if (filterVerified === "unverified") list = list.filter((m: any) => m.emailVerified !== "yes");
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((m: any) =>
+        m.name?.toLowerCase().includes(q) ||
+        m.email?.toLowerCase().includes(q) ||
+        m.company?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [memberList, filterVerified, searchQuery]);
+
+  const totalCount = memberList.length;
+  const verifiedCount = memberList.filter((m: any) => m.emailVerified === "yes").length;
+  const unverifiedCount = totalCount - verifiedCount;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-heading text-xl font-bold text-ink">고객 포털 회원 관리</h2>
+          <p className="text-sm text-muted-foreground mt-1">고객 포털에 가입한 회원의 이메일 인증 상태를 관리합니다.</p>
+        </div>
+        {unverifiedCount > 0 && (
+          <Button
+            className="bg-gold text-ink hover:bg-gold/90"
+            disabled={bulkResend.isPending}
+            onClick={() => {
+              if (confirm(`미인증 회원 ${unverifiedCount}명에게 인증 메일을 일괄 발송하시겠습니까?`)) {
+                bulkResend.mutate();
+              }
+            }}
+          >
+            <Send className="w-4 h-4 mr-2" />
+            {bulkResend.isPending ? "발송 중..." : `미인증 ${unverifiedCount}명 일괄 발송`}
+          </Button>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card className="border-border/50">
+          <CardContent className="py-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Users className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-heading font-bold text-ink">{totalCount}</div>
+              <div className="text-xs text-muted-foreground">전체 회원</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-green-200">
+          <CardContent className="py-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-heading font-bold text-green-600">{verifiedCount}</div>
+              <div className="text-xs text-muted-foreground">인증 완료</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-amber-200">
+          <CardContent className="py-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-heading font-bold text-amber-600">{unverifiedCount}</div>
+              <div className="text-xs text-muted-foreground">미인증</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="이름, 이메일, 회사명으로 검색..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-1 bg-white rounded-lg p-1 border border-border/50">
+          {[
+            { id: "all" as const, label: "전체" },
+            { id: "verified" as const, label: "인증" },
+            { id: "unverified" as const, label: "미인증" },
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilterVerified(f.id)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                filterVerified === f.id ? "bg-ink text-white" : "text-muted-foreground hover:text-ink"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Members Table */}
+      {members.isLoading ? (
+        <Card className="border-border/50">
+          <CardContent className="py-12 text-center text-muted-foreground">
+            로딩 중...
+          </CardContent>
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card className="border-border/50">
+          <CardContent className="py-12 text-center text-muted-foreground">
+            {searchQuery || filterVerified !== "all" ? "검색 결과가 없습니다." : "등록된 포털 회원이 없습니다."}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-border/50 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-paper-warm/50">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">회원</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">이메일</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">회사</th>
+                  <th className="text-center py-3 px-4 font-medium text-muted-foreground">인증 상태</th>
+                  <th className="text-center py-3 px-4 font-medium text-muted-foreground">계정 상태</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">가입일</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">작업</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((member: any) => {
+                  const isVerified = member.emailVerified === "yes";
+                  return (
+                    <tr key={member.id} className="border-b last:border-0 hover:bg-paper-warm/30 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center">
+                            <User className="w-4 h-4 text-gold" />
+                          </div>
+                          <span className="font-medium text-ink">{member.name || "-"}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground font-mono text-xs">{member.email}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{member.company || "-"}</td>
+                      <td className="py-3 px-4 text-center">
+                        {isVerified ? (
+                          <Badge className="bg-green-100 text-green-700">
+                            <CheckCircle className="w-3 h-3 mr-1" /> 인증됨
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-100 text-amber-700">
+                            <AlertCircle className="w-3 h-3 mr-1" /> 미인증
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <Select
+                          value={member.status || "pending"}
+                          onValueChange={(v: any) => updateStatus.mutate({ id: member.id, status: v })}
+                        >
+                          <SelectTrigger className="h-7 text-xs w-24 mx-auto">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">활성</SelectItem>
+                            <SelectItem value="pending">대기</SelectItem>
+                            <SelectItem value="suspended">정지</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground text-xs">
+                        {formatDate(member.createdAt)}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {!isVerified && (
+                            <>
+                              <Button
+                                variant="ghost" size="sm"
+                                className="h-7 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+                                disabled={manualVerify.isPending}
+                                onClick={() => {
+                                  if (confirm(`${member.name || member.email}의 이메일을 수동 인증하시겠습니까?`)) {
+                                    manualVerify.mutate({ clientId: member.id });
+                                  }
+                                }}
+                                title="수동 인증"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost" size="sm"
+                                className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                disabled={resendVerification.isPending}
+                                onClick={() => resendVerification.mutate({ clientId: member.id })}
+                                title="인증 메일 재발송"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

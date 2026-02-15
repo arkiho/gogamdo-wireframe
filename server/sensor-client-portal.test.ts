@@ -666,3 +666,115 @@ describe("이메일 인증 플로우", () => {
     expect(result.success).toBe(true);
   });
 });
+
+// ============================================================
+// 관리자 고객 포털 회원 관리 테스트
+// ============================================================
+
+describe("clientManagement - 이메일 인증 관리", () => {
+  let unverifiedClientId: number;
+  const testEmail = `mgmt_${Date.now()}@example.com`;
+
+  beforeAll(async () => {
+    // 미인증 고객 생성
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await caller.clientAuth.register({
+      email: testEmail,
+      password: "MgmtTest123!",
+      name: "관리테스트",
+    });
+
+    // 관리자로 목록 조회하여 ID 확인
+    const { ctx: adminCtx } = createAdminContext();
+    const adminCaller = appRouter.createCaller(adminCtx);
+    const list = await adminCaller.clientManagement.list();
+    const found = list.find((m: any) => m.email === testEmail);
+    expect(found).toBeDefined();
+    unverifiedClientId = found!.id;
+  });
+
+  it("관리자가 고객 목록을 조회할 수 있다", async () => {
+    const { ctx } = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    const list = await caller.clientManagement.list();
+    expect(Array.isArray(list)).toBe(true);
+    expect(list.length).toBeGreaterThan(0);
+  });
+
+  it("관리자가 수동으로 이메일 인증을 처리할 수 있다", async () => {
+    const { ctx } = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.clientManagement.manualVerify({
+      clientId: unverifiedClientId,
+    });
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("인증");
+  });
+
+  it("이미 인증된 고객에 대한 수동 인증은 안내 메시지를 반환한다", async () => {
+    const { ctx } = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.clientManagement.manualVerify({
+      clientId: unverifiedClientId,
+    });
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("이미 인증");
+  });
+
+  it("존재하지 않는 고객 ID로 수동 인증 시 에러가 발생한다", async () => {
+    const { ctx } = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.clientManagement.manualVerify({ clientId: 999999 })
+    ).rejects.toThrow();
+  });
+
+  it("관리자가 개별 인증 메일을 재발송할 수 있다", async () => {
+    // 새 미인증 고객 생성
+    const newEmail = `resend_mgmt_${Date.now()}@example.com`;
+    const { ctx: regCtx } = createPublicContext();
+    const regCaller = appRouter.createCaller(regCtx);
+    await regCaller.clientAuth.register({
+      email: newEmail,
+      password: "ResendMgmt123!",
+      name: "재발송관리",
+    });
+
+    const { ctx: adminCtx } = createAdminContext();
+    const adminCaller = appRouter.createCaller(adminCtx);
+    const list = await adminCaller.clientManagement.list();
+    const found = list.find((m: any) => m.email === newEmail);
+    expect(found).toBeDefined();
+
+    const result = await adminCaller.clientManagement.resendVerification({
+      clientId: found!.id,
+    });
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("재발송");
+  });
+
+  it("관리자가 미인증 고객에게 일괄 재발송할 수 있다", async () => {
+    const { ctx } = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.clientManagement.bulkResendVerification();
+    expect(result.success).toBe(true);
+    expect(typeof result.count).toBe("number");
+  });
+
+  it("관리자가 고객 상태를 변경할 수 있다", async () => {
+    const { ctx } = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.clientManagement.updateStatus({
+      id: unverifiedClientId,
+      status: "suspended",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("비관리자는 고객 관리 기능에 접근할 수 없다", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.clientManagement.list()).rejects.toThrow();
+  });
+});

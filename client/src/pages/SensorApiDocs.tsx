@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Copy, Check, Wifi, Shield, Zap, Server, Activity, Heart, Database, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Copy, Check, Wifi, Shield, Zap, Server, Activity, Heart, Database, ChevronDown, ChevronRight, Play, RotateCcw, Clock, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 function CodeBlock({ title, language, code }: { title?: string; language: string; code: string }) {
@@ -75,6 +79,361 @@ function EndpointCard({ method, path, description, requestBody, responseBody, no
         </div>
       )}
     </div>
+  );
+}
+
+const ENDPOINT_PRESETS: Record<string, { method: string; path: string; defaultBody: string }> = {
+  "event": {
+    method: "POST",
+    path: "/api/sensor/event",
+    defaultBody: JSON.stringify({
+      sensorId: "sensor-001",
+      eventType: "enter",
+      count: 1,
+    }, null, 2),
+  },
+  "events-batch": {
+    method: "POST",
+    path: "/api/sensor/events/batch",
+    defaultBody: JSON.stringify({
+      events: [
+        { sensorId: "sensor-001", eventType: "enter", count: 1 },
+        { sensorId: "sensor-002", eventType: "exit", count: -1 },
+      ],
+    }, null, 2),
+  },
+  "data": {
+    method: "POST",
+    path: "/api/sensor/data",
+    defaultBody: JSON.stringify({
+      sensorId: "temp-sensor-01",
+      value: 23.5,
+    }, null, 2),
+  },
+  "data-batch": {
+    method: "POST",
+    path: "/api/sensor/data/batch",
+    defaultBody: JSON.stringify({
+      data: [
+        { sensorId: "temp-01", value: 23.5 },
+        { sensorId: "hum-01", value: 55.2 },
+      ],
+    }, null, 2),
+  },
+  "heartbeat": {
+    method: "POST",
+    path: "/api/sensor/heartbeat",
+    defaultBody: JSON.stringify({
+      sensorId: "sensor-001",
+      status: "online",
+      battery: 85,
+      rssi: -65,
+    }, null, 2),
+  },
+  "status": {
+    method: "GET",
+    path: "/api/sensor/status",
+    defaultBody: "",
+  },
+};
+
+interface HistoryEntry {
+  id: number;
+  endpoint: string;
+  method: string;
+  status: number | null;
+  duration: number;
+  timestamp: Date;
+  request: string;
+  response: string;
+}
+
+function ApiTester() {
+  const [apiKey, setApiKey] = useState("");
+  const [selectedEndpoint, setSelectedEndpoint] = useState("event");
+  const [requestBody, setRequestBody] = useState(ENDPOINT_PRESETS.event.defaultBody);
+  const [responseData, setResponseData] = useState<string | null>(null);
+  const [responseStatus, setResponseStatus] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [duration, setDuration] = useState<number | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const nextId = useRef(1);
+
+  const preset = ENDPOINT_PRESETS[selectedEndpoint];
+
+  const handleEndpointChange = (value: string) => {
+    setSelectedEndpoint(value);
+    setRequestBody(ENDPOINT_PRESETS[value].defaultBody);
+    setResponseData(null);
+    setResponseStatus(null);
+    setDuration(null);
+  };
+
+  const handleSend = async () => {
+    if (!apiKey.trim()) {
+      toast.error("API 키를 입력해주세요");
+      return;
+    }
+
+    setLoading(true);
+    setResponseData(null);
+    setResponseStatus(null);
+    const startTime = performance.now();
+
+    try {
+      const baseUrl = window.location.origin;
+      const url = `${baseUrl}${preset.path}`;
+      const fetchOptions: RequestInit = {
+        method: preset.method,
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      };
+
+      if (preset.method === "POST" && requestBody.trim()) {
+        // Validate JSON
+        try {
+          JSON.parse(requestBody);
+        } catch {
+          toast.error("유효하지 않은 JSON 형식입니다");
+          setLoading(false);
+          return;
+        }
+        fetchOptions.body = requestBody;
+      }
+
+      const response = await fetch(url, fetchOptions);
+      const elapsed = Math.round(performance.now() - startTime);
+      setDuration(elapsed);
+
+      let data: string;
+      try {
+        const json = await response.json();
+        data = JSON.stringify(json, null, 2);
+      } catch {
+        data = await response.text();
+      }
+
+      setResponseStatus(response.status);
+      setResponseData(data);
+
+      // Add to history
+      const entry: HistoryEntry = {
+        id: nextId.current++,
+        endpoint: preset.path,
+        method: preset.method,
+        status: response.status,
+        duration: elapsed,
+        timestamp: new Date(),
+        request: requestBody,
+        response: data,
+      };
+      setHistory(prev => [entry, ...prev].slice(0, 10));
+    } catch (error: any) {
+      const elapsed = Math.round(performance.now() - startTime);
+      setDuration(elapsed);
+      setResponseStatus(0);
+      setResponseData(JSON.stringify({ error: error.message || "Network error" }, null, 2));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    setRequestBody(preset.defaultBody);
+    setResponseData(null);
+    setResponseStatus(null);
+    setDuration(null);
+  };
+
+  const statusColor = responseStatus
+    ? responseStatus >= 200 && responseStatus < 300
+      ? "text-green-600"
+      : responseStatus >= 400
+        ? "text-red-600"
+        : "text-yellow-600"
+    : "";
+
+  return (
+    <Card className="border-2 border-gold/30">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Play className="w-5 h-5 text-gold" /> API 테스트 (Try it out)
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          실제 API 키를 입력하고 요청을 보내 결과를 확인할 수 있습니다.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* API Key Input */}
+        <div className="space-y-2">
+          <Label htmlFor="api-key" className="text-sm font-medium">API 키</Label>
+          <Input
+            id="api-key"
+            type="password"
+            placeholder="sk_live_abc123..."
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            className="font-mono text-sm"
+          />
+          <p className="text-xs text-muted-foreground">관리자 대시보드 → DDIA → API 키 관리에서 발급받은 키를 입력하세요.</p>
+        </div>
+
+        {/* Endpoint Selector */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">엔드포인트</Label>
+          <Select value={selectedEndpoint} onValueChange={handleEndpointChange}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="event">POST /api/sensor/event — 단건 이벤트</SelectItem>
+              <SelectItem value="events-batch">POST /api/sensor/events/batch — 배치 이벤트</SelectItem>
+              <SelectItem value="data">POST /api/sensor/data — 단건 센서 데이터</SelectItem>
+              <SelectItem value="data-batch">POST /api/sensor/data/batch — 배치 센서 데이터</SelectItem>
+              <SelectItem value="heartbeat">POST /api/sensor/heartbeat — 하트비트</SelectItem>
+              <SelectItem value="status">GET /api/sensor/status — 상태 확인</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge className={preset.method === "POST" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>
+              {preset.method}
+            </Badge>
+            <code className="text-xs font-mono text-muted-foreground">{preset.path}</code>
+          </div>
+        </div>
+
+        {/* Request Body */}
+        {preset.method === "POST" && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">요청 본문 (JSON)</Label>
+              <button
+                onClick={handleReset}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" /> 기본값 복원
+              </button>
+            </div>
+            <Textarea
+              value={requestBody}
+              onChange={(e) => setRequestBody(e.target.value)}
+              className="font-mono text-xs min-h-[160px] resize-y bg-ink text-white border-border/50"
+              spellCheck={false}
+            />
+          </div>
+        )}
+
+        {/* Send Button */}
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleSend}
+            disabled={loading}
+            className="bg-gold hover:bg-gold-light text-ink font-semibold px-6"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-ink/30 border-t-ink rounded-full animate-spin" />
+                전송 중...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Play className="w-4 h-4" /> 요청 보내기
+              </span>
+            )}
+          </Button>
+          {duration !== null && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {duration}ms
+            </span>
+          )}
+          {responseStatus !== null && (
+            <Badge className={`${responseStatus >= 200 && responseStatus < 300 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+              {responseStatus === 0 ? "Network Error" : responseStatus}
+            </Badge>
+          )}
+        </div>
+
+        {/* Response */}
+        {responseData && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">응답 결과</Label>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(responseData);
+                  toast.success("응답이 복사되었습니다");
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              >
+                <Copy className="w-3 h-3" /> 복사
+              </button>
+            </div>
+            <pre className={`bg-ink text-white p-4 rounded-lg overflow-x-auto text-xs leading-relaxed border ${responseStatus && responseStatus >= 200 && responseStatus < 300 ? "border-green-500/30" : "border-red-500/30"}`}>
+              <code>{responseData}</code>
+            </pre>
+          </div>
+        )}
+
+        {/* History */}
+        {history.length > 0 && (
+          <div className="border-t border-border/50 pt-4">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Clock className="w-4 h-4" />
+              요청 히스토리 ({history.length}건)
+              {showHistory ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            </button>
+            {showHistory && (
+              <div className="mt-3 space-y-2">
+                {history.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg text-xs cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => {
+                      setRequestBody(entry.request);
+                      setResponseData(entry.response);
+                      setResponseStatus(entry.status);
+                      setDuration(entry.duration);
+                      const endpointKey = Object.keys(ENDPOINT_PRESETS).find(
+                        k => ENDPOINT_PRESETS[k].path === entry.endpoint
+                      );
+                      if (endpointKey) setSelectedEndpoint(endpointKey);
+                    }}
+                  >
+                    <Badge className={`${entry.method === "POST" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"} text-[10px]`}>
+                      {entry.method}
+                    </Badge>
+                    <code className="font-mono flex-1 truncate">{entry.endpoint}</code>
+                    <Badge className={`${entry.status && entry.status >= 200 && entry.status < 300 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"} text-[10px]`}>
+                      {entry.status || "ERR"}
+                    </Badge>
+                    <span className="text-muted-foreground">{entry.duration}ms</span>
+                    <span className="text-muted-foreground">
+                      {entry.timestamp.toLocaleTimeString("ko-KR")}
+                    </span>
+                  </div>
+                ))}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setHistory([]);
+                    toast.success("히스토리가 삭제되었습니다");
+                  }}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500 transition-colors mt-2"
+                >
+                  <Trash2 className="w-3 h-3" /> 히스토리 삭제
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -409,6 +768,9 @@ export default function SensorApiDocs() {
             </div>
           </div>
         </CollapsibleSection>
+
+        {/* Interactive API Tester */}
+        <ApiTester />
 
         {/* SDK Examples */}
         <Card>
