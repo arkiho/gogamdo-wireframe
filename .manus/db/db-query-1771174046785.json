@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `download_logs` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `userId` int,\n  `userName` varchar(255),\n  `userEmail` varchar(255),\n  `fileType` enum('estimate_pdf','expense_pdf','project_report_pdf','proposal_pdf','lead_magnet','ai_estimate_result','design_auto_result','other') NOT NULL,\n  `fileName` varchar(500),\n  `projectId` int,\n  `projectName` varchar(255),\n  `trackingCode` varchar(64) NOT NULL,\n  `ipAddress` varchar(45),\n  `userAgent` text,\n  `consentGiven` enum('yes','no') NOT NULL DEFAULT 'no',\n  `createdAt` timestamp NOT NULL DEFAULT (now()),\n  CONSTRAINT `download_logs_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute CREATE TABLE IF NOT EXISTS `download_logs` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `userId` int,\n  `userName` varchar(255),\n  `userEmail` varchar(255),\n  `fileType` enum('estimate_pdf','expense_pdf','project_report_pdf','proposal_pdf','lead_magnet','ai_estimate_result','design_auto_result','other') NOT NULL,\n  `fileName` varchar(500),\n  `projectId` int,\n  `projectName` varchar(255),\n  `trackingCode` varchar(64) NOT NULL,\n  `ipAddress` varchar(45),\n  `userAgent` text,\n  `consentGiven` enum('yes','no') NOT NULL DEFAULT 'no',\n  `createdAt` timestamp NOT NULL DEFAULT (now()),\n  CONSTRAINT `download_logs_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1770
+}

@@ -44,6 +44,7 @@ import { TRPCError } from "@trpc/server";
 import { designAutomationRouter } from "./routers/designAutomation";
 import { clientPipelineRouter } from "./routers/clientPipeline";
 import { opsRouter } from "./routers/ops";
+import { ipProtectionRouter } from "./routers/ipProtection";
 import { sendReviewRequestEmail } from "./email";
 
 // Admin-only procedure
@@ -73,6 +74,7 @@ function mapInquiryTypeToSpaceType(type?: string): "office" | "commercial" | "me
 }
 
 export const appRouter = router({
+  ipProtection: ipProtectionRouter,
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

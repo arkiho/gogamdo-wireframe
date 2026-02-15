@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1634,4 +1634,93 @@ export async function getUserById(userId: number) {
   if (!db) return null;
   const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   return rows[0] ?? null;
+}
+
+// ============================================================
+// 다운로드 로깅 (지적재산권 보호)
+// ============================================================
+
+/**
+ * 트래킹 코드 생성: 날짜 + 랜덤 해시
+ */
+export function generateTrackingCode(): string {
+  const now = new Date();
+  const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+  return `GGD-${datePart}-${randomPart}`;
+}
+
+/**
+ * 다운로드 로그 기록
+ */
+export async function createDownloadLog(data: InsertDownloadLog) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(downloadLogs).values(data);
+  return result[0]?.insertId ?? null;
+}
+
+/**
+ * 다운로드 로그 목록 조회 (관리자용)
+ */
+export async function listDownloadLogs(opts: {
+  fileType?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const db = await getDb();
+  if (!db) return { logs: [], total: 0 };
+
+  const conditions: any[] = [];
+  if (opts.fileType) {
+    conditions.push(eq(downloadLogs.fileType, opts.fileType as any));
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [rows, totalRows] = await Promise.all([
+    db.select().from(downloadLogs)
+      .where(where)
+      .orderBy(desc(downloadLogs.createdAt))
+      .limit(opts.limit ?? 50)
+      .offset(opts.offset ?? 0),
+    db.select({ count: count() }).from(downloadLogs).where(where),
+  ]);
+
+  return { logs: rows, total: totalRows[0]?.count ?? 0 };
+}
+
+/**
+ * 트래킹 코드로 다운로드 로그 조회
+ */
+export async function getDownloadLogByTrackingCode(trackingCode: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(downloadLogs)
+    .where(eq(downloadLogs.trackingCode, trackingCode))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * 특정 사용자의 다운로드 이력 조회
+ */
+export async function getDownloadLogsByUser(userEmail: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(downloadLogs)
+    .where(eq(downloadLogs.userEmail, userEmail))
+    .orderBy(desc(downloadLogs.createdAt));
+}
+
+/**
+ * 다운로드 통계 (파일 유형별)
+ */
+export async function getDownloadStats() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    fileType: downloadLogs.fileType,
+    count: count(),
+  }).from(downloadLogs).groupBy(downloadLogs.fileType);
 }

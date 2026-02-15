@@ -18,7 +18,7 @@ import {
   ChevronDown, ChevronUp, LogOut, Download,
   Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
-  HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2,
+  HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2, Shield,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
@@ -352,6 +352,22 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="font-heading font-bold text-ink">고객 셀프서비스 파이프라인</h3>
                     <p className="text-xs text-muted-foreground">고객 프로젝트, 도면 업로드, 서베이, AI 보고서, 미팅 예약 관리</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            {/* 다운로드 이력 관리 바로가기 */}
+            <Card className="border-amber-300/30 bg-gradient-to-r from-amber-50/50 to-transparent cursor-pointer hover:border-amber-400/50 transition-colors" onClick={() => navigate("/admin/download-logs")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">다운로드 이력 관리</h3>
+                    <p className="text-xs text-muted-foreground">파일 다운로드 추적, 트래킹 코드 검색, 지적재산권 보호</p>
                   </div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-muted-foreground" />

@@ -1704,3 +1704,33 @@ export const opsSubEvaluations = mysqlTable("ops_sub_evaluations", {
 });
 export type OpsSubEvaluation = typeof opsSubEvaluations.$inferSelect;
 export type InsertOpsSubEvaluation = typeof opsSubEvaluations.$inferInsert;
+
+// ============================================================
+// 다운로드 로깅 (지적재산권 보호)
+// ============================================================
+export const downloadLogs = mysqlTable("download_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId"),
+  userName: varchar("userName", { length: 255 }),
+  userEmail: varchar("userEmail", { length: 255 }),
+  fileType: mysqlEnum("fileType", [
+    "estimate_pdf",
+    "expense_pdf",
+    "project_report_pdf",
+    "proposal_pdf",
+    "lead_magnet",
+    "ai_estimate_result",
+    "design_auto_result",
+    "other",
+  ]).notNull(),
+  fileName: varchar("fileName", { length: 500 }),
+  projectId: int("projectId"),
+  projectName: varchar("projectName", { length: 255 }),
+  trackingCode: varchar("trackingCode", { length: 64 }).notNull(),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  userAgent: text("userAgent"),
+  consentGiven: mysqlEnum("consentGiven", ["yes", "no"]).default("no").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type DownloadLog = typeof downloadLogs.$inferSelect;
+export type InsertDownloadLog = typeof downloadLogs.$inferInsert;

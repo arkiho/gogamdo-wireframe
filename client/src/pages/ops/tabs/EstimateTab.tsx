@@ -10,6 +10,8 @@ import { useState, useRef } from "react";
 import { Plus, FileSpreadsheet, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { generateEstimatePdf, type EstimatePdfData } from "@/lib/estimatePdf";
+import { applyIPProtection } from "@/lib/pdfWatermark";
+import { IPConsentModal } from "@/components/IPConsentModal";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: "초안", color: "bg-gray-100 text-gray-600" },
@@ -31,6 +33,8 @@ export default function EstimateTab({ projectId, projectName, clientName, siteAd
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<number | null>(null);
+  const [consentTarget, setConsentTarget] = useState<any | null>(null);
+  const logDownload = trpc.ipProtection.logDownload.useMutation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     title: "", version: "1", totalAmount: "", description: "", fileUrl: "",
@@ -96,9 +100,27 @@ export default function EstimateTab({ projectId, projectName, clientName, siteAd
     });
   };
 
+  // 법적 고지 동의 모달 표시 후 PDF 다운로드
   const handleDownloadPdf = (estimate: any) => {
+    setConsentTarget(estimate);
+  };
+
+  const handleConsentAndDownload = async () => {
+    if (!consentTarget) return;
+    const estimate = consentTarget;
     setGeneratingPdf(estimate.id);
+    setConsentTarget(null);
     try {
+      // 1. 다운로드 로그 기록 + 트래킹 코드 발급
+      const logResult = await logDownload.mutateAsync({
+        fileType: "estimate_pdf",
+        fileName: `견적서_${estimate.title || estimate.estimateNumber}`,
+        projectId: parseInt(projectId) || undefined,
+        projectName: projectName || undefined,
+        consentGiven: "yes",
+      });
+
+      // 2. PDF 생성
       const pdfData: EstimatePdfData = {
         estimateNumber: estimate.estimateNumber || `EST-${estimate.id}`,
         title: estimate.title,
@@ -118,8 +140,10 @@ export default function EstimateTab({ projectId, projectName, clientName, siteAd
         siteAddress: siteAddress || undefined,
         authorName: estimate.authorName,
       };
-      generateEstimatePdf(pdfData);
-      toast.success("견적서 PDF가 다운로드되었습니다.");
+
+      // 3. PDF 생성 + IP 보호 적용 (워터마크 + 법적 고지)
+      generateEstimatePdf(pdfData, logResult.trackingCode);
+      toast.success(`견적서 PDF가 다운로드되었습니다. (트래킹: ${logResult.trackingCode})`);
     } catch (err) {
       console.error("PDF generation error:", err);
       toast.error("PDF 생성에 실패했습니다.");
@@ -286,6 +310,14 @@ export default function EstimateTab({ projectId, projectName, clientName, siteAd
           </>
         )}
       </CardContent>
+      {/* IP 보호 동의 모달 */}
+      <IPConsentModal
+        open={!!consentTarget}
+        onClose={() => setConsentTarget(null)}
+        onConsent={handleConsentAndDownload}
+        fileName={consentTarget ? `견적서_${consentTarget.title || consentTarget.estimateNumber}.pdf` : undefined}
+        isLoading={!!generatingPdf}
+      />
     </Card>
   );
 }

@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { applyIPProtection as _applyIPProtection } from "./pdfWatermark";
 
 declare module "jspdf" {
   interface jsPDF {
@@ -86,7 +87,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 // ===== PDF Generator =====
-export function generateEstimatePdf(data: EstimatePdfData) {
+export function generateEstimatePdf(data: EstimatePdfData, trackingCode?: string) {
   const doc = new jsPDF("p", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -470,6 +471,11 @@ export function generateEstimatePdf(data: EstimatePdfData) {
 
   // Footer on last page
   drawFooter(doc, pageWidth, pageHeight, margin);
+
+  // Apply IP protection if tracking code provided
+  if (trackingCode) {
+    _applyIPProtection(doc, trackingCode);
+  }
 
   // Save
   const filename = `Estimate_${data.estimateNumber}_${data.projectName.replace(/\s+/g, "_")}.pdf`;

@@ -23,6 +23,7 @@ import AdminDesignAuto from "./pages/AdminDesignAuto";
 import AdminReviews from "./pages/AdminReviews";
 import AdminNewsletter from "./pages/AdminNewsletter";
 import AdminClientPipeline from "./pages/AdminClientPipeline";
+import AdminDownloadLogs from "./pages/AdminDownloadLogs";
 import Unsubscribe from "./pages/Unsubscribe";
 import ReviewWrite from "./pages/ReviewWrite";
 import CompanySurvey from "./pages/CompanySurvey";
@@ -92,6 +93,7 @@ function Router() {
       <Route path="/admin/reviews" component={AdminReviews} />
       <Route path="/admin/newsletter" component={AdminNewsletter} />
       <Route path="/admin/client-pipeline" component={AdminClientPipeline} />
+      <Route path="/admin/download-logs" component={AdminDownloadLogs} />
       <Route component={PublicRouter} />
     </Switch>
   );
