@@ -329,6 +329,75 @@ export type SpaceAnalysisRow = typeof spaceAnalysis.$inferSelect;
 export type InsertSpaceAnalysis = typeof spaceAnalysis.$inferInsert;
 
 /**
+ * DDIA: 구역 정의(Space Zones)
+ * 평면도 위에 정의된 구역 영역 (폴리곤 좌표)
+ */
+export const spaceZones = mysqlTable("space_zones", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  color: varchar("color", { length: 20 }).default("#3b82f6"),
+  /** 폴리곤 좌표 배열 [{x: 0-1000, y: 0-1000}, ...] */
+  polygon: json("polygon").$type<{x: number; y: number}[]>(),
+  /** 구역 유형: 사무실, 회의실, 복도, 휴게실, 기타 */
+  zoneType: mysqlEnum("zoneType", ["office", "meeting", "corridor", "lounge", "restroom", "kitchen", "storage", "other"]).default("office"),
+  capacity: int("capacity"),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SpaceZone = typeof spaceZones.$inferSelect;
+export type InsertSpaceZone = typeof spaceZones.$inferInsert;
+
+/**
+ * DDIA: 재실 이벤트(Occupancy Events)
+ * 센서별 입장/퇴장 이벤트 기록 - 히트맵 및 동선 분석의 원시 데이터
+ */
+export const occupancyEvents = mysqlTable("occupancy_events", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  sensorId: int("sensorId").notNull(),
+  zoneId: int("zoneId"),
+  /** enter: 입장, exit: 퇴장, count_change: 인원수 변경 */
+  eventType: mysqlEnum("eventType", ["enter", "exit", "count_change"]).notNull(),
+  /** 인원수 (카운팅 센서용) */
+  count: int("count").default(0),
+  /** 이벤트 발생 시각 */
+  eventAt: timestamp("eventAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OccupancyEvent = typeof occupancyEvents.$inferSelect;
+export type InsertOccupancyEvent = typeof occupancyEvents.$inferInsert;
+
+/**
+ * DDIA: 구역별 재실 집계(Zone Occupancy Stats)
+ * 시간대별 구역 재실 통계 - 히트맵 렌더링용 집계 데이터
+ */
+export const zoneOccupancyStats = mysqlTable("zone_occupancy_stats", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  zoneId: int("zoneId").notNull(),
+  /** 집계 시간 (시간 단위 버킷) */
+  bucketHour: timestamp("bucketHour").notNull(),
+  /** 해당 시간 평균 재실 인원 */
+  avgOccupancy: int("avgOccupancy").default(0),
+  /** 해당 시간 최대 재실 인원 */
+  maxOccupancy: int("maxOccupancy").default(0),
+  /** 해당 시간 총 재실 시간(분) */
+  totalMinutesOccupied: int("totalMinutesOccupied").default(0),
+  /** 해당 시간 입장 횟수 */
+  enterCount: int("enterCount").default(0),
+  /** 해당 시간 퇴장 횟수 */
+  exitCount: int("exitCount").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ZoneOccupancyStat = typeof zoneOccupancyStats.$inferSelect;
+export type InsertZoneOccupancyStat = typeof zoneOccupancyStats.$inferInsert;
+
+/**
  * CRM: 고객(Clients)
  * 인테리어 프로젝트 고객 정보 관리
  */

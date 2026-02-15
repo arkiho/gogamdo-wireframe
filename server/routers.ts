@@ -34,6 +34,10 @@ import {
   createSegment, getSegmentById, getAllSegments, updateSegment, deleteSegment,
   getSubscribersBySegment, updateSegmentMatchCount,
   addSubscriberTag, removeSubscriberTag, getSubscriberTags, getAllUniqueTags, bulkAddTags,
+  createSpaceZone, listSpaceZones, updateSpaceZone, deleteSpaceZone,
+  addOccupancyEvent, addOccupancyEventsBatch, getOccupancyEvents,
+  upsertZoneOccupancyStat, getZoneOccupancyStats, getZoneHeatmapData,
+  getHourlyOccupancyPattern, getZoneTransitions,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
@@ -1326,6 +1330,236 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
           summary: parsed.summary,
           dataJson: parsed,
           recommendations: parsed.recommendations,
+        });
+
+        return parsed;
+      }),
+
+    // --- Space Zones ---
+    createZone: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        name: z.string().min(1),
+        color: z.string().optional(),
+        polygon: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
+        zoneType: z.enum(["office", "meeting", "corridor", "lounge", "restroom", "kitchen", "storage", "other"]).optional(),
+        capacity: z.number().optional(),
+        description: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return createSpaceZone(input);
+      }),
+
+    listZones: adminProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return listSpaceZones(input.projectId);
+      }),
+
+    updateZone: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        color: z.string().optional(),
+        polygon: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
+        zoneType: z.enum(["office", "meeting", "corridor", "lounge", "restroom", "kitchen", "storage", "other"]).optional(),
+        capacity: z.number().optional(),
+        description: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updateSpaceZone(id, data);
+      }),
+
+    deleteZone: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteSpaceZone(input.id);
+      }),
+
+    // --- Occupancy Events ---
+    addOccupancyEvent: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        sensorId: z.number(),
+        zoneId: z.number().optional(),
+        eventType: z.enum(["enter", "exit", "count_change"]),
+        count: z.number().optional(),
+        eventAt: z.string().transform(s => new Date(s)),
+      }))
+      .mutation(async ({ input }) => {
+        return addOccupancyEvent({ ...input, eventAt: input.eventAt });
+      }),
+
+    addOccupancyEventsBatch: adminProcedure
+      .input(z.object({
+        rows: z.array(z.object({
+          projectId: z.number(),
+          sensorId: z.number(),
+          zoneId: z.number().optional(),
+          eventType: z.enum(["enter", "exit", "count_change"]),
+          count: z.number().optional(),
+          eventAt: z.string().transform(s => new Date(s)),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        return addOccupancyEventsBatch(input.rows);
+      }),
+
+    // --- Heatmap & Analytics ---
+    getHeatmapData: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        from: z.string().transform(s => new Date(s)),
+        to: z.string().transform(s => new Date(s)),
+      }))
+      .query(async ({ input }) => {
+        return getZoneHeatmapData(input.projectId, input.from, input.to);
+      }),
+
+    getOccupancyStats: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        from: z.string().transform(s => new Date(s)),
+        to: z.string().transform(s => new Date(s)),
+      }))
+      .query(async ({ input }) => {
+        return getZoneOccupancyStats(input.projectId, input.from, input.to);
+      }),
+
+    getHourlyPattern: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        zoneId: z.number(),
+        from: z.string().transform(s => new Date(s)),
+        to: z.string().transform(s => new Date(s)),
+      }))
+      .query(async ({ input }) => {
+        return getHourlyOccupancyPattern(input.projectId, input.zoneId, input.from, input.to);
+      }),
+
+    getTransitions: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        from: z.string().transform(s => new Date(s)),
+        to: z.string().transform(s => new Date(s)),
+      }))
+      .query(async ({ input }) => {
+        return getZoneTransitions(input.projectId, input.from, input.to);
+      }),
+
+    // --- AI Space Optimization Report ---
+    generateOptimizationReport: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        from: z.string().transform(s => new Date(s)),
+        to: z.string().transform(s => new Date(s)),
+      }))
+      .mutation(async ({ input }) => {
+        const project = await getSpaceProject(input.projectId);
+        if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "프로젝트를 찾을 수 없습니다" });
+
+        const zones = await listSpaceZones(input.projectId);
+        const heatmap = await getZoneHeatmapData(input.projectId, input.from, input.to);
+        const transitions = await getZoneTransitions(input.projectId, input.from, input.to);
+
+        const zoneStats = zones.map(z => {
+          const heat = heatmap.find(h => h.zoneId === z.id);
+          return `${z.name}(${z.zoneType}, 수용${z.capacity ?? '미정'}명): 재실시간 ${heat?.totalMinutes ?? 0}분, 평균 ${heat?.avgOccupancy ?? 0}명, 최대 ${heat?.maxOccupancy ?? 0}명, 입장 ${heat?.totalEnters ?? 0}회`;
+        }).join("\n");
+
+        const transStr = transitions.slice(0, 20).map(t => {
+          const fromZ = zones.find(z => z.id === t.fromZoneId)?.name ?? `Zone${t.fromZoneId}`;
+          const toZ = zones.find(z => z.id === t.toZoneId)?.name ?? `Zone${t.toZoneId}`;
+          return `${fromZ} → ${toZ}: ${t.count}회 (평균 ${t.avgMinutes}분)`;
+        }).join("\n");
+
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `당신은 Data Driven Interior Architecture 전문가입니다. 재실센서 데이터를 분석하여 공간 활용도를 최적화하는 인사이트를 도출합니다. 결과를 JSON으로 반환하세요.`,
+            },
+            {
+              role: "user",
+              content: `프로젝트: ${project.name}\n위치: ${project.location ?? "미정"}\n면적: ${project.area ?? "미정"}\n\n구역별 재실 데이터:\n${zoneStats}\n\n동선 패턴 (상위 20개):\n${transStr}\n\n위 데이터를 기반으로:\n1. 비효율 구역 식별 (수용 대비 실제 사용률 낮은 곳)\n2. 과밀 구역 식별 (수용 초과 빈번한 곳)\n3. 동선 병목 구간 분석\n4. 공간 재배치 및 설계 개선 제안\n5. 에너지 절감 방안 (비사용 구역 조명/공조 제어)\n을 분석해주세요.`,
+            },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "space_optimization_report",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  summary: { type: "string", description: "분석 요약 (3-5문장)" },
+                  inefficientZones: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        zoneName: { type: "string" },
+                        issue: { type: "string" },
+                        suggestion: { type: "string" },
+                        priority: { type: "string", enum: ["high", "medium", "low"] },
+                      },
+                      required: ["zoneName", "issue", "suggestion", "priority"],
+                      additionalProperties: false,
+                    },
+                  },
+                  overcrowdedZones: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        zoneName: { type: "string" },
+                        issue: { type: "string" },
+                        suggestion: { type: "string" },
+                        priority: { type: "string", enum: ["high", "medium", "low"] },
+                      },
+                      required: ["zoneName", "issue", "suggestion", "priority"],
+                      additionalProperties: false,
+                    },
+                  },
+                  trafficBottlenecks: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        path: { type: "string" },
+                        issue: { type: "string" },
+                        suggestion: { type: "string" },
+                      },
+                      required: ["path", "issue", "suggestion"],
+                      additionalProperties: false,
+                    },
+                  },
+                  designRecommendations: {
+                    type: "array",
+                    items: { type: "string" },
+                  },
+                  energySavings: {
+                    type: "array",
+                    items: { type: "string" },
+                  },
+                },
+                required: ["summary", "inefficientZones", "overcrowdedZones", "trafficBottlenecks", "designRecommendations", "energySavings"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        const content = response.choices?.[0]?.message?.content as string;
+        const parsed = JSON.parse(content);
+
+        await createSpaceAnalysis({
+          projectId: input.projectId,
+          analysisType: "occupancy_pattern",
+          summary: parsed.summary,
+          dataJson: parsed,
+          recommendations: parsed.designRecommendations,
         });
 
         return parsed;

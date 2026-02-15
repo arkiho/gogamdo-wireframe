@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1783,4 +1783,165 @@ export async function getAnomalousDownloaders(opts: {
     .having(({ count: c }) => gte(c, opts.threshold));
 
   return byEmail;
+}
+
+// ========== DDIA: Space Zones ==========
+export async function createSpaceZone(data: InsertSpaceZone) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(spaceZones).values(data).$returningId();
+  return result;
+}
+
+export async function listSpaceZones(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(spaceZones).where(eq(spaceZones.projectId, projectId)).orderBy(spaceZones.name);
+}
+
+export async function updateSpaceZone(id: number, data: Partial<InsertSpaceZone>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(spaceZones).set(data).where(eq(spaceZones.id, id));
+}
+
+export async function deleteSpaceZone(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(spaceZones).where(eq(spaceZones.id, id));
+}
+
+// ========== DDIA: Occupancy Events ==========
+export async function addOccupancyEvent(data: InsertOccupancyEvent) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(occupancyEvents).values(data).$returningId();
+  return result;
+}
+
+export async function addOccupancyEventsBatch(rows: InsertOccupancyEvent[]) {
+  const db = await getDb();
+  if (!db) return;
+  if (rows.length === 0) return;
+  await db.insert(occupancyEvents).values(rows);
+}
+
+export async function getOccupancyEvents(projectId: number, from: Date, to: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(occupancyEvents)
+    .where(and(
+      eq(occupancyEvents.projectId, projectId),
+      gte(occupancyEvents.eventAt, from),
+      lte(occupancyEvents.eventAt, to),
+    ))
+    .orderBy(occupancyEvents.eventAt);
+}
+
+// ========== DDIA: Zone Occupancy Stats ==========
+export async function upsertZoneOccupancyStat(data: InsertZoneOccupancyStat) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(zoneOccupancyStats).values(data).$returningId();
+  return result;
+}
+
+export async function getZoneOccupancyStats(projectId: number, from: Date, to: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(zoneOccupancyStats)
+    .where(and(
+      eq(zoneOccupancyStats.projectId, projectId),
+      gte(zoneOccupancyStats.bucketHour, from),
+      lte(zoneOccupancyStats.bucketHour, to),
+    ))
+    .orderBy(zoneOccupancyStats.bucketHour);
+}
+
+export async function getZoneHeatmapData(projectId: number, from: Date, to: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  // 구역별 집계: 총 재실시간, 평균 재실인원, 입장횟수
+  return db.select({
+    zoneId: zoneOccupancyStats.zoneId,
+    totalMinutes: sql<number>`SUM(${zoneOccupancyStats.totalMinutesOccupied})`,
+    avgOccupancy: sql<number>`AVG(${zoneOccupancyStats.avgOccupancy})`,
+    maxOccupancy: sql<number>`MAX(${zoneOccupancyStats.maxOccupancy})`,
+    totalEnters: sql<number>`SUM(${zoneOccupancyStats.enterCount})`,
+    totalExits: sql<number>`SUM(${zoneOccupancyStats.exitCount})`,
+  }).from(zoneOccupancyStats)
+    .where(and(
+      eq(zoneOccupancyStats.projectId, projectId),
+      gte(zoneOccupancyStats.bucketHour, from),
+      lte(zoneOccupancyStats.bucketHour, to),
+    ))
+    .groupBy(zoneOccupancyStats.zoneId);
+}
+
+export async function getHourlyOccupancyPattern(projectId: number, zoneId: number, from: Date, to: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  const hourExpr = sql`HOUR(${zoneOccupancyStats.bucketHour})`;
+  return db.select({
+    hour: hourExpr.mapWith(Number).as("h"),
+    avgOccupancy: sql<number>`AVG(${zoneOccupancyStats.avgOccupancy})`,
+    maxOccupancy: sql<number>`MAX(${zoneOccupancyStats.maxOccupancy})`,
+    totalMinutes: sql<number>`SUM(${zoneOccupancyStats.totalMinutesOccupied})`,
+  }).from(zoneOccupancyStats)
+    .where(and(
+      eq(zoneOccupancyStats.projectId, projectId),
+      eq(zoneOccupancyStats.zoneId, zoneId),
+      gte(zoneOccupancyStats.bucketHour, from),
+      lte(zoneOccupancyStats.bucketHour, to),
+    ))
+    .groupBy(sql`h`)
+    .orderBy(sql`h`);
+}
+
+// 동선 분석: 구역 간 이동 패턴 (연속 이벤트 기반)
+export async function getZoneTransitions(projectId: number, from: Date, to: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  // 연속된 enter 이벤트를 기반으로 구역 간 이동 패턴 추출
+  const events = await db.select().from(occupancyEvents)
+    .where(and(
+      eq(occupancyEvents.projectId, projectId),
+      eq(occupancyEvents.eventType, "enter"),
+      gte(occupancyEvents.eventAt, from),
+      lte(occupancyEvents.eventAt, to),
+      isNotNull(occupancyEvents.zoneId),
+    ))
+    .orderBy(occupancyEvents.sensorId, occupancyEvents.eventAt);
+  
+  // 센서별로 그룹핑하여 연속 이동 추출
+  const transitions: { fromZoneId: number; toZoneId: number; count: number; avgMinutes: number }[] = [];
+  const transMap = new Map<string, { count: number; totalMs: number }>();
+  
+  let prevEvent: typeof events[0] | null = null;
+  for (const ev of events) {
+    if (prevEvent && prevEvent.sensorId === ev.sensorId && prevEvent.zoneId !== ev.zoneId) {
+      const timeDiff = new Date(ev.eventAt).getTime() - new Date(prevEvent.eventAt).getTime();
+      // 30분 이내 이동만 유효한 동선으로 간주
+      if (timeDiff > 0 && timeDiff < 30 * 60 * 1000) {
+        const key = `${prevEvent.zoneId}->${ev.zoneId}`;
+        const existing = transMap.get(key) || { count: 0, totalMs: 0 };
+        existing.count++;
+        existing.totalMs += timeDiff;
+        transMap.set(key, existing);
+      }
+    }
+    prevEvent = ev;
+  }
+  
+  for (const [key, val] of transMap) {
+    const [from, to] = key.split("->").map(Number);
+    transitions.push({
+      fromZoneId: from,
+      toZoneId: to,
+      count: val.count,
+      avgMinutes: Math.round(val.totalMs / val.count / 60000),
+    });
+  }
+  
+  return transitions.sort((a, b) => b.count - a.count);
 }

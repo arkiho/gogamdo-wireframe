@@ -14,6 +14,9 @@ import {
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { SensorFloorPlan } from "@/components/SensorFloorPlan";
+import { OccupancyHeatmap, type ZoneData, type HeatmapEntry } from "@/components/OccupancyHeatmap";
+import { TrafficFlowChart } from "@/components/TrafficFlowChart";
+import { Flame, Route } from "lucide-react";
 
 const SENSOR_TYPES = [
   { value: "temperature", label: "온도", icon: Thermometer, unit: "°C", color: "#ef4444" },
@@ -182,7 +185,9 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
     onSuccess: () => { analyses.refetch(); toast.success("AI 분석이 완료되었습니다"); },
   });
 
-  const [tab, setTab] = useState<"floorplan" | "sensors" | "data" | "analysis">("floorplan");
+  const [tab, setTab] = useState<"floorplan" | "sensors" | "data" | "heatmap" | "traffic" | "analysis">("floorplan");
+  const [heatmapRange, setHeatmapRange] = useState<"day" | "week" | "month">("week");
+  const [selectedHeatmapZone, setSelectedHeatmapZone] = useState<number | null>(null);
   const [placingType, setPlacingType] = useState<string | null>(null);
   const [placingZone, setPlacingZone] = useState("");
   const floorPlanRef = useRef<HTMLDivElement>(null);
@@ -264,6 +269,8 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
             { key: "floorplan", label: "평면도 & 센서", icon: MapPin },
             { key: "sensors", label: "센서 목록", icon: Settings },
             { key: "data", label: "실시간 데이터", icon: BarChart3 },
+            { key: "heatmap", label: "히트맵", icon: Flame },
+            { key: "traffic", label: "동선 분석", icon: Route },
             { key: "analysis", label: "AI 분석", icon: Brain },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as any)}
@@ -489,6 +496,48 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
           </div>
         )}
 
+        {/* Heatmap Tab */}
+        {tab === "heatmap" && (() => {
+          const now = new Date();
+          const from = new Date(now);
+          if (heatmapRange === "day") from.setDate(from.getDate() - 1);
+          else if (heatmapRange === "week") from.setDate(from.getDate() - 7);
+          else from.setMonth(from.getMonth() - 1);
+
+          return (
+            <HeatmapTab
+              projectId={projectId}
+              floorPlanUrl={p.floorPlanUrl}
+              heatmapRange={heatmapRange}
+              onHeatmapRangeChange={setHeatmapRange}
+              selectedHeatmapZone={selectedHeatmapZone}
+              onZoneClick={setSelectedHeatmapZone}
+              from={from}
+              to={now}
+            />
+          );
+        })()}
+
+        {/* Traffic Tab */}
+        {tab === "traffic" && (() => {
+          const now = new Date();
+          const from = new Date(now);
+          if (heatmapRange === "day") from.setDate(from.getDate() - 1);
+          else if (heatmapRange === "week") from.setDate(from.getDate() - 7);
+          else from.setMonth(from.getMonth() - 1);
+
+          return (
+            <TrafficTab
+              projectId={projectId}
+              heatmapRange={heatmapRange}
+              onHeatmapRangeChange={setHeatmapRange}
+              selectedHeatmapZone={selectedHeatmapZone}
+              from={from}
+              to={now}
+            />
+          );
+        })()}
+
         {/* Analysis Tab */}
         {tab === "analysis" && (
           <div className="space-y-6">
@@ -562,6 +611,169 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ========== Heatmap Tab Sub-Component ==========
+function HeatmapTab({
+  projectId,
+  floorPlanUrl,
+  heatmapRange,
+  onHeatmapRangeChange,
+  selectedHeatmapZone,
+  onZoneClick,
+  from,
+  to,
+}: {
+  projectId: number;
+  floorPlanUrl: string | null;
+  heatmapRange: "day" | "week" | "month";
+  onHeatmapRangeChange: (r: "day" | "week" | "month") => void;
+  selectedHeatmapZone: number | null;
+  onZoneClick: (id: number) => void;
+  from: Date;
+  to: Date;
+}) {
+  const zones = trpc.ddia.listZones.useQuery({ projectId });
+  const heatmap = trpc.ddia.getHeatmapData.useQuery({
+    projectId,
+    from: from.toISOString(),
+    to: to.toISOString(),
+  });
+
+  const zoneData: ZoneData[] = (zones.data || []).map((z: any) => ({
+    id: z.id,
+    name: z.name,
+    color: z.color || "#3b82f6",
+    polygon: z.polygon,
+    zoneType: z.zoneType || "office",
+    capacity: z.capacity,
+  }));
+
+  const heatmapEntries: HeatmapEntry[] = (heatmap.data || []).map((h: any) => ({
+    zoneId: h.zoneId,
+    totalMinutes: Number(h.totalMinutes) || 0,
+    avgOccupancy: Number(h.avgOccupancy) || 0,
+    maxOccupancy: Number(h.maxOccupancy) || 0,
+    totalEnters: Number(h.totalEnters) || 0,
+    totalExits: Number(h.totalExits) || 0,
+  }));
+
+  if (!floorPlanUrl) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="py-12 text-center">
+          <Flame className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground">히트맵을 표시하려면 먼저 평면도를 업로드하세요</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">평면도 & 센서 탭에서 평면도를 업로드할 수 있습니다</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <OccupancyHeatmap
+      floorPlanUrl={floorPlanUrl}
+      zones={zoneData}
+      heatmapData={heatmapEntries}
+      dateRange={heatmapRange}
+      onDateRangeChange={onHeatmapRangeChange}
+      onZoneClick={onZoneClick}
+    />
+  );
+}
+
+// ========== Traffic Tab Sub-Component ==========
+function TrafficTab({
+  projectId,
+  heatmapRange,
+  onHeatmapRangeChange,
+  selectedHeatmapZone,
+  from,
+  to,
+}: {
+  projectId: number;
+  heatmapRange: "day" | "week" | "month";
+  onHeatmapRangeChange: (r: "day" | "week" | "month") => void;
+  selectedHeatmapZone: number | null;
+  from: Date;
+  to: Date;
+}) {
+  const zones = trpc.ddia.listZones.useQuery({ projectId });
+  const transitions = trpc.ddia.getTransitions.useQuery({
+    projectId,
+    from: from.toISOString(),
+    to: to.toISOString(),
+  });
+
+  const hourlyData = trpc.ddia.getHourlyPattern.useQuery(
+    {
+      projectId,
+      zoneId: selectedHeatmapZone ?? 0,
+      from: from.toISOString(),
+      to: to.toISOString(),
+    },
+    { enabled: !!selectedHeatmapZone }
+  );
+
+  const zoneInfos = (zones.data || []).map((z: any) => ({
+    id: z.id,
+    name: z.name,
+    color: z.color || "#3b82f6",
+    zoneType: z.zoneType || "office",
+    polygon: z.polygon,
+  }));
+
+  const transData = (transitions.data || []).map((t: any) => ({
+    fromZoneId: t.fromZoneId,
+    toZoneId: t.toZoneId,
+    count: t.count,
+    avgMinutes: t.avgMinutes,
+  }));
+
+  const selectedZoneName = selectedHeatmapZone
+    ? zoneInfos.find((z: any) => z.id === selectedHeatmapZone)?.name
+    : undefined;
+
+  return (
+    <div className="space-y-4">
+      {/* 기간 필터 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Route className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">분석 기간</span>
+        </div>
+        <div className="flex gap-1">
+          {([
+            { key: "day", label: "일간" },
+            { key: "week", label: "주간" },
+            { key: "month", label: "월간" },
+          ] as const).map(opt => (
+            <Button
+              key={opt.key}
+              variant={heatmapRange === opt.key ? "default" : "outline"}
+              size="sm"
+              className={heatmapRange === opt.key ? "bg-gold text-ink hover:bg-gold/90" : ""}
+              onClick={() => onHeatmapRangeChange(opt.key)}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <TrafficFlowChart
+        zones={zoneInfos}
+        transitions={transData}
+        hourlyData={hourlyData.data?.map((h: any) => ({
+          hour: h.hour,
+          avgOccupancy: Number(h.avgOccupancy) || 0,
+          maxOccupancy: Number(h.maxOccupancy) || 0,
+          totalMinutes: Number(h.totalMinutes) || 0,
+        }))}
+        selectedZoneName={selectedZoneName}
+      />
     </div>
   );
 }
