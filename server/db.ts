@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1054,4 +1054,66 @@ export async function updateDetailedEstimate(id: number, data: Partial<InsertDet
   if (!db) throw new Error("Database not available");
   await db.update(detailedEstimates).set(data as any).where(eq(detailedEstimates.id, id));
   return { success: true };
+}
+
+// ============================================================
+// 포트폴리오 담당자 리뷰 (Portfolio Reviews)
+// ============================================================
+
+export async function createPortfolioReview(data: Partial<InsertPortfolioReview>) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(portfolioReviews).values(data as any);
+  return result[0].insertId;
+}
+
+export async function listPortfolioReviews(portfolioId?: number, status?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [];
+  if (portfolioId) conditions.push(eq(portfolioReviews.portfolioId, portfolioId));
+  if (status) conditions.push(eq(portfolioReviews.status, status as any));
+  if (conditions.length > 0) {
+    return db.select().from(portfolioReviews).where(and(...conditions)).orderBy(desc(portfolioReviews.createdAt));
+  }
+  return db.select().from(portfolioReviews).orderBy(desc(portfolioReviews.createdAt));
+}
+
+export async function getPortfolioReview(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(portfolioReviews).where(eq(portfolioReviews.id, id));
+  return rows[0] || null;
+}
+
+export async function getPortfolioReviewByToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(portfolioReviews).where(eq(portfolioReviews.accessToken, token));
+  return rows[0] || null;
+}
+
+export async function updatePortfolioReview(id: number, data: Partial<InsertPortfolioReview>) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(portfolioReviews).set(data as any).where(eq(portfolioReviews.id, id));
+  return true;
+}
+
+export async function deletePortfolioReview(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(portfolioReviews).where(eq(portfolioReviews.id, id));
+  return true;
+}
+
+export async function getApprovedReviewsForPortfolio(portfolioId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(portfolioReviews)
+    .where(and(
+      eq(portfolioReviews.portfolioId, portfolioId),
+      eq(portfolioReviews.status, "approved")
+    ))
+    .orderBy(desc(portfolioReviews.approvedAt));
 }

@@ -27,6 +27,7 @@ import {
   listCrmActivities, createCrmActivity, getCrmStats,
   createPopup, listPopups, getActivePopups, updatePopup, deletePopup,
   createNotification, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification,
+  createPortfolioReview, listPortfolioReviews, getPortfolioReview, getPortfolioReviewByToken, updatePortfolioReview, deletePortfolioReview, getApprovedReviewsForPortfolio,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
@@ -895,6 +896,143 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
           await updateDraftImage(input.imageId, { processingStatus: "error" });
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "이미지 처리 실패" });
         }
+      }),
+  }),
+
+  // ===== 포트폴리오 담당자 리뷰 (Portfolio Reviews) =====
+  portfolioReview: router({
+    // 공개: 승인된 리뷰 조회 (포트폴리오 상세 페이지에서 사용)
+    approved: publicProcedure
+      .input(z.object({ portfolioId: z.number() }))
+      .query(async ({ input }) => {
+        return getApprovedReviewsForPortfolio(input.portfolioId);
+      }),
+
+    // 공개: 토큰으로 리뷰 정보 조회 (담당자 리뷰 작성 페이지)
+    getByToken: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const review = await getPortfolioReviewByToken(input.token);
+        if (!review) throw new TRPCError({ code: "NOT_FOUND", message: "리뷰 요청을 찾을 수 없습니다." });
+        // 토큰 만료 확인
+        if (review.tokenExpiresAt && new Date(review.tokenExpiresAt) < new Date()) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "리뷰 작성 기간이 만료되었습니다. 관리자에게 문의해주세요." });
+        }
+        // 포트폴리오 정보도 함께 반환
+        const portfolio = await getPortfolioDraft(review.portfolioId);
+        return { review, portfolio };
+      }),
+
+    // 공개: 담당자가 토큰으로 리뷰 작성/수정
+    submit: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        reviewerName: z.string().min(1),
+        reviewerTitle: z.string().optional(),
+        reviewerCompany: z.string().optional(),
+        rating: z.number().min(1).max(5),
+        title: z.string().optional(),
+        content: z.string().min(10),
+        highlights: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const review = await getPortfolioReviewByToken(input.token);
+        if (!review) throw new TRPCError({ code: "NOT_FOUND", message: "리뷰 요청을 찾을 수 없습니다." });
+        if (review.tokenExpiresAt && new Date(review.tokenExpiresAt) < new Date()) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "리뷰 작성 기간이 만료되었습니다." });
+        }
+        if (review.status === "approved") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "이미 승인된 리뷰는 수정할 수 없습니다." });
+        }
+        const { token, ...data } = input;
+        await updatePortfolioReview(review.id, {
+          ...data,
+          status: "submitted",
+          submittedAt: new Date(),
+        } as any);
+        // 관리자 알림
+        await notifyOwner({
+          title: "포트폴리오 리뷰 접수",
+          content: `${input.reviewerName}님이 리뷰를 작성했습니다. 관리자 대시보드에서 승인해주세요.`,
+        });
+        await createNotification({
+          type: "system",
+          title: "포트폴리오 리뷰 접수",
+          message: `${input.reviewerName}님이 리뷰를 작성했습니다. 승인 대기 중입니다.`,
+          linkUrl: "/admin",
+        });
+        return { success: true };
+      }),
+
+    // 관리자: 리뷰 요청 생성 (토큰 발급)
+    create: adminProcedure
+      .input(z.object({
+        portfolioId: z.number(),
+        reviewerName: z.string().min(1),
+        reviewerEmail: z.string().optional(),
+        reviewerPhone: z.string().optional(),
+        reviewerCompany: z.string().optional(),
+        reviewerTitle: z.string().optional(),
+        expiresInDays: z.number().default(30),
+      }))
+      .mutation(async ({ input }) => {
+        // 고유 토큰 생성
+        const crypto = await import("crypto");
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + input.expiresInDays);
+        const id = await createPortfolioReview({
+          portfolioId: input.portfolioId,
+          reviewerName: input.reviewerName,
+          reviewerEmail: input.reviewerEmail || undefined,
+          reviewerPhone: input.reviewerPhone || undefined,
+          reviewerCompany: input.reviewerCompany || undefined,
+          reviewerTitle: input.reviewerTitle || undefined,
+          accessToken: token,
+          tokenExpiresAt: expiresAt,
+          status: "pending",
+        });
+        return { id, token };
+      }),
+
+    // 관리자: 리뷰 목록 (전체 또는 포트폴리오별)
+    list: adminProcedure
+      .input(z.object({
+        portfolioId: z.number().optional(),
+        status: z.string().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return listPortfolioReviews(input?.portfolioId, input?.status);
+      }),
+
+    // 관리자: 리뷰 승인
+    approve: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await updatePortfolioReview(input.id, {
+          status: "approved",
+          approvedAt: new Date(),
+        } as any);
+        return { success: true };
+      }),
+
+    // 관리자: 리뷰 거절
+    reject: adminProcedure
+      .input(z.object({ id: z.number(), adminNote: z.string().optional() }))
+      .mutation(async ({ input }) => {
+        await updatePortfolioReview(input.id, {
+          status: "rejected",
+          adminNote: input.adminNote || undefined,
+        } as any);
+        return { success: true };
+      }),
+
+    // 관리자: 리뷰 삭제
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deletePortfolioReview(input.id);
+        return { success: true };
       }),
   }),
 

@@ -78,6 +78,13 @@
       "when": 1771120602303,
       "tag": "0010_mighty_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1771123213141,
+      "tag": "0011_huge_sue_storm",
+      "breakpoints": true
     }
   ]
 }

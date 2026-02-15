@@ -751,3 +751,43 @@ export const detailedEstimates = mysqlTable("detailed_estimates", {
 
 export type DetailedEstimate = typeof detailedEstimates.$inferSelect;
 export type InsertDetailedEstimate = typeof detailedEstimates.$inferInsert;
+
+/**
+ * 포트폴리오 담당자 리뷰(Portfolio Reviews)
+ * 프로젝트 담당자가 토큰 기반으로 접근하여 리뷰를 작성하고, 관리자가 승인하면 공개됨
+ * 흐름: 관리자가 리뷰 요청 생성(토큰 발급) → 담당자에게 링크 전달 → 담당자 리뷰 작성 → 관리자 승인 → 공개
+ */
+export const portfolioReviews = mysqlTable("portfolio_reviews", {
+  id: int("id").autoincrement().primaryKey(),
+  portfolioId: int("portfolioId").notNull(), // portfolioDrafts.id
+  
+  // 담당자 정보
+  reviewerName: varchar("reviewerName", { length: 100 }).notNull(),
+  reviewerTitle: varchar("reviewerTitle", { length: 100 }), // 직책
+  reviewerCompany: varchar("reviewerCompany", { length: 200 }), // 회사명
+  reviewerEmail: varchar("reviewerEmail", { length: 320 }),
+  reviewerPhone: varchar("reviewerPhone", { length: 30 }),
+  reviewerPhotoUrl: text("reviewerPhotoUrl"), // 프로필 사진
+  
+  // 리뷰 내용
+  rating: int("rating"), // 1~5점
+  title: varchar("title", { length: 300 }), // 리뷰 제목
+  content: text("content"), // 리뷰 본문
+  highlights: json("highlights").$type<string[]>(), // 특히 좋았던 점 (태그형)
+  
+  // 토큰 기반 접근
+  accessToken: varchar("accessToken", { length: 64 }).notNull().unique(), // 담당자 접근용 고유 토큰
+  tokenExpiresAt: timestamp("tokenExpiresAt"), // 토큰 만료일
+  
+  // 승인 관리
+  status: mysqlEnum("status", ["pending", "submitted", "approved", "rejected"]).default("pending").notNull(),
+  adminNote: text("adminNote"), // 관리자 메모 (거절 사유 등)
+  approvedAt: timestamp("approvedAt"),
+  submittedAt: timestamp("submittedAt"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PortfolioReview = typeof portfolioReviews.$inferSelect;
+export type InsertPortfolioReview = typeof portfolioReviews.$inferInsert;

@@ -9,7 +9,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, ArrowUpRight, MapPin, Calendar, Ruler, Building2, Clock,
-  SplitSquareHorizontal, Grid3X3, X,
+  SplitSquareHorizontal, Grid3X3, X, Star, MessageSquare, Quote,
 } from "lucide-react";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 
@@ -325,6 +325,9 @@ export default function PortfolioDbDetail() {
         </div>
       )}
 
+      {/* Client Review Section */}
+      <ReviewSection portfolioId={id} />
+
       {/* CTA */}
       <section className="py-20 lg:py-28 bg-ink text-white">
         <div className="container text-center">
@@ -352,5 +355,124 @@ export default function PortfolioDbDetail() {
         </div>
       </section>
     </>
+  );
+}
+
+/**
+ * 담당자 리뷰 섹션 - 승인된 리뷰만 표시
+ */
+function ReviewSection({ portfolioId }: { portfolioId: number }) {
+  const { data: reviews, isLoading } = trpc.portfolioReview.approved.useQuery(
+    { portfolioId },
+    { enabled: portfolioId > 0 }
+  );
+
+  // 리뷰가 없으면 "아직 리뷰가 없습니다" 표시
+  return (
+    <section className="py-16 lg:py-24">
+      <div className="container">
+        <FadeUp>
+          <div className="flex items-center gap-3 mb-2">
+            <MessageSquare className="w-5 h-5 text-gold" />
+            <p className="text-xs font-medium tracking-widest uppercase text-gold">
+              Client Review
+            </p>
+          </div>
+          <h2 className="font-heading text-2xl lg:text-4xl font-bold text-ink mb-4">
+            담당자 리뷰
+          </h2>
+          <p className="text-muted-foreground mb-10 max-w-lg">
+            프로젝트를 함께한 담당자분의 솔직한 후기입니다.
+          </p>
+        </FadeUp>
+
+        {isLoading ? (
+          <div className="animate-pulse space-y-4">
+            <div className="h-32 bg-ink/5 rounded" />
+          </div>
+        ) : !reviews || reviews.length === 0 ? (
+          <FadeUp delay={0.1}>
+            <div className="bg-paper-warm border border-border/30 p-10 text-center">
+              <MessageSquare className="w-10 h-10 text-muted-foreground/20 mx-auto mb-4" />
+              <p className="text-muted-foreground text-sm">
+                아직 리뷰가 없습니다.
+              </p>
+            </div>
+          </FadeUp>
+        ) : (
+          <div className="space-y-6">
+            {reviews.map((review: any, i: number) => (
+              <FadeUp key={review.id} delay={i * 0.1}>
+                <div className="bg-white border border-border/30 p-6 lg:p-8 relative">
+                  {/* Quote icon */}
+                  <Quote className="absolute top-6 right-6 w-8 h-8 text-gold/10" />
+
+                  {/* Rating */}
+                  {review.rating && (
+                    <div className="flex items-center gap-1 mb-4">
+                      {[1, 2, 3, 4, 5].map((s: number) => (
+                        <Star
+                          key={s}
+                          className={`w-5 h-5 ${
+                            s <= review.rating
+                              ? "fill-gold text-gold"
+                              : "fill-transparent text-ink/15"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Title */}
+                  {review.title && (
+                    <h3 className="font-heading text-lg font-bold text-ink mb-3">
+                      "{review.title}"
+                    </h3>
+                  )}
+
+                  {/* Content */}
+                  <p className="text-ink/70 leading-relaxed mb-4">
+                    {review.content}
+                  </p>
+
+                  {/* Highlights */}
+                  {review.highlights && (review.highlights as string[]).length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {(review.highlights as string[]).map((h: string) => (
+                        <span
+                          key={h}
+                          className="px-2.5 py-1 text-xs font-medium bg-gold/10 text-gold border border-gold/20"
+                        >
+                          {h}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reviewer info */}
+                  <div className="flex items-center gap-3 pt-4 border-t border-border/30">
+                    <div className="w-10 h-10 bg-gold/10 rounded-full flex items-center justify-center">
+                      <span className="text-gold font-bold text-sm">
+                        {review.reviewerName?.charAt(0)}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-ink text-sm">
+                        {review.reviewerName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {[review.reviewerTitle, review.reviewerCompany]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </FadeUp>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

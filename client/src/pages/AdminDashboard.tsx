@@ -310,6 +310,22 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
+            {/* 리뷰 관리 바로가기 */}
+            <Card className="border-purple-300/30 bg-gradient-to-r from-purple-50/50 to-transparent cursor-pointer hover:border-purple-400/50 transition-colors" onClick={() => navigate("/admin/reviews")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <MessageSquare className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">포트폴리오 리뷰</h3>
+                    <p className="text-xs text-muted-foreground">담당자 리뷰 요청 생성, 승인/거절 관리</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
             {/* CRM 바로가기 */}
             <Card className="border-blue-300/30 bg-gradient-to-r from-blue-50/50 to-transparent cursor-pointer hover:border-blue-400/50 transition-colors" onClick={() => navigate("/admin/crm")}>
               <CardContent className="py-6 flex items-center justify-between">

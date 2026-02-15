@@ -19,6 +19,8 @@ import AdminPortfolioDetail from "./pages/AdminPortfolioDetail";
 import AdminDDIA from "./pages/AdminDDIA";
 import AdminCRM from "./pages/AdminCRM";
 import AdminDesignAuto from "./pages/AdminDesignAuto";
+import AdminReviews from "./pages/AdminReviews";
+import ReviewWrite from "./pages/ReviewWrite";
 import Resources from "./pages/Resources";
 import AIChat from "./pages/AIChat";
 import AIStyle from "./pages/AIStyle";
@@ -35,6 +37,7 @@ function PublicRouter() {
         <Route path="/solutions" component={Solutions} />
         <Route path="/portfolio" component={Portfolio} />
         <Route path="/portfolio/p/:id" component={PortfolioDbDetail} />
+        <Route path="/review/:token" component={ReviewWrite} />
         <Route path="/portfolio/:slug" component={ProjectDetail} />
         <Route path="/estimator" component={Estimator} />
         <Route path="/insights" component={Insights} />
@@ -59,6 +62,7 @@ function Router() {
       <Route path="/admin/ddia" component={AdminDDIA} />
       <Route path="/admin/crm" component={AdminCRM} />
       <Route path="/admin/design-auto" component={AdminDesignAuto} />
+      <Route path="/admin/reviews" component={AdminReviews} />
       <Route component={PublicRouter} />
     </Switch>
   );
