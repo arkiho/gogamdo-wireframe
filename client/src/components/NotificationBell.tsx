@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
-import { Bell, Check, CheckCheck, Clock, FileText, AlertTriangle, Users, Calendar, MessageSquare, Info } from "lucide-react";
+import { Bell, Check, CheckCheck, Clock, FileText, AlertTriangle, Users, Calendar, MessageSquare, Info, Settings, Volume2, VolumeX, BellRing, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
@@ -31,13 +31,75 @@ function timeAgo(dateStr: string | Date) {
   return date.toLocaleDateString("ko-KR");
 }
 
+// 알림 설정 로컬 스토리지 관리
+function getNotifSettings() {
+  try {
+    const stored = localStorage.getItem("ops_notif_settings");
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return { browserNotif: true, sound: true };
+}
+
+function setNotifSettings(settings: { browserNotif: boolean; sound: boolean }) {
+  localStorage.setItem("ops_notif_settings", JSON.stringify(settings));
+}
+
+// 알림 사운드 재생 (Web Audio API)
+function playNotificationSound() {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+    oscillator.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    oscillator.start(audioCtx.currentTime);
+    oscillator.stop(audioCtx.currentTime + 0.3);
+  } catch {}
+}
+
+// 브라우저 Notification API 권한 요청
+async function requestNotificationPermission(): Promise<boolean> {
+  if (!("Notification" in window)) return false;
+  if (Notification.permission === "granted") return true;
+  if (Notification.permission === "denied") return false;
+  const result = await Notification.requestPermission();
+  return result === "granted";
+}
+
+// 브라우저 알림 표시
+function showBrowserNotification(title: string, body: string, link?: string) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const notification = new Notification(title, {
+    body,
+    icon: "/favicon.ico",
+    badge: "/favicon.ico",
+    tag: "ops-notification",
+    renotify: true,
+  });
+  if (link) {
+    notification.onclick = () => {
+      window.focus();
+      window.location.hash = link;
+      notification.close();
+    };
+  }
+  setTimeout(() => notification.close(), 8000);
+}
+
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState(getNotifSettings);
   const ref = useRef<HTMLDivElement>(null);
+  const prevCountRef = useRef<number>(0);
   const [, navigate] = useLocation();
 
   const unreadCount = trpc.ops.notification.unreadCount.useQuery(undefined, {
-    refetchInterval: 30000, // 30초마다 갱신
+    refetchInterval: 15000, // 15초마다 갱신 (30초에서 단축)
   });
   const notifications = trpc.ops.notification.list.useQuery(
     { limit: 20 },
@@ -56,15 +118,49 @@ export default function NotificationBell() {
     },
   });
 
+  // 새 알림 감지 시 브라우저 알림 + 사운드
+  useEffect(() => {
+    const currentCount = unreadCount.data ?? 0;
+    if (currentCount > prevCountRef.current && prevCountRef.current >= 0) {
+      // 새 알림이 도착한 경우
+      if (settings.sound) {
+        playNotificationSound();
+      }
+      if (settings.browserNotif) {
+        showBrowserNotification(
+          "고감도 OpsX",
+          `새로운 알림이 ${currentCount - prevCountRef.current}건 도착했습니다.`
+        );
+      }
+    }
+    prevCountRef.current = currentCount;
+  }, [unreadCount.data, settings.sound, settings.browserNotif]);
+
+  // 브라우저 알림 권한 요청 (설정 ON 시)
+  useEffect(() => {
+    if (settings.browserNotif) {
+      requestNotificationPermission();
+    }
+  }, [settings.browserNotif]);
+
   // 외부 클릭 시 닫기
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
+        setShowSettings(false);
       }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const toggleSetting = useCallback((key: "browserNotif" | "sound") => {
+    setSettings((prev: { browserNotif: boolean; sound: boolean }) => {
+      const next = { ...prev, [key]: !prev[key] };
+      setNotifSettings(next);
+      return next;
+    });
   }, []);
 
   const count = unreadCount.data ?? 0;
@@ -75,9 +171,9 @@ export default function NotificationBell() {
         variant="ghost"
         size="icon"
         className="relative"
-        onClick={() => setOpen(!open)}
+        onClick={() => { setOpen(!open); setShowSettings(false); }}
       >
-        <Bell className="h-5 w-5" />
+        <Bell className={`h-5 w-5 ${count > 0 ? "animate-[ring_0.5s_ease-in-out]" : ""}`} />
         {count > 0 && (
           <Badge
             className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-[10px] bg-red-500 text-white border-0"
@@ -88,22 +184,69 @@ export default function NotificationBell() {
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-96 max-h-[480px] bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-h-[480px] bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
             <h3 className="font-semibold text-sm">알림</h3>
-            {count > 0 && (
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-xs h-7"
-                onClick={() => markAllRead.mutate()}
+                className="text-xs h-7 w-7 p-0"
+                onClick={() => setShowSettings(!showSettings)}
+                title="알림 설정"
               >
-                <CheckCheck className="h-3.5 w-3.5 mr-1" />
-                모두 읽음
+                <Settings className="h-3.5 w-3.5" />
               </Button>
-            )}
+              {count > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => markAllRead.mutate()}
+                >
+                  <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                  모두 읽음
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Settings Panel */}
+          {showSettings && (
+            <div className="px-4 py-3 border-b border-border bg-muted/30 space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">알림 설정</p>
+              <button
+                className="flex items-center justify-between w-full text-sm py-1.5"
+                onClick={() => toggleSetting("browserNotif")}
+              >
+                <span className="flex items-center gap-2">
+                  {settings.browserNotif ? <BellRing className="w-4 h-4 text-blue-500" /> : <BellOff className="w-4 h-4 text-muted-foreground" />}
+                  브라우저 알림
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${settings.browserNotif ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>
+                  {settings.browserNotif ? "ON" : "OFF"}
+                </span>
+              </button>
+              <button
+                className="flex items-center justify-between w-full text-sm py-1.5"
+                onClick={() => toggleSetting("sound")}
+              >
+                <span className="flex items-center gap-2">
+                  {settings.sound ? <Volume2 className="w-4 h-4 text-green-500" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
+                  알림 사운드
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${settings.sound ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                  {settings.sound ? "ON" : "OFF"}
+                </span>
+              </button>
+              {("Notification" in window) && Notification.permission === "denied" && settings.browserNotif && (
+                <p className="text-[10px] text-red-500 mt-1">
+                  브라우저 알림이 차단되어 있습니다. 브라우저 설정에서 알림을 허용해주세요.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* List */}
           <div className="overflow-y-auto max-h-[400px]">

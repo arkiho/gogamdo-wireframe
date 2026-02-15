@@ -13,6 +13,7 @@ import { useState } from "react";
 import {
   FolderKanban, Plus, Building2, MapPin, Calendar,
   TrendingUp, ClipboardList, Receipt, Clock,
+  Banknote, CheckCircle2, Activity, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import NotificationBell from "@/components/NotificationBell";
@@ -28,6 +29,12 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   warranty: { label: "하자보수", color: "bg-orange-100 text-orange-700" },
   closed: { label: "종료", color: "bg-gray-100 text-gray-500" },
 };
+
+function formatAmount(amount: number): string {
+  if (amount >= 100000000) return `${(amount / 100000000).toFixed(1)}억`;
+  if (amount >= 10000) return `${Math.round(amount / 10000).toLocaleString()}만`;
+  return amount.toLocaleString();
+}
 
 export default function OpsHome() {
   const { user } = useAuth();
@@ -68,6 +75,8 @@ export default function OpsHome() {
       siteAddress: form.siteAddress || undefined,
     });
   };
+
+  const avgProgress = stats.data?.avgScheduleProgress ?? 0;
 
   return (
     <div className="space-y-6">
@@ -162,10 +171,10 @@ export default function OpsHome() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Primary Stats Cards - 핵심 4개 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-50 rounded-lg"><FolderKanban className="w-5 h-5 text-blue-600" /></div>
               <div>
@@ -176,7 +185,7 @@ export default function OpsHome() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-50 rounded-lg"><TrendingUp className="w-5 h-5 text-amber-600" /></div>
               <div>
@@ -187,24 +196,77 @@ export default function OpsHome() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-50 rounded-lg"><Receipt className="w-5 h-5 text-green-600" /></div>
-              <div>
-                <p className="text-2xl font-bold">{stats.data?.totalExpenses ?? 0}</p>
-                <p className="text-xs text-muted-foreground">지출결의서</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-50 rounded-lg"><Clock className="w-5 h-5 text-red-600" /></div>
               <div>
                 <p className="text-2xl font-bold">{stats.data?.pendingApprovals ?? 0}</p>
                 <p className="text-xs text-muted-foreground">결재 대기</p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-50 rounded-lg"><CheckCircle2 className="w-5 h-5 text-green-600" /></div>
+              <div>
+                <p className="text-2xl font-bold">{stats.data?.completedProjects ?? 0}</p>
+                <p className="text-xs text-muted-foreground">완료</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary Stats - 재무 + 진행률 */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-blue-600 font-medium mb-1">총 계약금액</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-900">
+                  {formatAmount(stats.data?.totalContractAmount ?? 0)}
+                  <span className="text-sm font-normal text-blue-600/70 ml-0.5">원</span>
+                </p>
+              </div>
+              <div className="p-2.5 bg-blue-100 rounded-xl"><Banknote className="w-5 h-5 text-blue-600" /></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-amber-600 font-medium mb-1">이번달 지출</p>
+                <p className="text-xl sm:text-2xl font-bold text-amber-900">
+                  {formatAmount(stats.data?.monthlyExpenseAmount ?? 0)}
+                  <span className="text-sm font-normal text-amber-600/70 ml-0.5">원</span>
+                </p>
+                <p className="text-[10px] text-amber-600/60 mt-0.5">결의서 {stats.data?.totalExpenses ?? 0}건</p>
+              </div>
+              <div className="p-2.5 bg-amber-100 rounded-xl"><Wallet className="w-5 h-5 text-amber-600" /></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-emerald-600 font-medium mb-1">평균 공정 진행률</p>
+                <p className="text-xl sm:text-2xl font-bold text-emerald-900">
+                  {avgProgress}
+                  <span className="text-sm font-normal text-emerald-600/70 ml-0.5">%</span>
+                </p>
+                <div className="w-24 bg-emerald-200 rounded-full h-1.5 mt-2">
+                  <div
+                    className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(avgProgress, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <div className="p-2.5 bg-emerald-100 rounded-xl"><Activity className="w-5 h-5 text-emerald-600" /></div>
             </div>
           </CardContent>
         </Card>

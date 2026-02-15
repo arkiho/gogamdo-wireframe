@@ -226,12 +226,31 @@ function OverviewTab({ projectId }: { projectId: string }) {
   const schedules = trpc.ops.schedule.list.useQuery({ projectId });
   const expenses = trpc.ops.expense.list.useQuery({ projectId });
   const subs = trpc.ops.subcontractor.list.useQuery({ projectId });
+  const costs = trpc.ops.charts.costExecution.useQuery({ projectId: Number(projectId) });
+  const project = trpc.ops.project.get.useQuery({ id: Number(projectId) });
 
   const totalSchedules = schedules.data?.length ?? 0;
   const completedSchedules = schedules.data?.filter(s => s.progress === 100).length ?? 0;
+  const avgProgress = totalSchedules > 0
+    ? Math.round((schedules.data?.reduce((sum, s) => sum + (s.progress ?? 0), 0) ?? 0) / totalSchedules)
+    : 0;
   const totalExpenseAmount = expenses.data?.reduce((sum, e) => sum + Number(e.amount), 0) ?? 0;
   const pendingExpenses = expenses.data?.filter(e => e.approvalStatus === "pending").length ?? 0;
   const activeSubs = subs.data?.filter(s => s.status === "active").length ?? 0;
+
+  // 예산 소진율 계산
+  const totalBudget = costs.data?.reduce((sum, c) => sum + Number(c.budget), 0) ?? 0;
+  const totalActual = costs.data?.reduce((sum, c) => sum + Number(c.actual), 0) ?? 0;
+  const budgetRate = totalBudget > 0 ? Math.round((totalActual / totalBudget) * 100) : 0;
+
+  // 일정 준수율 (완료된 공정 중 지연 없이 완료된 비율)
+  const delayedSchedules = schedules.data?.filter(s => s.status === "delayed").length ?? 0;
+  const scheduleComplianceRate = totalSchedules > 0
+    ? Math.round(((totalSchedules - delayedSchedules) / totalSchedules) * 100)
+    : 100;
+
+  const contractAmount = Number(project.data?.contractAmount ?? 0);
+  const contractUsageRate = contractAmount > 0 ? Math.round((totalExpenseAmount / contractAmount) * 100) : 0;
 
   const pid = Number(projectId);
 
@@ -267,6 +286,67 @@ function OverviewTab({ projectId }: { projectId: string }) {
           <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
             <p className="text-[10px] sm:text-xs text-muted-foreground">하도급 업체</p>
             <p className="text-lg sm:text-xl font-bold">{activeSubs}개사</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gauge Cards - 예산 소진율 + 일정 준수율 + 평균 진행률 */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card className={`border-l-4 ${budgetRate > 90 ? 'border-l-red-500' : budgetRate > 70 ? 'border-l-amber-500' : 'border-l-blue-500'}`}>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-muted-foreground">예산 소진율</p>
+              <span className={`text-lg font-bold ${budgetRate > 90 ? 'text-red-600' : budgetRate > 70 ? 'text-amber-600' : 'text-blue-600'}`}>
+                {budgetRate}%
+              </span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all duration-500 ${budgetRate > 90 ? 'bg-red-500' : budgetRate > 70 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                style={{ width: `${Math.min(budgetRate, 100)}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              실적 {totalActual.toLocaleString()}원 / 예산 {totalBudget.toLocaleString()}원
+            </p>
+          </CardContent>
+        </Card>
+        <Card className={`border-l-4 ${scheduleComplianceRate >= 90 ? 'border-l-green-500' : scheduleComplianceRate >= 70 ? 'border-l-amber-500' : 'border-l-red-500'}`}>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-muted-foreground">일정 준수율</p>
+              <span className={`text-lg font-bold ${scheduleComplianceRate >= 90 ? 'text-green-600' : scheduleComplianceRate >= 70 ? 'text-amber-600' : 'text-red-600'}`}>
+                {scheduleComplianceRate}%
+              </span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all duration-500 ${scheduleComplianceRate >= 90 ? 'bg-green-500' : scheduleComplianceRate >= 70 ? 'bg-amber-500' : 'bg-red-500'}`}
+                style={{ width: `${scheduleComplianceRate}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              지연 {delayedSchedules}건 / 전체 {totalSchedules}건
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-muted-foreground">평균 진행률</p>
+              <span className="text-lg font-bold text-emerald-600">{avgProgress}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div
+                className="h-2 rounded-full bg-emerald-500 transition-all duration-500"
+                style={{ width: `${Math.min(avgProgress, 100)}%` }}
+              />
+            </div>
+            {contractAmount > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                계약금액 대비 지출 {contractUsageRate}%
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

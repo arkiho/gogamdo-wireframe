@@ -582,7 +582,7 @@ export async function notifyAdminsAndPMs(data: Omit<InsertOpsNotification, "reci
 // ============ STATS ============
 export async function getOpsStats() {
   const db = await getDb();
-  if (!db) return { totalProjects: 0, activeProjects: 0, totalExpenses: 0, pendingApprovals: 0 };
+  if (!db) return { totalProjects: 0, activeProjects: 0, totalExpenses: 0, pendingApprovals: 0, totalContractAmount: 0, monthlyExpenseAmount: 0, avgScheduleProgress: 0, completedProjects: 0 };
   
   const [projectCount] = await db.select({ count: sql<number>`count(*)` }).from(opsProjects);
   const [activeCount] = await db.select({ count: sql<number>`count(*)` }).from(opsProjects)
@@ -591,11 +591,35 @@ export async function getOpsStats() {
   const [pendingCount] = await db.select({ count: sql<number>`count(*)` }).from(opsExpenses)
     .where(eq(opsExpenses.status, "submitted"));
   
+  // 총 계약금액
+  const [contractSum] = await db.select({
+    total: sql<number>`COALESCE(SUM(CAST(contractAmount AS SIGNED)), 0)`,
+  }).from(opsProjects);
+  
+  // 이번달 지출 합계
+  const [monthlyExpense] = await db.select({
+    total: sql<number>`COALESCE(SUM(CAST(totalAmount AS SIGNED)), 0)`,
+  }).from(opsExpenses)
+    .where(sql`YEAR(createdAt) = YEAR(NOW()) AND MONTH(createdAt) = MONTH(NOW())`);
+  
+  // 평균 공정 진행률 (전체 활성 프로젝트)
+  const [avgProgress] = await db.select({
+    avg: sql<number>`COALESCE(AVG(progress), 0)`,
+  }).from(opsScheduleItems);
+  
+  // 완료 프로젝트 수
+  const [completedCount] = await db.select({ count: sql<number>`count(*)` }).from(opsProjects)
+    .where(eq(opsProjects.status, "completed"));
+  
   return {
     totalProjects: projectCount?.count ?? 0,
     activeProjects: activeCount?.count ?? 0,
     totalExpenses: expenseCount?.count ?? 0,
     pendingApprovals: pendingCount?.count ?? 0,
+    totalContractAmount: contractSum?.total ?? 0,
+    monthlyExpenseAmount: monthlyExpense?.total ?? 0,
+    avgScheduleProgress: Math.round(avgProgress?.avg ?? 0),
+    completedProjects: completedCount?.count ?? 0,
   };
 }
 
@@ -722,6 +746,8 @@ export async function getSubEvaluationSummary(subcontractorId: number) {
     return Number((sum / evals.length).toFixed(1));
   };
 
+  const recommendedCount = evals.filter(e => e.recommendation === "highly_recommended" || e.recommendation === "recommended").length;
+
   return {
     totalEvaluations: evals.length,
     avgQuality: avg("qualityScore"),
@@ -730,6 +756,7 @@ export async function getSubEvaluationSummary(subcontractorId: number) {
     avgCommunication: avg("communicationScore"),
     avgCleanup: avg("cleanupScore"),
     avgOverall: avg("overallScore"),
+    recommendedCount,
     recommendations: {
       highly_recommended: evals.filter(e => e.recommendation === "highly_recommended").length,
       recommended: evals.filter(e => e.recommendation === "recommended").length,
