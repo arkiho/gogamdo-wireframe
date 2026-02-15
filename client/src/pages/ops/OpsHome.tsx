@@ -15,6 +15,7 @@ import {
   TrendingUp, ClipboardList, Receipt, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import NotificationBell from "@/components/NotificationBell";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   planning: { label: "기획", color: "bg-slate-100 text-slate-700" },
@@ -77,10 +78,12 @@ export default function OpsHome() {
             {user?.name}님, 안녕하세요. 진행 중인 프로젝트를 관리하세요.
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" />새 프로젝트</Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="w-4 h-4 mr-2" />새 프로젝트</Button>
+            </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>새 프로젝트 생성</DialogTitle>
@@ -155,6 +158,7 @@ export default function OpsHome() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Stats Cards */}

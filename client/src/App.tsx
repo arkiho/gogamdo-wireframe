@@ -36,6 +36,7 @@ import OpsXProcess from "./pages/OpsXProcess";
 import OpsHome from "./pages/ops/OpsHome";
 import OpsProjectDetail from "./pages/ops/OpsProjectDetail";
 import SubPortal from "./pages/ops/SubPortal";
+import OpsStaffManagement from "./pages/ops/OpsStaffManagement";
 import Layout from "./components/Layout";
 
 function PublicRouter() {
@@ -79,6 +80,7 @@ function Router() {
       {/* OpsX 직원 대시보드 */}
       <Route path="/ops" component={OpsHome} />
       <Route path="/ops/project/:id" component={OpsProjectDetail} />
+      <Route path="/ops/staff" component={OpsStaffManagement} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />

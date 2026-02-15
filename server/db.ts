@@ -1608,3 +1608,30 @@ export async function updateMeetingStatus(id: number, status: string, adminNotes
     confirmedTime: confirmedTime ?? undefined,
   }).where(eq(meetingBookings.id, id));
 }
+
+// ============ STAFF MANAGEMENT ============
+
+export async function listStaffMembers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users).orderBy(users.name);
+}
+
+export async function updateUserDepartment(userId: number, department: string, opsRole: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ department: department as any, opsRole: opsRole as any }).where(eq(users.id, userId));
+}
+
+export async function updateUserRole(userId: number, role: "user" | "admin") {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ role }).where(eq(users.id, userId));
+}
+
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return rows[0] ?? null;
+}

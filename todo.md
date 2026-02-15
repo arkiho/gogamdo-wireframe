@@ -269,3 +269,23 @@
 - [x] 프론트: 하도급 업체 공개 포털 (/ops/sub-portal/:subId - 작업보고 + 견적서 제출)
 - [x] 라우트 등록 및 네비게이션 통합 (/ops, /ops/project/:id, /ops/sub-portal/:subId)
 - [x] Vitest 테스트 작성 (전체 277개 통과)
+
+## OpsX 기능 확장 1: 직원 역할 관리 (부서별 권한)
+- [x] 역할: DB 스키마 확장 (user 테이블에 department + opsRole + phone 필드 추가)
+- [x] 역할: 부서별 권한 매핑 (design/construction/accounting/management/none + admin/pm/staff/viewer)
+- [x] 역할: 백엔드 미들웨어 (staffProcedure department 체크 + departmentProcedure 부서별 권한)
+- [x] 역할: 관리자 직원 관리 UI (/ops/staff - 부서 배정, 역할 변경, 전화번호)
+- [x] 역할: 프론트엔드 권한 기반 UI 분기 (staffProcedure 미들웨어 기반)
+
+## OpsX 기능 확장 2: 지출결의서 PDF 출력
+- [x] PDF: 클라이언트 사이드 PDF 생성 (jsPDF 라이브러리)
+- [x] PDF: PDF 템플릿 (고감도 브랜딩, 결재라인, 항목 상세, 상태 표시)
+- [x] PDF: ExpenseTab에 PDF 다운로드 버튼 추가 (승인된 결의서만)
+
+## OpsX 기능 확장 3: 프로젝트 알림 시스템
+- [x] 알림: DB 스키마 (opsNotifications 테이블 - type/title/message/link/isRead/recipientId/projectId)
+- [x] 알림: 이벤트 트리거 (지출결의서 상신/승인/반려, 하도급 견적 제출, 하도급 작업보고)
+- [x] 알림: 백엔드 API (createNotification + listNotifications + getUnreadCount + markRead + markAllRead + notifyAdminsAndPMs)
+- [x] 알림: 프론트엔드 NotificationBell 컴포넌트 (OpsHome 헤더 벨 아이콘 + 드롭다운 + 읽음처리)
+- [x] 알림: notifyAdminsAndPMs 헬퍼 (admin/pm 역할 전체에게 자동 알림)
+- [x] 알림: Vitest 테스트 작성 (전체 300개 통과)

@@ -1,4 +1,4 @@
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, or } from "drizzle-orm";
 import { getDb } from "../db";
 import {
   opsProjects, opsScheduleItems, opsWorkReports, opsMeetingNotes,
@@ -11,6 +11,8 @@ import {
   type InsertOpsSubQuote, type InsertOpsSubWorkReport, type InsertOpsEstimate,
   type InsertOpsContract, type InsertOpsCostItem, type InsertOpsClientInvite,
   type InsertOpsCamera,
+  opsNotifications, type InsertOpsNotification,
+  users,
 } from "../../drizzle/schema";
 
 // ============ OPS PROJECTS ============
@@ -485,6 +487,95 @@ export async function deleteCamera(id: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(opsCameras).where(eq(opsCameras.id, id));
+}
+
+// ============ NOTIFICATIONS ============
+export async function createNotification(data: InsertOpsNotification) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(opsNotifications).values(data).$returningId();
+  return result;
+}
+
+export async function createBulkNotifications(data: InsertOpsNotification[]) {
+  const db = await getDb();
+  if (!db || data.length === 0) return;
+  await db.insert(opsNotifications).values(data);
+}
+
+export async function listNotifications(recipientId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(opsNotifications)
+    .where(eq(opsNotifications.recipientId, recipientId))
+    .orderBy(desc(opsNotifications.createdAt))
+    .limit(limit);
+}
+
+export async function getUnreadNotificationCount(recipientId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const [result] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(opsNotifications)
+    .where(
+      and(
+        eq(opsNotifications.recipientId, recipientId),
+        eq(opsNotifications.isRead, 0)
+      )
+    );
+  return result?.count ?? 0;
+}
+
+export async function markNotificationRead(id: number, recipientId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(opsNotifications)
+    .set({ isRead: 1, readAt: new Date() })
+    .where(
+      and(
+        eq(opsNotifications.id, id),
+        eq(opsNotifications.recipientId, recipientId)
+      )
+    );
+}
+
+export async function markAllNotificationsRead(recipientId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(opsNotifications)
+    .set({ isRead: 1, readAt: new Date() })
+    .where(
+      and(
+        eq(opsNotifications.recipientId, recipientId),
+        eq(opsNotifications.isRead, 0)
+      )
+    );
+}
+
+export async function notifyAdminsAndPMs(data: Omit<InsertOpsNotification, "recipientId">) {
+  const db = await getDb();
+  if (!db) return;
+  const admins = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      or(
+        eq(users.role, "admin"),
+        eq(users.opsRole, "pm"),
+        eq(users.opsRole, "director")
+      )
+    );
+  if (admins.length === 0) return;
+  const notifications = admins.map(a => ({
+    ...data,
+    recipientId: a.id,
+  }));
+  await createBulkNotifications(notifications);
 }
 
 // ============ STATS ============

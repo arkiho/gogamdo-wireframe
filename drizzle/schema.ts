@@ -10,6 +10,23 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  department: mysqlEnum("department", [
+    "design",        // 설계팀
+    "construction",  // 시공팀
+    "accounting",    // 경리부
+    "management",    // 경영지원
+    "sales",         // 영업팀
+    "none",          // 미배정
+  ]).default("none"),
+  opsRole: mysqlEnum("opsRole", [
+    "pm",            // 프로젝트 매니저
+    "designer",      // 설계 담당
+    "site_manager",  // 현장 소장
+    "accountant",    // 경리 담당
+    "director",      // 이사/임원
+    "staff",         // 일반 직원
+  ]).default("staff"),
+  phone: varchar("phone", { length: 20 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -1625,3 +1642,35 @@ export const opsCameras = mysqlTable("ops_cameras", {
 
 export type OpsCamera = typeof opsCameras.$inferSelect;
 export type InsertOpsCamera = typeof opsCameras.$inferInsert;
+
+/**
+ * 프로젝트 알림(Notifications)
+ * 공정 지연, 결재 대기, 하도급 견적 제출 등 주요 이벤트 알림
+ */
+export const opsNotifications = mysqlTable("ops_notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId"), // null이면 전체 알림
+  recipientId: int("recipientId").notNull(), // users.id
+  type: mysqlEnum("type", [
+    "schedule_delay",       // 공정 지연
+    "expense_submitted",    // 지출결의서 상신
+    "expense_approved",     // 지출결의서 승인
+    "expense_rejected",     // 지출결의서 반려
+    "sub_quote_submitted",  // 하도급 견적 제출
+    "sub_report_submitted", // 하도급 작업보고 제출
+    "meeting_scheduled",    // 미팅 예약
+    "meeting_reminder",     // 미팅 리마인더
+    "project_status",       // 프로젝트 상태 변경
+    "client_inquiry",       // 고객 문의
+    "approval_pending",     // 결재 대기
+    "general",              // 일반 알림
+  ]).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  message: text("message"),
+  link: varchar("link", { length: 500 }), // 클릭 시 이동할 경로
+  isRead: tinyint("isRead").default(0).notNull(),
+  readAt: timestamp("readAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type OpsNotification = typeof opsNotifications.$inferSelect;
+export type InsertOpsNotification = typeof opsNotifications.$inferInsert;

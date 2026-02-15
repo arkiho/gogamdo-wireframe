@@ -4,6 +4,9 @@ import { TRPCError } from "@trpc/server";
 import { notifyOwner } from "../_core/notification";
 import { storagePut } from "../storage";
 import {
+  listStaffMembers, updateUserDepartment, updateUserRole, getUserById,
+} from "../db";
+import {
   createOpsProject, listOpsProjects, getOpsProject, updateOpsProject, deleteOpsProject,
   createScheduleItem, listScheduleItems, updateScheduleItem, deleteScheduleItem,
   createWorkReport, listWorkReports, getWorkReport, updateWorkReport, deleteWorkReport,
@@ -21,6 +24,8 @@ import {
   createClientInvite, getClientInviteByToken, listClientInvites, updateClientInvite,
   createCamera, listCameras, updateCamera, deleteCamera,
   getOpsStats,
+  createNotification, listNotifications, getUnreadNotificationCount,
+  markNotificationRead, markAllNotificationsRead, notifyAdminsAndPMs,
 } from "../db/ops";
 
 function generateToken() {
@@ -33,12 +38,30 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "관리자 권한이 필요합니다." });
   return next({ ctx });
 });
-
-// Staff or admin check
+// Staff or admin check - department 배정된 직원 또는 admin
 const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
-  // All logged-in users can access ops (staff check can be refined later)
-  return next({ ctx });
+  const u = ctx.user as any;
+  // admin은 항상 접근 가능
+  if (u.role === "admin") return next({ ctx });
+  // department가 배정된 직원만 접근 (none은 미배정)
+  if (u.department && u.department !== "none") return next({ ctx });
+  throw new TRPCError({ code: "FORBIDDEN", message: "부서 배정이 필요합니다. 관리자에게 문의하세요." });
 });
+
+// Department-specific procedure factories
+function deptProcedure(allowedDepts: string[]) {
+  return staffProcedure.use(({ ctx, next }) => {
+    const u = ctx.user as any;
+    if (u.role === "admin") return next({ ctx });
+    if (allowedDepts.includes(u.department)) return next({ ctx });
+    throw new TRPCError({ code: "FORBIDDEN", message: `이 기능은 ${allowedDepts.join(", ")} 부서만 접근 가능합니다.` });
+  });
+}
+
+// 부서별 프로시저
+const accountingProcedure = deptProcedure(["accounting", "management"]); // 경리부/경영지원
+const constructionProcedure = deptProcedure(["construction", "design"]); // 시공팀/설계팀
+const designProcedure = deptProcedure(["design"]); // 설계팀만;
 
 export const opsRouter = router({
   // ============ STATS ============
@@ -492,12 +515,20 @@ export const opsRouter = router({
       .mutation(async ({ input }) => {
         await updateExpense(input.id, { status: "submitted", submittedAt: new Date() } as any);
         await notifyOwner({ title: "지출결의서 상신", content: `지출결의서 #${input.id}가 상신되었습니다.` });
+        // 관리자/PM에게 알림
+        await notifyAdminsAndPMs({
+          type: "expense_submitted",
+          title: "지출결의서 상신",
+          message: `지출결의서 #${input.id}가 상신되었습니다. 결재가 필요합니다.`,
+          link: `/ops/project/${(await getExpense(input.id))?.projectId}?tab=expenses`,
+        });
         return { success: true };
       }),
 
     approve: adminProcedure
       .input(z.object({ id: z.number(), comment: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
+        const expense = await getExpense(input.id);
         await updateExpense(input.id, { status: "approved", approvedAt: new Date() } as any);
         // Update approval steps
         const steps = await listApprovalSteps("expense", input.id);
@@ -511,15 +542,27 @@ export const opsRouter = router({
             break;
           }
         }
+        // 작성자에게 승인 알림
+        if (expense?.authorId) {
+          await createNotification({
+            recipientId: expense.authorId,
+            type: "expense_approved",
+            title: "지출결의서 승인",
+            message: `지출결의서 "${expense.title}"이 승인되었습니다.`,
+            link: `/ops/project/${expense.projectId}?tab=expenses`,
+            projectId: expense.projectId,
+          });
+        }
         return { success: true };
       }),
 
     reject: adminProcedure
       .input(z.object({ id: z.number(), comment: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
+        const rejExpense = await getExpense(input.id);
         await updateExpense(input.id, { status: "rejected" } as any);
-        const steps = await listApprovalSteps("expense", input.id);
-        for (const step of steps) {
+        const rejSteps = await listApprovalSteps("expense", input.id);
+        for (const step of rejSteps) {
           if (step.approverId === ctx.user.id && step.status === "pending") {
             await updateApprovalStep(step.id, {
               status: "rejected",
@@ -528,6 +571,17 @@ export const opsRouter = router({
             });
             break;
           }
+        }
+        // 작성자에게 반려 알림
+        if (rejExpense?.authorId) {
+          await createNotification({
+            recipientId: rejExpense.authorId,
+            type: "expense_rejected",
+            title: "지출결의서 반려",
+            message: `지출결의서 "${rejExpense.title}"이 반려되었습니다.${input.comment ? ` 사유: ${input.comment}` : ""}`,
+            link: `/ops/project/${rejExpense.projectId}?tab=expenses`,
+            projectId: rejExpense.projectId,
+          });
         }
         return { success: true };
       }),
@@ -694,6 +748,13 @@ export const opsRouter = router({
         if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         
         await notifyOwner({ title: "하도급 견적 제출", content: `프로젝트에 새 견적이 제출되었습니다.` });
+        await notifyAdminsAndPMs({
+          type: "sub_quote_submitted",
+          title: "하도급 견적 제출",
+          message: `프로젝트에 새 하도급 견적이 제출되었습니다. 확인이 필요합니다.`,
+          link: `/ops/project/${invite.projectId}?tab=subcontractors`,
+          projectId: invite.projectId,
+        });
         return { id: result.id };
       }),
 
@@ -723,6 +784,13 @@ export const opsRouter = router({
           issues: input.issues,
         } as any);
         if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await notifyAdminsAndPMs({
+          type: "sub_report_submitted",
+          title: "하도급 작업보고 제출",
+          message: `프로젝트에 새 하도급 작업보고가 제출되었습니다.`,
+          link: `/ops/project/${invite.projectId}?tab=subcontractors`,
+          projectId: invite.projectId,
+        });
         return { id: result.id };
       }),
 
@@ -1138,6 +1206,132 @@ export const opsRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await deleteCamera(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ============ STAFF MANAGEMENT ============
+  staff: router({
+    list: adminProcedure.query(async () => {
+      const members = await listStaffMembers();
+      return members.map(m => ({
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        role: m.role,
+        department: (m as any).department ?? "none",
+        opsRole: (m as any).opsRole ?? "staff",
+        phone: (m as any).phone ?? null,
+        lastSignedIn: m.lastSignedIn,
+        createdAt: m.createdAt,
+      }));
+    }),
+    updateDepartment: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        department: z.enum(["design", "construction", "accounting", "management", "sales", "none"]),
+        opsRole: z.enum(["pm", "designer", "site_manager", "accountant", "director", "staff"]),
+      }))
+      .mutation(async ({ input }) => {
+        await updateUserDepartment(input.userId, input.department, input.opsRole);
+        return { success: true };
+      }),
+    updateRole: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        role: z.enum(["user", "admin"]),
+      }))
+      .mutation(async ({ input }) => {
+        await updateUserRole(input.userId, input.role);
+        return { success: true };
+      }),
+    get: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        const u = await getUserById(input.userId);
+        if (!u) throw new TRPCError({ code: "NOT_FOUND" });
+        return {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          department: (u as any).department ?? "none",
+          opsRole: (u as any).opsRole ?? "staff",
+          phone: (u as any).phone ?? null,
+          lastSignedIn: u.lastSignedIn,
+          createdAt: u.createdAt,
+        };
+      }),
+    // 현재 사용자의 부서/역할 정보
+    me: staffProcedure.query(async ({ ctx }) => {
+      const u = await getUserById(ctx.user.id);
+      return {
+        department: (u as any)?.department ?? "none",
+        opsRole: (u as any)?.opsRole ?? "staff",
+      };
+    }),
+  }),
+
+  // ============ NOTIFICATIONS ============
+  notification: router({
+    list: staffProcedure
+      .input(z.object({ limit: z.number().optional() }))
+      .query(async ({ ctx, input }) => {
+        return listNotifications(ctx.user.id, input.limit ?? 50);
+      }),
+    unreadCount: staffProcedure.query(async ({ ctx }) => {
+      return getUnreadNotificationCount(ctx.user.id);
+    }),
+    markRead: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await markNotificationRead(input.id, ctx.user.id);
+        return { success: true };
+      }),
+    markAllRead: staffProcedure.mutation(async ({ ctx }) => {
+      await markAllNotificationsRead(ctx.user.id);
+      return { success: true };
+    }),
+    send: adminProcedure
+      .input(z.object({
+        recipientId: z.number(),
+        type: z.enum(["schedule_delay", "expense_submitted", "expense_approved", "expense_rejected",
+          "sub_quote_submitted", "sub_report_submitted", "meeting_scheduled", "meeting_reminder",
+          "project_status", "client_inquiry", "approval_pending", "general"]),
+        title: z.string().min(1),
+        message: z.string().optional(),
+        link: z.string().optional(),
+        projectId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await createNotification({
+          recipientId: input.recipientId,
+          type: input.type,
+          title: input.title,
+          message: input.message,
+          link: input.link,
+          projectId: input.projectId,
+        });
+        return { success: true };
+      }),
+    broadcast: adminProcedure
+      .input(z.object({
+        type: z.enum(["schedule_delay", "expense_submitted", "expense_approved", "expense_rejected",
+          "sub_quote_submitted", "sub_report_submitted", "meeting_scheduled", "meeting_reminder",
+          "project_status", "client_inquiry", "approval_pending", "general"]),
+        title: z.string().min(1),
+        message: z.string().optional(),
+        link: z.string().optional(),
+        projectId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await notifyAdminsAndPMs({
+          type: input.type,
+          title: input.title,
+          message: input.message,
+          link: input.link,
+          projectId: input.projectId,
+        });
         return { success: true };
       }),
   }),
