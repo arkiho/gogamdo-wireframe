@@ -37,6 +37,7 @@ import OpsHome from "./pages/ops/OpsHome";
 import OpsProjectDetail from "./pages/ops/OpsProjectDetail";
 import SubPortal from "./pages/ops/SubPortal";
 import OpsStaffManagement from "./pages/ops/OpsStaffManagement";
+import OpsCalendar from "./pages/ops/OpsCalendar";
 import Layout from "./components/Layout";
 
 function PublicRouter() {
@@ -81,6 +82,7 @@ function Router() {
       <Route path="/ops" component={OpsHome} />
       <Route path="/ops/project/:id" component={OpsProjectDetail} />
       <Route path="/ops/staff" component={OpsStaffManagement} />
+      <Route path="/ops/calendar" component={OpsCalendar} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />

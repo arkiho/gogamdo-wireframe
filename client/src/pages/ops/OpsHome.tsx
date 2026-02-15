@@ -90,6 +90,9 @@ export default function OpsHome() {
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           <NotificationBell />
+          <Button variant="outline" size="sm" onClick={() => setLocation("/ops/calendar")} className="h-9">
+            <Calendar className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">캘린더</span>
+          </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="sm:size-default"><Plus className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">새 프로젝트</span><span className="sm:hidden">새로운</span></Button>

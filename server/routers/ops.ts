@@ -3,6 +3,7 @@ import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { notifyOwner } from "../_core/notification";
 import { storagePut } from "../storage";
+import { getCalendarEvents } from "../db/calendar";
 import {
   listStaffMembers, updateUserDepartment, updateUserRole, getUserById,
 } from "../db";
@@ -839,6 +840,27 @@ export const opsRouter = router({
         if (!invite || !invite.isActive) return [];
         return listSubWorkReports(invite.projectId);
       }),
+
+    // List project schedules for subcontractor
+    schedules: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const invite = await getSubInviteByToken(input.token);
+        if (!invite || !invite.isActive) return [];
+        return listScheduleItems(invite.projectId);
+      }),
+
+    // Get subcontractor profile + evaluation summary
+    profile: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const invite = await getSubInviteByToken(input.token);
+        if (!invite || !invite.isActive) throw new TRPCError({ code: "NOT_FOUND" });
+        const sub = await getSubcontractor(invite.subcontractorId);
+        const evaluations = await listSubEvaluationsBySubcontractor(invite.subcontractorId);
+        const summary = await getSubEvaluationSummary(invite.subcontractorId);
+        return { subcontractor: sub, evaluations, summary };
+      }),
   }),
 
   // ============ SUB QUOTES (Admin view) ============
@@ -1411,6 +1433,18 @@ export const opsRouter = router({
       .mutation(async ({ input }) => {
         await deleteSubEvaluation(input.id);
         return { success: true };
+      }),
+  }),
+
+  // ============ CALENDAR EVENTS ============
+  calendar: router({
+    events: staffProcedure
+      .input(z.object({
+        startDate: z.string(), // YYYY-MM-DD
+        endDate: z.string(),
+      }))
+      .query(async ({ input }) => {
+        return getCalendarEvents(input.startDate, input.endDate);
       }),
   }),
 });

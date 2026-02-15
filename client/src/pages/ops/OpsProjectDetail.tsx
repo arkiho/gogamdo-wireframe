@@ -8,9 +8,10 @@ import { useState } from "react";
 import {
   ArrowLeft, Building2, MapPin, Calendar, Ruler, Banknote,
   BarChart3, ClipboardList, FileText, Receipt, Users, FileSpreadsheet,
-  FileSignature, Calculator, Camera, Link2, Star,
+  FileSignature, Calculator, Camera, Link2, Star, Download,
 } from "lucide-react";
 import { toast } from "sonner";
+import { generateProjectReportPdf, type ProjectReportData } from "@/lib/projectReportPdf";
 
 // Sub-tab components
 import ScheduleTab from "./tabs/ScheduleTab";
@@ -88,12 +89,44 @@ export default function OpsProjectDetail() {
           </div>
           {p.description && <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">{p.description}</p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="flex-1 sm:flex-initial h-9" onClick={() => handleCopyInviteLink("client")}>
             <Link2 className="w-4 h-4 mr-1" />고객사 초대
           </Button>
           <Button variant="outline" size="sm" className="flex-1 sm:flex-initial h-9" onClick={() => handleCopyInviteLink("subcontractor")}>
             <Users className="w-4 h-4 mr-1" />하도급 초대
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 sm:flex-initial h-9"
+            onClick={() => {
+              const now = new Date();
+              const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+              const reportData: ProjectReportData = {
+                project: {
+                  name: p.name,
+                  clientName: p.clientName,
+                  status: p.status,
+                  startDate: p.startDate,
+                  endDate: p.endDate,
+                  address: p.siteAddress,
+                },
+                expenses: (p as any).expenses ?? [],
+                schedules: (p as any).schedules ?? [],
+                costs: (p as any).costs ?? [],
+                meetings: (p as any).meetings ?? [],
+                reportMonth: month,
+              };
+              try {
+                generateProjectReportPdf(reportData);
+                toast.success("PDF 리포트가 다운로드됩니다.");
+              } catch (err) {
+                toast.error("PDF 생성에 실패했습니다.");
+              }
+            }}
+          >
+            <Download className="w-4 h-4 mr-1" />PDF 리포트
           </Button>
         </div>
       </div>
