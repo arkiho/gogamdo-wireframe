@@ -36,6 +36,7 @@ import { generateImage } from "./_core/imageGeneration";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { designAutomationRouter } from "./routers/designAutomation";
+import { sendReviewRequestEmail } from "./email";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -974,6 +975,8 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         reviewerCompany: z.string().optional(),
         reviewerTitle: z.string().optional(),
         expiresInDays: z.number().default(30),
+        origin: z.string().optional(),
+        sendEmail: z.boolean().default(true),
       }))
       .mutation(async ({ input }) => {
         // 고유 토큰 생성
@@ -992,7 +995,26 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
           tokenExpiresAt: expiresAt,
           status: "pending",
         });
-        return { id, token };
+
+        // 이메일 자동 발송
+        let emailResult = { sent: false, method: "none" };
+        if (input.sendEmail && input.reviewerEmail) {
+          const portfolio = await getPortfolioDraft(input.portfolioId);
+          const projectTitle = portfolio?.title || "고감도 프로젝트";
+          const baseUrl = input.origin || "https://kokamdo.co.kr";
+          const reviewUrl = `${baseUrl}/review/${token}`;
+
+          emailResult = await sendReviewRequestEmail({
+            reviewerName: input.reviewerName,
+            reviewerEmail: input.reviewerEmail,
+            reviewerCompany: input.reviewerCompany,
+            projectTitle,
+            reviewUrl,
+            expiresAt,
+          });
+        }
+
+        return { id, token, emailSent: emailResult.sent, emailMethod: emailResult.method };
       }),
 
     // 관리자: 리뷰 목록 (전체 또는 포트폴리오별)

@@ -14,7 +14,7 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, ArrowLeft, ArrowUpRight, Building2, Maximize2,
-  Palette, Calculator, Sparkles, Settings2, Download, RotateCcw,
+  Palette, Calculator, Sparkles, Settings2, RotateCcw, MessageCircle, Lock,
   Brain, TrendingDown, TrendingUp, AlertTriangle, Landmark, Loader2, ChevronDown, ChevronUp
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -454,19 +454,18 @@ export default function Estimator() {
                     </div>
                   </div>
 
-                  {/* Cost Breakdown Table */}
-                  <div className="border border-border/50 p-6 lg:p-8 mb-6">
+                  {/* Cost Breakdown Preview (Blurred) + 상담 유도 */}
+                  <div className="relative border border-border/50 p-6 lg:p-8 mb-6 overflow-hidden">
                     <h3 className="font-heading text-lg font-bold text-ink mb-6">공종별 예상 비용</h3>
+                    {/* 미리보기: 상위 3개만 보여주고 나머지는 블러 */}
                     <div className="space-y-3">
-                      {breakdownItems.map((item) => {
+                      {breakdownItems.slice(0, 3).map((item) => {
                         const maxCost = Math.max(...breakdownItems.map((i) => i.cost));
                         return (
                           <div key={item.name}>
                             <div className="flex items-center justify-between mb-1">
                               <div>
-                                <span className={`text-sm ${item.name.startsWith("[옵션]") ? "text-gold font-medium" : "text-ink/70"}`}>
-                                  {item.name}
-                                </span>
+                                <span className="text-sm text-ink/70">{item.name}</span>
                                 <span className="text-xs text-ink/30 ml-2 hidden sm:inline">{item.desc}</span>
                               </div>
                               <span className="text-sm font-medium text-ink">
@@ -478,16 +477,46 @@ export default function Estimator() {
                                 initial={{ width: 0 }}
                                 animate={{ width: `${(item.cost / maxCost) * 100}%` }}
                                 transition={{ duration: 0.8, delay: 0.1 }}
-                                className={item.name.startsWith("[옵션]") ? "h-full bg-gold/60" : "h-full bg-gold"}
+                                className="h-full bg-gold"
                               />
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                    <div className="mt-6 pt-4 border-t border-border/50 flex justify-between">
-                      <span className="font-heading font-bold text-ink">합계</span>
-                      <span className="font-heading font-bold text-ink text-lg">{formatCost(totalCost)}</span>
+                    {/* 블러 오버레이 */}
+                    <div className="relative mt-4">
+                      <div className="space-y-3 blur-sm select-none pointer-events-none opacity-50">
+                        {breakdownItems.slice(3, 7).map((item) => (
+                          <div key={item.name}>
+                            <div className="flex items-center justify-between mb-1">
+                              <div>
+                                <span className="text-sm text-ink/70">{item.name}</span>
+                              </div>
+                              <span className="text-sm font-medium text-ink">
+                                {item.cost.toLocaleString()}만원
+                              </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-paper-warm overflow-hidden">
+                              <div className="h-full bg-gold w-1/2" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* 상담 유도 오버레이 */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-white via-white/90 to-transparent">
+                        <div className="text-center px-6 py-4">
+                          <Lock className="w-6 h-6 text-gold mx-auto mb-2" />
+                          <p className="font-heading font-bold text-ink text-sm mb-1">상세 견적은 전문 상담을 통해 확인하세요</p>
+                          <p className="text-xs text-muted-foreground mb-3">공종별 세부 비용, 자재 사양, 공사 일정까지 맞춤 안내해 드립니다</p>
+                          <Link href="/contact">
+                            <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold text-ink font-semibold text-xs tracking-wide hover:bg-gold-light transition-all duration-300">
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              무료 상담 요청하기
+                            </span>
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -682,13 +711,19 @@ export default function Estimator() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap justify-center gap-4">
+                  {/* 상담 유도 강조 CTA */}
+                  <div className="border border-gold/20 bg-gold/5 p-6 mb-6 text-center">
+                    <p className="font-heading font-bold text-ink mb-1">정확한 견적과 맞춤 설계안을 받아보세요</p>
+                    <p className="text-xs text-muted-foreground mb-4">현장 방문 후 공간 특성을 반영한 상세 견적서와 3D 디자인을 무료로 제공해 드립니다</p>
                     <Link href="/contact">
                       <span className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
-                        정확한 견적 요청
-                        <ArrowUpRight className="w-4 h-4" />
+                        <MessageCircle className="w-4 h-4" />
+                        무료 상담 요청하기
                       </span>
                     </Link>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-4">
                     <button
                       onClick={() => {
                         setStep(0);

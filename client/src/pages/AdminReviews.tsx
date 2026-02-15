@@ -58,7 +58,13 @@ export default function AdminReviews() {
     onSuccess: (data) => {
       const reviewUrl = `${window.location.origin}/review/${data.token}`;
       navigator.clipboard.writeText(reviewUrl);
-      toast.success("리뷰 요청이 생성되었습니다. 링크가 클립보드에 복사되었습니다.");
+      if (data.emailSent) {
+        toast.success("리뷰 요청이 생성되고 이메일이 발송되었습니다.");
+      } else if (data.emailMethod === "notification_fallback") {
+        toast.success("리뷰 요청이 생성되었습니다. 이메일 발송은 알림으로 전달되었습니다. 링크가 클립보드에 복사되었습니다.");
+      } else {
+        toast.success("리뷰 요청이 생성되었습니다. 링크가 클립보드에 복사되었습니다.");
+      }
       setShowCreateForm(false);
       setFormData({ portfolioId: 0, reviewerName: "", reviewerEmail: "", reviewerPhone: "", reviewerCompany: "", reviewerTitle: "", expiresInDays: 30 });
       refetch();
@@ -244,7 +250,10 @@ export default function AdminReviews() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">이메일</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
+                    이메일
+                    <span className="text-gold ml-1">(입력 시 자동 발송)</span>
+                  </label>
                   <input
                     type="email"
                     value={formData.reviewerEmail}
@@ -289,7 +298,7 @@ export default function AdminReviews() {
                   취소
                 </Button>
                 <Button
-                  onClick={() => createMutation.mutate(formData)}
+                  onClick={() => createMutation.mutate({ ...formData, origin: window.location.origin })}
                   disabled={!formData.portfolioId || !formData.reviewerName || createMutation.isPending}
                   className="flex-1 bg-gold text-ink hover:bg-gold-light font-semibold"
                 >
