@@ -18,7 +18,9 @@ import {
   createTourVideo, listTourVideos, updateTourVideo,
   createProposal, listProposals, getProposal, updateProposal,
   createDetailedEstimate, listDetailedEstimates, getDetailedEstimate, updateDetailedEstimate,
+  createCrmClient, createCrmDeal, createCrmActivity,
 } from "../db";
+import { notifyOwner } from "../_core/notification";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -43,6 +45,52 @@ export const designAutomationRouter = router({
     }))
     .mutation(async ({ input }) => {
       const id = await createDesignProject(input);
+
+      // === CRM 자동 연동: 설계자동화 프로젝트 생성 시 CRM 딜 자동 생성 ===
+      try {
+        let clientId = input.clientId;
+
+        // 기존 CRM 클라이언트가 없으면 새로 생성
+        if (!clientId && input.companyName) {
+          clientId = await createCrmClient({
+            companyName: input.companyName,
+            contactName: input.contactName || "담당자 미정",
+            email: input.contactEmail || undefined,
+            phone: input.contactPhone || undefined,
+            source: "website" as const,
+            notes: `설계자동화 프로젝트(#${id})에서 자동 생성`,
+          }) ?? undefined;
+        }
+
+        // CRM 딜 생성
+        if (clientId) {
+          const dealId = await createCrmDeal({
+            clientId,
+            title: `[설계자동화] ${input.name}`,
+            stage: "consultation" as const,
+            description: `설계자동화 시스템에서 자동 생성된 딜\n프로젝트: ${input.name}\n비고: ${input.notes || "없음"}`,
+          });
+
+          if (dealId) {
+            await updateDesignProject(id, { crmDealId: dealId, clientId } as any);
+            await createCrmActivity({
+              clientId,
+              dealId,
+              type: "note" as const,
+              title: "설계자동화 프로젝트 생성",
+              description: `설계자동화 시스템에서 프로젝트 "${input.name}"이 생성되었습니다.`,
+            });
+          }
+
+          await notifyOwner({
+            title: "설계자동화 → CRM 자동 연동",
+            content: `설계자동화 프로젝트 "${input.name}"이 생성되어 CRM 딜이 자동 등록되었습니다. (고객: ${input.companyName || "미지정"})`,
+          });
+        }
+      } catch (crmError) {
+        console.error("CRM 자동 연동 실패:", crmError);
+      }
+
       return { id };
     }),
 

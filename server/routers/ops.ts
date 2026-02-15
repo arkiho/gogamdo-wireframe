@@ -4,9 +4,12 @@ import { TRPCError } from "@trpc/server";
 import { notifyOwner } from "../_core/notification";
 import { storagePut } from "../storage";
 import { getCalendarEvents } from "../db/calendar";
+import { invokeLLM } from "../_core/llm";
 import {
   listStaffMembers, updateUserDepartment, updateUserRole, getUserById,
+  createPortfolioDraft, createPortfolioReview, getPortfolioDraft,
 } from "../db";
+import { sendReviewRequestEmail } from "../email";
 import {
   createOpsProject, listOpsProjects, getOpsProject, updateOpsProject, deleteOpsProject,
   createScheduleItem, listScheduleItems, updateScheduleItem, deleteScheduleItem,
@@ -158,7 +161,126 @@ export const opsRouter = router({
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
+
+        // 상태 변경 전 기존 프로젝트 정보 조회
+        let previousProject: any = null;
+        if (data.status === "completed") {
+          previousProject = await getOpsProject(id);
+        }
+
         await updateOpsProject(id, data as any);
+
+        // === 프로젝트 완료 시 자동화 트리거 ===
+        if (data.status === "completed" && previousProject && previousProject.status !== "completed") {
+          const project = previousProject;
+
+          // 1) 자동 포트폴리오 초안 생성
+          try {
+            const aiResult = await invokeLLM({
+              messages: [
+                {
+                  role: "system",
+                  content: "당신은 인테리어 회사의 포트폴리오 작성 전문가입니다. 주어진 프로젝트 정보로 포트폴리오 설명문을 작성해주세요. 3~5문장으로 간결하게, 프로젝트의 핵심 가치와 특징을 강조해주세요."
+                },
+                {
+                  role: "user",
+                  content: `프로젝트명: ${project.name}\n고객사: ${project.clientName}\n위치: ${project.siteAddress || "미지정"}\n면적: ${project.totalArea || "미지정"}㎡\n기간: ${project.startDate || ""} ~ ${project.endDate || ""}\n설명: ${project.description || "없음"}`
+                }
+              ],
+            });
+
+            const aiDescription = aiResult?.choices?.[0]?.message?.content || "";
+
+            // 카테고리 추론
+            const categoryMap: Record<string, string> = {
+              "사무": "사무공간", "사무실": "사무공간", "오피스": "사무공간",
+              "상업": "상업공간", "매장": "상업공간", "식당": "상업공간", "카페": "상업공간",
+              "주거": "주거공간", "아파트": "주거공간", "주택": "주거공간",
+              "공장": "산업시설", "창고": "산업시설",
+            };
+            let category = "사무공간";
+            const nameDesc = `${project.name} ${project.description || ""}`;
+            for (const [keyword, cat] of Object.entries(categoryMap)) {
+              if (nameDesc.includes(keyword)) { category = cat; break; }
+            }
+
+            // 태그 생성
+            const tags = ["인테리어", category];
+            if (project.totalArea && Number(project.totalArea) > 300) tags.push("대형프로젝트");
+            if (project.siteAddress?.includes("서울")) tags.push("서울");
+
+            const draftResult = await createPortfolioDraft({
+              title: `${project.clientName} ${category} 프로젝트`,
+              projectName: project.name,
+              category,
+              client: project.clientName,
+              area: project.totalArea ? `${project.totalArea}㎡` : undefined,
+              location: project.siteAddress || undefined,
+              duration: project.startDate && project.endDate
+                ? `${project.startDate} ~ ${project.endDate}`
+                : undefined,
+              description: `${project.name} - ${project.clientName} ${category} 프로젝트`,
+              aiDescription,
+              tags,
+              status: "draft",
+            });
+
+            const portfolioId = draftResult?.id;
+
+            // 2) 자동 리뷰 요청 발송 (고객 이메일이 있는 경우)
+            if (portfolioId && project.clientEmail) {
+              try {
+                const crypto = await import("crypto");
+                const token = crypto.randomBytes(32).toString("hex");
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 30);
+
+                await createPortfolioReview({
+                  portfolioId,
+                  reviewerName: project.clientContact || project.clientName,
+                  reviewerEmail: project.clientEmail,
+                  reviewerCompany: project.clientName,
+                  accessToken: token,
+                  tokenExpiresAt: expiresAt,
+                  status: "pending",
+                });
+
+                await sendReviewRequestEmail({
+                  reviewerName: project.clientContact || project.clientName,
+                  reviewerEmail: project.clientEmail,
+                  reviewerCompany: project.clientName,
+                  projectTitle: project.name,
+                  reviewUrl: `https://kokamdo.co.kr/review/${token}`,
+                  expiresAt,
+                });
+
+                await notifyOwner({
+                  title: "프로젝트 완료 → 리뷰 요청 자동 발송",
+                  content: `프로젝트 "${project.name}"이 완료되어 ${project.clientEmail}로 리뷰 요청이 자동 발송되었습니다.`,
+                });
+              } catch (reviewError) {
+                console.error("자동 리뷰 요청 실패:", reviewError);
+              }
+            }
+
+            // 오너 알림 - 포트폴리오 초안 생성
+            await notifyOwner({
+              title: "프로젝트 완료 → 포트폴리오 초안 자동 생성",
+              content: `프로젝트 "${project.name}"이 완료되어 포트폴리오 초안이 자동 생성되었습니다. 관리자 대시보드에서 확인해주세요.`,
+            });
+
+            // OpsX 내부 알림
+            await notifyAdminsAndPMs({
+              projectId: id,
+              type: "system",
+              title: "프로젝트 완료 자동화 실행",
+              message: `"${project.name}" 프로젝트가 완료되어 포트폴리오 초안이 생성되었습니다.${project.clientEmail ? " 리뷰 요청도 자동 발송되었습니다." : " (고객 이메일 미등록으로 리뷰 요청은 수동 처리 필요)"}`,
+            });
+          } catch (autoError) {
+            console.error("프로젝트 완료 자동화 실패:", autoError);
+          }
+        }
+
         return { success: true };
       }),
 

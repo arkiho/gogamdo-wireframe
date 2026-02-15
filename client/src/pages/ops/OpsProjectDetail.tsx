@@ -8,8 +8,9 @@ import { useState } from "react";
 import {
   ArrowLeft, Building2, MapPin, Calendar, Ruler, Banknote,
   BarChart3, ClipboardList, FileText, Receipt, Users, FileSpreadsheet,
-  FileSignature, Calculator, Camera, Link2, Star, Download,
+  FileSignature, Calculator, Camera, Link2, Star, Download, CheckCircle2, Sparkles,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { generateProjectReportPdf, type ProjectReportData } from "@/lib/projectReportPdf";
 
@@ -40,8 +41,27 @@ export default function OpsProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
+  const utils = trpc.useUtils();
 
   const project = trpc.ops.project.get.useQuery({ id: id! });
+
+  const updateProject = trpc.ops.project.update.useMutation({
+    onSuccess: (_, variables) => {
+      utils.ops.project.get.invalidate({ id: id! });
+      utils.ops.project.list.invalidate();
+      if (variables.status === "completed") {
+        toast.success(
+          "프로젝트가 완료 상태로 변경되었습니다.\n포트폴리오 초안이 자동 생성되고, 고객에게 리뷰 요청이 발송됩니다.",
+          { duration: 6000, icon: "\u2728" }
+        );
+      } else {
+        toast.success("프로젝트 상태가 변경되었습니다.");
+      }
+    },
+    onError: () => {
+      toast.error("상태 변경에 실패했습니다.");
+    },
+  });
 
   if (project.isLoading) {
     return (
@@ -85,7 +105,29 @@ export default function OpsProjectDetail() {
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mb-2">
             <h1 className="text-lg sm:text-2xl font-bold tracking-tight">{p.name}</h1>
             <Badge variant="outline" className="text-[10px] sm:text-xs">{p.code}</Badge>
-            <Badge className={`text-[10px] sm:text-xs ${s.color} border-0`}>{s.label}</Badge>
+            <Select
+              value={p.status}
+              onValueChange={(val: string) => {
+                if (val === "completed" && p.status !== "completed") {
+                  if (confirm("프로젝트를 완료 상태로 변경하시겠습니까?\n\n완료 시 다음이 자동 실행됩니다:\n• 포트폴리오 초안 자동 생성 (AI 설명문 포함)\n• 고객 리뷰 요청 자동 발송 (이메일 등록 시)")) {
+                    updateProject.mutate({ id: Number(id), status: val as any });
+                  }
+                } else {
+                  updateProject.mutate({ id: Number(id), status: val as any });
+                }
+              }}
+            >
+              <SelectTrigger className={`w-[100px] sm:w-[120px] h-7 text-[10px] sm:text-xs border-0 ${s.color}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(STATUS_LABELS).map(([key, val]) => (
+                  <SelectItem key={key} value={key} className="text-xs">
+                    {val.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {p.description && <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">{p.description}</p>}
         </div>
