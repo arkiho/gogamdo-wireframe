@@ -3,10 +3,12 @@
  * - 다운로드 로그 기록/조회
  * - 트래킹 코드 생성/검증
  * - 법적 고지 동의 기록
+ * - 이상 다운로드 감지 및 관리자 알림
  */
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
+import { notifyOwner } from "../_core/notification";
 import {
   createDownloadLog,
   listDownloadLogs,
@@ -14,7 +16,33 @@ import {
   getDownloadLogsByUser,
   getDownloadStats,
   generateTrackingCode,
+  getRecentDownloadCount,
+  getAnomalousDownloaders,
 } from "../db";
+
+// ============================================================
+// 이상 감지 설정
+// ============================================================
+const ANOMALY_CONFIG = {
+  /** 감지 시간 범위 (분) */
+  windowMinutes: 30,
+  /** 임계값: 이 횟수 이상이면 이상 감지 */
+  threshold: 5,
+  /** 알림 쿨다운 (ms) - 동일 사용자에 대해 중복 알림 방지 */
+  cooldownMs: 30 * 60 * 1000, // 30분
+};
+
+// 알림 쿨다운 캐시 (메모리)
+const notificationCooldown = new Map<string, number>();
+
+function shouldNotify(key: string): boolean {
+  const lastNotified = notificationCooldown.get(key);
+  if (lastNotified && Date.now() - lastNotified < ANOMALY_CONFIG.cooldownMs) {
+    return false;
+  }
+  notificationCooldown.set(key, Date.now());
+  return true;
+}
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -27,6 +55,7 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 export const ipProtectionRouter = router({
   /**
    * 다운로드 로그 기록 (파일 다운로드 시 호출)
+   * + 이상 감지: 단기간 다수 다운로드 시 관리자 알림
    */
   logDownload: publicProcedure
     .input(z.object({
@@ -66,6 +95,45 @@ export const ipProtectionRouter = router({
         userAgent,
         consentGiven: input.consentGiven,
       });
+
+      // ===== 이상 감지 =====
+      // 비동기로 실행하여 다운로드 응답 지연 방지
+      (async () => {
+        try {
+          const recentCount = await getRecentDownloadCount({
+            userEmail,
+            ipAddress,
+            withinMinutes: ANOMALY_CONFIG.windowMinutes,
+          });
+
+          if (recentCount >= ANOMALY_CONFIG.threshold) {
+            const cooldownKey = `${userEmail || ""}:${ipAddress || ""}`;
+            if (shouldNotify(cooldownKey)) {
+              const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+              await notifyOwner({
+                title: `⚠️ 비정상 다운로드 감지 - ${userName || userEmail || ipAddress || "알 수 없음"}`,
+                content: [
+                  `[이상 다운로드 감지 알림]`,
+                  ``,
+                  `사용자: ${userName || "미확인"} (${userEmail || "이메일 없음"})`,
+                  `IP 주소: ${ipAddress || "알 수 없음"}`,
+                  `최근 ${ANOMALY_CONFIG.windowMinutes}분간 다운로드: ${recentCount}건`,
+                  `임계값: ${ANOMALY_CONFIG.threshold}건`,
+                  `최근 다운로드 파일: ${input.fileName || input.fileType}`,
+                  `프로젝트: ${input.projectName || "미지정"}`,
+                  `감지 시각: ${now}`,
+                  ``,
+                  `해당 사용자의 다운로드 이력을 관리자 대시보드에서 확인해 주세요.`,
+                  `관리자 페이지: /admin/download-logs`,
+                ].join("\n"),
+              });
+              console.warn(`[IP Protection] Anomaly detected: ${userEmail || ipAddress} - ${recentCount} downloads in ${ANOMALY_CONFIG.windowMinutes}min`);
+            }
+          }
+        } catch (err) {
+          console.error("[IP Protection] Anomaly detection error:", err);
+        }
+      })();
 
       return { trackingCode, logId };
     }),
@@ -111,6 +179,31 @@ export const ipProtectionRouter = router({
   stats: adminProcedure.query(async () => {
     return getDownloadStats();
   }),
+
+  /**
+   * 이상 감지 현황 조회 (관리자용)
+   * - 최근 N분 내 임계값 초과 다운로드 사용자/IP 목록
+   */
+  anomalyReport: adminProcedure
+    .input(z.object({
+      withinMinutes: z.number().min(5).max(1440).default(60),
+      threshold: z.number().min(2).max(100).default(5),
+    }).optional())
+    .query(async ({ input }) => {
+      const opts = {
+        withinMinutes: input?.withinMinutes ?? 60,
+        threshold: input?.threshold ?? ANOMALY_CONFIG.threshold,
+      };
+      const anomalies = await getAnomalousDownloaders(opts);
+      return {
+        config: {
+          windowMinutes: opts.withinMinutes,
+          threshold: opts.threshold,
+        },
+        anomalies,
+        checkedAt: new Date().toISOString(),
+      };
+    }),
 
   /**
    * 법적 고지 텍스트 조회 (공개)

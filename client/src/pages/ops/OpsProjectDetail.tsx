@@ -13,6 +13,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { generateProjectReportPdf, type ProjectReportData } from "@/lib/projectReportPdf";
+import { IPConsentModal } from "@/components/IPConsentModal";
 
 // Sub-tab components
 import ScheduleTab from "./tabs/ScheduleTab";
@@ -41,6 +42,10 @@ export default function OpsProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
+  const [reportConsentOpen, setReportConsentOpen] = useState(false);
+  const [reportData, setReportData] = useState<ProjectReportData | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const logDownload = trpc.ipProtection.logDownload.useMutation();
   const utils = trpc.useUtils();
 
   const project = trpc.ops.project.get.useQuery({ id: id! });
@@ -145,7 +150,7 @@ export default function OpsProjectDetail() {
             onClick={() => {
               const now = new Date();
               const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-              const reportData: ProjectReportData = {
+              const rd: ProjectReportData = {
                 project: {
                   name: p.name,
                   clientName: p.clientName,
@@ -160,12 +165,8 @@ export default function OpsProjectDetail() {
                 meetings: (p as any).meetings ?? [],
                 reportMonth: month,
               };
-              try {
-                generateProjectReportPdf(reportData);
-                toast.success("PDF 리포트가 다운로드됩니다.");
-              } catch (err) {
-                toast.error("PDF 생성에 실패했습니다.");
-              }
+              setReportData(rd);
+              setReportConsentOpen(true);
             }}
           >
             <Download className="w-4 h-4 mr-1" />PDF 리포트
@@ -292,6 +293,35 @@ export default function OpsProjectDetail() {
           <CameraTab projectId={id!} />
         </TabsContent>
       </Tabs>
+
+      {/* IP 보호 동의 모달 - 프로젝트 보고서 PDF */}
+      <IPConsentModal
+        open={reportConsentOpen}
+        onClose={() => { setReportConsentOpen(false); setReportData(null); }}
+        onConsent={async () => {
+          if (!reportData) return;
+          setReportConsentOpen(false);
+          setGeneratingReport(true);
+          try {
+            const logResult = await logDownload.mutateAsync({
+              fileType: "project_report_pdf" as const,
+              fileName: `프로젝트_보고서_${reportData.project.name}`,
+              projectId: parseInt(id!) || undefined,
+              projectName: reportData.project.name || undefined,
+              consentGiven: "yes",
+            });
+            generateProjectReportPdf(reportData, logResult.trackingCode);
+            toast.success(`PDF 리포트가 다운로드됩니다. (트래킹: ${logResult.trackingCode})`);
+          } catch (err) {
+            toast.error("PDF 생성에 실패했습니다.");
+          } finally {
+            setGeneratingReport(false);
+            setReportData(null);
+          }
+        }}
+        fileName={reportData ? `프로젝트_보고서_${reportData.project.name}.pdf` : undefined}
+        isLoading={generatingReport}
+      />
     </div>
   );
 }

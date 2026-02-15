@@ -1,4 +1,4 @@
-import { eq, desc, count, and, lte, gte, or, isNull, ne, sql } from "drizzle-orm";
+import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -1723,4 +1723,64 @@ export async function getDownloadStats() {
     fileType: downloadLogs.fileType,
     count: count(),
   }).from(downloadLogs).groupBy(downloadLogs.fileType);
+}
+
+/**
+ * 특정 시간 범위 내 사용자/IP별 다운로드 횟수 조회 (이상 감지용)
+ */
+export async function getRecentDownloadCount(opts: {
+  userEmail?: string | null;
+  ipAddress?: string | null;
+  withinMinutes: number;
+}) {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const cutoff = new Date(Date.now() - opts.withinMinutes * 60 * 1000);
+  const conditions: any[] = [
+    gte(downloadLogs.createdAt, cutoff),
+  ];
+
+  if (opts.userEmail) {
+    conditions.push(eq(downloadLogs.userEmail, opts.userEmail));
+  }
+  if (opts.ipAddress) {
+    conditions.push(eq(downloadLogs.ipAddress, opts.ipAddress));
+  }
+
+  const result = await db.select({ count: count() })
+    .from(downloadLogs)
+    .where(and(...conditions));
+
+  return result[0]?.count ?? 0;
+}
+
+/**
+ * 이상 감지 이력 조회 - 최근 N분 내 다운로드가 임계값을 초과한 사용자/IP 목록
+ */
+export async function getAnomalousDownloaders(opts: {
+  withinMinutes: number;
+  threshold: number;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const cutoff = new Date(Date.now() - opts.withinMinutes * 60 * 1000);
+
+  // 이메일 기준 이상 감지
+  const byEmail = await db.select({
+    userEmail: downloadLogs.userEmail,
+    userName: downloadLogs.userName,
+    ipAddress: downloadLogs.ipAddress,
+    count: count(),
+  })
+    .from(downloadLogs)
+    .where(and(
+      gte(downloadLogs.createdAt, cutoff),
+      isNotNull(downloadLogs.userEmail),
+    ))
+    .groupBy(downloadLogs.userEmail, downloadLogs.userName, downloadLogs.ipAddress)
+    .having(({ count: c }) => gte(c, opts.threshold));
+
+  return byEmail;
 }

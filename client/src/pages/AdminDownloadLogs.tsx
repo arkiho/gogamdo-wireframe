@@ -33,7 +33,7 @@ const FILE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
 
 export default function AdminDownloadLogs() {
   const { user, loading: authLoading } = useAuth();
-  const [tab, setTab] = useState<"logs" | "search" | "stats">("logs");
+  const [tab, setTab] = useState<"logs" | "search" | "stats" | "anomaly">("logs");
   const [fileTypeFilter, setFileTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [searchCode, setSearchCode] = useState("");
@@ -134,6 +134,7 @@ export default function AdminDownloadLogs() {
             { id: "logs" as const, label: "다운로드 로그", icon: <FileText className="w-4 h-4" /> },
             { id: "search" as const, label: "추적 검색", icon: <Search className="w-4 h-4" /> },
             { id: "stats" as const, label: "통계", icon: <BarChart3 className="w-4 h-4" /> },
+            { id: "anomaly" as const, label: "이상 감지", icon: <AlertTriangle className="w-4 h-4" /> },
           ].map((t) => (
             <Button
               key={t.id}
@@ -464,7 +465,156 @@ export default function AdminDownloadLogs() {
             </Card>
           </div>
         )}
+        {/* === 이상 감지 탭 === */}
+        {tab === "anomaly" && (
+          <AnomalyTab />
+        )}
       </div>
+    </div>
+  );
+}
+
+/** 이상 감지 탭 컴포넌트 */
+function AnomalyTab() {
+  const [windowMinutes, setWindowMinutes] = useState(60);
+  const [threshold, setThreshold] = useState(5);
+
+  const anomalyQuery = trpc.ipProtection.anomalyReport.useQuery(
+    { withinMinutes: windowMinutes, threshold },
+    { refetchInterval: 30000 } // 30초마다 자동 갱신
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* 설정 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-500" />
+            이상 감지 설정
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">감지 시간 범위 (분)</label>
+              <Select value={String(windowMinutes)} onValueChange={(v) => setWindowMinutes(Number(v))}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15">15분</SelectItem>
+                  <SelectItem value="30">30분</SelectItem>
+                  <SelectItem value="60">1시간</SelectItem>
+                  <SelectItem value="120">2시간</SelectItem>
+                  <SelectItem value="360">6시간</SelectItem>
+                  <SelectItem value="1440">24시간</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">임계값 (회)</label>
+              <Select value={String(threshold)} onValueChange={(v) => setThreshold(Number(v))}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">3회 이상</SelectItem>
+                  <SelectItem value="5">5회 이상</SelectItem>
+                  <SelectItem value="10">10회 이상</SelectItem>
+                  <SelectItem value="20">20회 이상</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              자동 갱신: 30초마다 | 마지막 확인: {anomalyQuery.data?.checkedAt
+                ? new Date(anomalyQuery.data.checkedAt).toLocaleString("ko-KR")
+                : "-"}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 이상 감지 결과 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            {(anomalyQuery.data?.anomalies?.length ?? 0) > 0 ? (
+              <AlertTriangle className="w-4 h-4 text-red-500 animate-pulse" />
+            ) : (
+              <Shield className="w-4 h-4 text-green-500" />
+            )}
+            감지 결과
+            {(anomalyQuery.data?.anomalies?.length ?? 0) > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {anomalyQuery.data?.anomalies?.length}건 감지
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {anomalyQuery.isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">조회 중...</div>
+          ) : (anomalyQuery.data?.anomalies?.length ?? 0) === 0 ? (
+            <div className="text-center py-8">
+              <Shield className="w-10 h-10 mx-auto text-green-400 mb-3" />
+              <p className="text-muted-foreground">
+                최근 {windowMinutes}분 내 이상 다운로드가 감지되지 않았습니다.
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                임계값: {threshold}회 이상 다운로드 시 감지
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {anomalyQuery.data?.anomalies?.map((a: any, i: number) => (
+                <div
+                  key={i}
+                  className="p-4 border border-red-200 bg-red-50 rounded-lg"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-semibold text-red-800 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        {a.userName || a.userEmail || "미확인 사용자"}
+                      </div>
+                      <div className="text-sm text-red-600 mt-1">
+                        이메일: {a.userEmail || "-"}
+                      </div>
+                      <div className="text-sm text-red-600">
+                        IP: {a.ipAddress || "-"}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-red-700">
+                        {a.count}회
+                      </div>
+                      <div className="text-xs text-red-500">
+                        {windowMinutes}분 내 다운로드
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 이상 감지 안내 */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p className="font-medium text-foreground">이상 감지 시스템 안내</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>동일 사용자/IP가 설정된 시간 내에 임계값 이상 다운로드 시 자동 감지됩니다.</li>
+              <li>감지 시 관리자에게 자동 알림이 발송됩니다 (알림 센터 + 이메일).</li>
+              <li>동일 사용자에 대해 30분 내 중복 알림은 발송되지 않습니다.</li>
+              <li>모든 다운로드는 트래킹 코드와 함께 기록되며, 무단 유출 시 추적이 가능합니다.</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { SensorFloorPlan } from "@/components/SensorFloorPlan";
 
 const SENSOR_TYPES = [
   { value: "temperature", label: "온도", icon: Thermometer, unit: "°C", color: "#ef4444" },
@@ -283,7 +284,7 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
                 <CardTitle className="text-sm font-medium">센서 배치</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground mb-3">센서 유형을 선택한 후 평면도에서 설치 위치를 클릭하세요</p>
+                <p className="text-xs text-muted-foreground mb-3">센서 유형을 선택한 후 평면도에서 설치 위치를 클릭하세요. 배치된 센서는 드래그하여 이동할 수 있습니다.</p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {SENSOR_TYPES.map(st => {
                     const Icon = st.icon;
@@ -305,7 +306,7 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
               </CardContent>
             </Card>
 
-            {/* Floor Plan */}
+            {/* Floor Plan with Interactive Sensors */}
             <Card>
               <CardContent className="p-4">
                 {!p.floorPlanUrl ? (
@@ -317,48 +318,38 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
                     <p className="text-xs text-muted-foreground/60 mt-1">JPG, PNG, SVG 지원</p>
                   </div>
                 ) : (
-                  <div ref={floorPlanRef} className={`relative ${placingType ? "cursor-crosshair" : ""}`} onClick={handleFloorPlanClick}>
-                    <img src={p.floorPlanUrl} alt="평면도" className="w-full rounded-lg" />
-                    {/* Sensor markers */}
-                    {sensorsList.data?.map((s: any) => {
-                      if (s.posX == null || s.posY == null) return null;
-                      const meta = getSensorMeta(s.type);
-                      const Icon = meta.icon;
-                      const latest = latestData.data?.find((d: any) => d.sensor.id === s.id);
-                      return (
-                        <div key={s.id}
-                          className="absolute transform -translate-x-1/2 -translate-y-1/2 group"
-                          style={{ left: `${s.posX / 10}%`, top: `${s.posY / 10}%` }}>
-                          <div className="relative">
-                            {/* Pulse ring */}
-                            <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: meta.color }} />
-                            {/* Marker */}
-                            <div className="relative w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-white"
-                              style={{ backgroundColor: meta.color }}>
-                              <Icon className="w-4 h-4 text-white" />
-                            </div>
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                              <div className="bg-ink text-white px-3 py-2 rounded-lg text-xs whitespace-nowrap shadow-xl">
-                                <p className="font-semibold">{s.name}</p>
-                                {s.zone && <p className="text-white/60">{s.zone}</p>}
-                                {latest?.latestValue && (
-                                  <p className="text-gold font-bold mt-1">{latest.latestValue} {s.unit}</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {/* Upload new floor plan button */}
-                    <button onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                      className="absolute top-3 right-3 bg-white/90 hover:bg-white rounded-md px-2 py-1 text-xs font-medium text-ink shadow-sm border border-border/50">
-                      <Upload className="w-3 h-3 inline mr-1" />평면도 변경
-                    </button>
-                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFloorPlanUpload(e.target.files)} />
-                  </div>
+                  <SensorFloorPlan
+                    floorPlanUrl={p.floorPlanUrl}
+                    sensors={sensorsList.data || []}
+                    latestData={latestData.data || []}
+                    placingType={placingType}
+                    onPlaceSensor={(posX, posY) => {
+                      const meta = getSensorMeta(placingType!);
+                      createSensor.mutate({
+                        projectId,
+                        name: `${meta.label} ${(sensorsList.data?.length ?? 0) + 1}`,
+                        type: placingType as any,
+                        unit: meta.unit,
+                        posX,
+                        posY,
+                        zone: placingZone || undefined,
+                      });
+                      setPlacingType(null);
+                      setPlacingZone("");
+                    }}
+                    onMoveSensor={(sensorId, posX, posY) => {
+                      updateSensor.mutate({ id: sensorId, posX, posY });
+                    }}
+                    onDeleteSensor={(sensorId) => {
+                      deleteSensor.mutate({ id: sensorId });
+                    }}
+                    onUpdateSensor={(sensorId, data) => {
+                      updateSensor.mutate({ id: sensorId, ...data } as any);
+                    }}
+                    onUploadFloorPlan={() => fileInputRef.current?.click()}
+                  />
                 )}
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFloorPlanUpload(e.target.files)} />
               </CardContent>
             </Card>
           </div>

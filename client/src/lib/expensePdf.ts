@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { applyIPProtection } from "./pdfWatermark";
 
 // jspdf-autotable extends jsPDF prototype
 declare module "jspdf" {
@@ -73,7 +74,7 @@ interface ExpenseData {
   approvalSteps?: ApprovalStep[];
 }
 
-export function generateExpensePdf(expense: ExpenseData) {
+export function generateExpensePdf(expense: ExpenseData, trackingCode?: string) {
   const doc = new jsPDF("p", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
@@ -289,6 +290,11 @@ export function generateExpensePdf(expense: ExpenseData) {
     footerY,
     { align: "center" }
   );
+
+  // IP 보호 적용 (워터마크 + 법적 고지)
+  if (trackingCode) {
+    applyIPProtection(doc, trackingCode);
+  }
 
   // Save
   doc.save(`expense_${expense.expenseNumber}.pdf`);

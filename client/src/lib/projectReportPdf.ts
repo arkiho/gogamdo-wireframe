@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { applyIPProtection } from "./pdfWatermark";
 
 declare module "jspdf" {
   interface jsPDF {
@@ -103,7 +104,7 @@ function formatDate(dateStr?: string): string {
   }
 }
 
-export function generateProjectReportPdf(data: ProjectReportData) {
+export function generateProjectReportPdf(data: ProjectReportData, trackingCode?: string) {
   const doc = new jsPDF("p", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -459,6 +460,11 @@ export function generateProjectReportPdf(data: ProjectReportData) {
 
   // ==================== FOOTER ====================
   addFooter();
+
+  // IP 보호 적용 (워터마크 + 법적 고지)
+  if (trackingCode) {
+    applyIPProtection(doc, trackingCode);
+  }
 
   // Save
   const monthStr = data.reportMonth.replace("-", "");

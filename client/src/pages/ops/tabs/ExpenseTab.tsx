@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Plus, Receipt, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, FileDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateExpensePdf } from "@/lib/expensePdf";
+import { IPConsentModal } from "@/components/IPConsentModal";
 
 const CATEGORY_LABELS: Record<string, string> = {
   material: "자재비", labor: "인건비", equipment: "장비비",
@@ -42,6 +43,9 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [consentTarget, setConsentTarget] = useState<any | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const logDownload = trpc.ipProtection.logDownload.useMutation();
   const [items, setItems] = useState<ExpenseItem[]>([
     { description: "", quantity: 1, unitPrice: 0, amount: 0 },
   ]);
@@ -123,8 +127,27 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
     });
   };
 
+  // 법적 고지 동의 모달 표시 후 PDF 다운로드
   const handleDownloadPdf = (e: any) => {
+    setConsentTarget(e);
+  };
+
+  const handleConsentAndDownload = async () => {
+    if (!consentTarget) return;
+    const e = consentTarget;
+    setGeneratingPdf(true);
+    setConsentTarget(null);
     try {
+      // 1. 다운로드 로그 기록 + 트래킹 코드 발급
+      const logResult = await logDownload.mutateAsync({
+        fileType: "expense_pdf" as const,
+        fileName: `지출결의서_${e.expenseNumber ?? e.id}`,
+        projectId: parseInt(projectId) || undefined,
+        projectName: projectName || undefined,
+        consentGiven: "yes",
+      });
+
+      // 2. PDF 생성 + IP 보호 적용
       generateExpensePdf({
         expenseNumber: e.expenseNumber ?? `EXP-${e.id}`,
         title: e.title,
@@ -143,11 +166,13 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
         submittedAt: e.submittedAt,
         approvedAt: e.approvedAt,
         approvalSteps: [],
-      });
-      toast.success("PDF가 다운로드되었습니다.");
+      }, logResult.trackingCode);
+      toast.success(`PDF가 다운로드되었습니다. (트래킹: ${logResult.trackingCode})`);
     } catch (err) {
       toast.error("PDF 생성에 실패했습니다.");
       console.error(err);
+    } finally {
+      setGeneratingPdf(false);
     }
   };
 
@@ -473,6 +498,14 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
           )}
         </CardContent>
       </Card>
+      {/* IP 보호 동의 모달 */}
+      <IPConsentModal
+        open={!!consentTarget}
+        onClose={() => setConsentTarget(null)}
+        onConsent={handleConsentAndDownload}
+        fileName={consentTarget ? `지출결의서_${consentTarget.expenseNumber ?? consentTarget.id}.pdf` : undefined}
+        isLoading={generatingPdf}
+      />
     </div>
   );
 }
