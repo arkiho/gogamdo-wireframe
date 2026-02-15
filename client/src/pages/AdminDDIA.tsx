@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { SensorFloorPlan } from "@/components/SensorFloorPlan";
 import { OccupancyHeatmap, type ZoneData, type HeatmapEntry } from "@/components/OccupancyHeatmap";
 import { TrafficFlowChart } from "@/components/TrafficFlowChart";
-import { Flame, Route } from "lucide-react";
+import { Flame, Route, Key, Copy, AlertTriangle, Shield } from "lucide-react";
 
 const SENSOR_TYPES = [
   { value: "temperature", label: "온도", icon: Thermometer, unit: "°C", color: "#ef4444" },
@@ -185,7 +185,7 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
     onSuccess: () => { analyses.refetch(); toast.success("AI 분석이 완료되었습니다"); },
   });
 
-  const [tab, setTab] = useState<"floorplan" | "sensors" | "data" | "heatmap" | "traffic" | "analysis">("floorplan");
+  const [tab, setTab] = useState<"floorplan" | "sensors" | "data" | "heatmap" | "traffic" | "analysis" | "apikeys">("floorplan");
   const [heatmapRange, setHeatmapRange] = useState<"day" | "week" | "month">("week");
   const [selectedHeatmapZone, setSelectedHeatmapZone] = useState<number | null>(null);
   const [placingType, setPlacingType] = useState<string | null>(null);
@@ -272,6 +272,7 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
             { key: "heatmap", label: "히트맵", icon: Flame },
             { key: "traffic", label: "동선 분석", icon: Route },
             { key: "analysis", label: "AI 분석", icon: Brain },
+            { key: "apikeys", label: "API 키", icon: Key },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as any)}
               className={`flex items-center gap-1.5 py-3 text-sm font-medium border-b-2 transition-colors ${tab === t.key ? "border-gold text-gold" : "border-transparent text-muted-foreground hover:text-ink"}`}>
@@ -538,6 +539,9 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
           );
         })()}
 
+        {/* API Keys Tab */}
+        {tab === "apikeys" && <ApiKeysTab projectId={projectId} />}
+
         {/* Analysis Tab */}
         {tab === "analysis" && (
           <div className="space-y-6">
@@ -774,6 +778,209 @@ function TrafficTab({
         }))}
         selectedZoneName={selectedZoneName}
       />
+    </div>
+  );
+}
+
+
+// ========== API Keys Tab Sub-Component ==========
+function ApiKeysTab({ projectId }: { projectId: number }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [newKeyName, setNewKeyName] = useState("");
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const apiKeys = trpc.sensorApiKeys.list.useQuery({ projectId });
+  const createKey = trpc.sensorApiKeys.create.useMutation({
+    onSuccess: (data) => {
+      setGeneratedKey(data.apiKey);
+      setNewKeyName("");
+      apiKeys.refetch();
+      toast.success("API 키가 생성되었습니다");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const revokeKey = trpc.sensorApiKeys.revoke.useMutation({
+    onSuccess: () => {
+      apiKeys.refetch();
+      toast.success("API 키가 폐기되었습니다");
+    },
+  });
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success("클립보드에 복사되었습니다");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Key className="w-5 h-5 text-gold" /> 센서 API 키 관리
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            센서 디바이스가 데이터를 전송할 때 사용하는 API 키를 관리합니다
+          </p>
+        </div>
+        <Button size="sm" onClick={() => { setShowCreate(true); setGeneratedKey(null); }}>
+          <Plus className="w-4 h-4 mr-1" /> 새 API 키 생성
+        </Button>
+      </div>
+
+      {/* Generated Key Alert - 한 번만 표시 */}
+      {generatedKey && (
+        <Card className="border-yellow-300 bg-yellow-50">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-yellow-800 mb-1">
+                  API 키가 생성되었습니다 — 지금 복사하세요!
+                </p>
+                <p className="text-xs text-yellow-700 mb-3">
+                  이 키는 다시 표시되지 않습니다. 안전한 곳에 보관하세요.
+                </p>
+                <div className="flex items-center gap-2 p-2 bg-white rounded border border-yellow-200">
+                  <code className="text-xs font-mono flex-1 break-all text-yellow-900">{generatedKey}</code>
+                  <Button variant="outline" size="sm" onClick={() => handleCopy(generatedKey)}
+                    className="flex-shrink-0">
+                    <Copy className="w-3 h-3 mr-1" />
+                    {copied ? "복사됨!" : "복사"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Create Key Modal */}
+      {showCreate && !generatedKey && (
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Shield className="w-4 h-4 text-gold" />
+              <span className="text-sm font-medium">새 API 키 생성</span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="키 이름 (예: 3층 센서 허브, 테스트 디바이스)"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+                className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-gold/50"
+              />
+              <Button size="sm" disabled={!newKeyName.trim() || createKey.isPending}
+                onClick={() => createKey.mutate({ projectId, name: newKeyName.trim() })}>
+                {createKey.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Key className="w-3 h-3 mr-1" />}
+                생성
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowCreate(false)}>취소</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Keys List */}
+      <Card>
+        <CardContent className="pt-4">
+          {apiKeys.isLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : !apiKeys.data?.length ? (
+            <div className="text-center py-8">
+              <Key className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">등록된 API 키가 없습니다</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">센서 디바이스 연동을 위해 API 키를 생성하세요</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="pb-2 font-medium text-muted-foreground">이름</th>
+                    <th className="pb-2 font-medium text-muted-foreground">키 (앞 8자리)</th>
+                    <th className="pb-2 font-medium text-muted-foreground">상태</th>
+                    <th className="pb-2 font-medium text-muted-foreground">생성일</th>
+                    <th className="pb-2 font-medium text-muted-foreground">마지막 사용</th>
+                    <th className="pb-2 font-medium text-muted-foreground text-right">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {apiKeys.data.map((k: any) => (
+                    <tr key={k.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="py-3 font-medium">{k.name}</td>
+                      <td className="py-3">
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                          {k.apiKey?.substring(0, 8) ?? "••••••••"}...
+                        </code>
+                      </td>
+                      <td className="py-3">
+                        <Badge variant={k.status === "active" ? "default" : "secondary"}
+                          className={k.status === "active" ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-700 hover:bg-red-100"}>
+                          {k.status === "active" ? "활성" : "폐기됨"}
+                        </Badge>
+                      </td>
+                      <td className="py-3 text-muted-foreground text-xs">
+                        {new Date(k.createdAt).toLocaleDateString("ko-KR")}
+                      </td>
+                      <td className="py-3 text-muted-foreground text-xs">
+                        {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString("ko-KR") : "사용 기록 없음"}
+                      </td>
+                      <td className="py-3 text-right">
+                        {k.status === "active" && (
+                          <Button variant="outline" size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            disabled={revokeKey.isPending}
+                            onClick={() => {
+                              if (confirm(`"${k.name}" API 키를 폐기하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+                                revokeKey.mutate({ id: k.id });
+                              }
+                            }}>
+                            <Trash2 className="w-3 h-3 mr-1" /> 폐기
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Usage Guide */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="w-4 h-4 text-blue-500" />
+            <span className="text-sm font-medium">API 키 사용 가이드</span>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-4 text-xs font-mono space-y-2">
+            <p className="text-muted-foreground mb-2 font-sans text-sm">요청 시 헤더에 API 키를 포함하세요:</p>
+            <div className="bg-ink text-white p-3 rounded">
+              <p>POST /api/sensor/event</p>
+              <p>Authorization: Bearer <span className="text-gold">YOUR_API_KEY</span></p>
+              <p>Content-Type: application/json</p>
+              <p className="mt-2 text-white/60">{'{'}</p>
+              <p className="text-white/60 pl-4">"deviceId": "sensor-001",</p>
+              <p className="text-white/60 pl-4">"eventType": "enter",</p>
+              <p className="text-white/60 pl-4">"value": 1,</p>
+              <p className="text-white/60 pl-4">"timestamp": 1708000000000</p>
+              <p className="text-white/60">{'}'}</p>
+            </div>
+          </div>
+          <div className="mt-3">
+            <a href="/developer/sensor-api" className="text-sm text-gold hover:underline flex items-center gap-1">
+              전체 API 문서 보기 →
+            </a>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

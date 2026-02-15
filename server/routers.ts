@@ -2319,9 +2319,16 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         phone: input.phone ?? null,
         emailVerifyToken,
         emailVerifyExpires,
-        status: "active", // 즉시 활성화 (이메일 인증은 선택)
+        status: "pending", // 이메일 인증 전까지 pending
       });
-      return { success: true, message: "회원가입이 완료되었습니다." };
+      // 관리자에게 신규 회원가입 알림 + 인증 토큰 전달
+      try {
+        await notifyOwner({
+          title: `[고감도] 신규 고객 회원가입: ${input.name}`,
+          content: `이메일: ${input.email}\n회사: ${input.company || '-'}\n전화: ${input.phone || '-'}\n인증토큰: ${emailVerifyToken}\n인증링크: /api/verify-email?token=${emailVerifyToken}`,
+        });
+      } catch { /* 알림 실패해도 회원가입은 진행 */ }
+      return { success: true, message: "회원가입이 완료되었습니다. 이메일 인증을 완료해주세요.", emailVerifyToken };
     }),
 
     login: publicProcedure.input(z.object({
@@ -2334,6 +2341,9 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       }
       if (client.status === "suspended") {
         throw new TRPCError({ code: "FORBIDDEN", message: "계정이 정지되었습니다. 관리자에게 문의하세요." });
+      }
+      if (client.status === "pending" && client.emailVerified === "no") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "EMAIL_NOT_VERIFIED" });
       }
       const valid = await compare(input.password, client.passwordHash);
       if (!valid) {
@@ -2431,6 +2441,44 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       const newHash = await hash(input.newPassword, 12);
       await updateClient(client.id, { passwordHash: newHash });
       return { success: true };
+    }),
+
+    verifyEmail: publicProcedure.input(z.object({
+      token: z.string(),
+    })).mutation(async ({ input }) => {
+      const client = await getClientByVerifyToken(input.token);
+      if (!client || !client.emailVerifyExpires || client.emailVerifyExpires < new Date()) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "유효하지 않거나 만료된 인증 토큰입니다." });
+      }
+      await updateClient(client.id, {
+        emailVerified: "yes",
+        emailVerifyToken: null,
+        emailVerifyExpires: null,
+        status: "active",
+      });
+      return { success: true, message: "이메일 인증이 완료되었습니다. 로그인해주세요." };
+    }),
+
+    resendVerification: publicProcedure.input(z.object({
+      email: z.string().email(),
+    })).mutation(async ({ input }) => {
+      const client = await getClientByEmail(input.email);
+      if (!client || client.emailVerified === "yes") {
+        return { success: true, message: "인증 메일이 재발송되었습니다." };
+      }
+      const newToken = randomBytes(32).toString("hex");
+      const newExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await updateClient(client.id, {
+        emailVerifyToken: newToken,
+        emailVerifyExpires: newExpires,
+      });
+      try {
+        await notifyOwner({
+          title: `[고감도] 이메일 인증 재발송: ${client.name}`,
+          content: `이메일: ${client.email}\n인증토큰: ${newToken}\n인증링크: /api/verify-email?token=${newToken}`,
+        });
+      } catch { /* ignore */ }
+      return { success: true, message: "인증 메일이 재발송되었습니다.", emailVerifyToken: newToken };
     }),
 
     requestPasswordReset: publicProcedure.input(z.object({

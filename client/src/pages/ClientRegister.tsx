@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, UserPlus, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, UserPlus, ArrowLeft, CheckCircle2, Mail } from "lucide-react";
 
 export default function ClientRegister() {
   const [, navigate] = useLocation();
@@ -20,6 +20,11 @@ export default function ClientRegister() {
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  const resendMutation = trpc.clientAuth.resendVerification.useMutation({
+    onSuccess: () => setError(""),
+    onError: (err) => setError(err.message),
+  });
 
   const registerMutation = trpc.clientAuth.register.useMutation({
     onSuccess: () => {
@@ -58,15 +63,28 @@ export default function ClientRegister() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-8 pb-8 text-center">
-            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">회원가입 완료</h2>
-            <p className="text-muted-foreground mb-6">
-              회원가입이 성공적으로 완료되었습니다.<br />
-              로그인하여 고감도의 서비스를 이용해 보세요.
+            <div className="mx-auto mb-4 w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+              <Mail className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">이메일 인증이 필요합니다</h2>
+            <p className="text-muted-foreground mb-4">
+              회원가입이 완료되었습니다.<br />
+              입력하신 이메일로 인증 링크가 발송되었습니다.
             </p>
-            <Button onClick={() => navigate("/client/login")} className="w-full bg-gold hover:bg-gold-light text-ink">
-              로그인하기
-            </Button>
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm mb-6">
+              이메일의 인증 링크를 클릭하여 계정을 활성화해주세요.<br />
+              인증 링크는 24시간 동안 유효합니다.
+            </div>
+            <div className="space-y-2">
+              <Button onClick={() => navigate("/client/login")} className="w-full bg-gold hover:bg-gold-light text-ink">
+                로그인 페이지로 이동
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => {
+                resendMutation.mutate({ email: form.email });
+              }} disabled={resendMutation.isPending}>
+                {resendMutation.isPending ? "발송 중..." : "인증 메일 재발송"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

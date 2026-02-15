@@ -41,6 +41,8 @@ import OpsStaffManagement from "./pages/ops/OpsStaffManagement";
 import OpsCalendar from "./pages/ops/OpsCalendar";
 import ClientRegister from "./pages/ClientRegister";
 import ClientLogin from "./pages/ClientLogin";
+import ClientVerifyEmail from "./pages/ClientVerifyEmail";
+import SensorApiDocs from "./pages/SensorApiDocs";
 import ClientSpaceDashboard from "./pages/ClientSpaceDashboard";
 import Layout from "./components/Layout";
 
@@ -85,7 +87,10 @@ function Router() {
       {/* 고객 인증 및 공간 활용 대시보드 */}
       <Route path="/client/register" component={ClientRegister} />
       <Route path="/client/login" component={ClientLogin} />
+      <Route path="/client/verify-email" component={ClientVerifyEmail} />
       <Route path="/client/dashboard" component={ClientSpaceDashboard} />
+      {/* 개발자 문서 */}
+      <Route path="/developer/sensor-api" component={SensorApiDocs} />
       {/* OpsX 직원 대시보드 */}
       <Route path="/ops" component={OpsHome} />
       <Route path="/ops/project/:id" component={OpsProjectDetail} />

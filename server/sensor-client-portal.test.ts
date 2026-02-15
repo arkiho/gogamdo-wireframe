@@ -124,6 +124,7 @@ describe("센서 API 키 관리", () => {
 describe("고객 회원가입/로그인", () => {
   const testEmail = `test_${Date.now()}@example.com`;
   const testPassword = "TestPass123!";
+  let testVerifyToken: string;
 
   it("고객이 회원가입할 수 있다", async () => {
     const { ctx } = createPublicContext();
@@ -139,6 +140,14 @@ describe("고객 회원가입/로그인", () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toContain("회원가입");
+    testVerifyToken = result.emailVerifyToken!;
+  });
+
+  it("회원가입 후 이메일 인증을 완료한다", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.clientAuth.verifyEmail({ token: testVerifyToken });
+    expect(result.success).toBe(true);
   });
 
   it("중복 이메일로 회원가입 시 에러가 발생한다", async () => {
@@ -430,12 +439,17 @@ describe("고객 프로필 관리", () => {
     // 회원가입
     const { ctx: regCtx } = createPublicContext();
     const regCaller = appRouter.createCaller(regCtx);
-    await regCaller.clientAuth.register({
+    const regResult = await regCaller.clientAuth.register({
       email: profileEmail,
       password: profilePassword,
       name: "프로필 테스트",
       company: "원래 회사",
     });
+
+    // 이메일 인증
+    const { ctx: verifyCtx } = createPublicContext();
+    const verifyCaller = appRouter.createCaller(verifyCtx);
+    await verifyCaller.clientAuth.verifyEmail({ token: regResult.emailVerifyToken! });
 
     // 로그인하여 토큰 획득
     const { ctx: loginCtx, cookies } = createPublicContext();
@@ -520,5 +534,135 @@ describe("구역 유형 검증", () => {
       expect(result).toBeDefined();
       expect(result.id).toBeDefined();
     }
+  });
+});
+
+// ============================================================
+// 9. Email Verification Tests
+// ============================================================
+describe("이메일 인증 플로우", () => {
+  const verifyEmail = `verify_${Date.now()}@example.com`;
+  const verifyPassword = "VerifyPass123!";
+  let verifyToken: string;
+
+  it("회원가입 시 인증 토큰이 반환된다", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.clientAuth.register({
+      email: verifyEmail,
+      password: verifyPassword,
+      name: "인증 테스트",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.emailVerifyToken).toBeDefined();
+    expect(typeof result.emailVerifyToken).toBe("string");
+    verifyToken = result.emailVerifyToken!;
+  });
+
+  it("미인증 사용자 로그인 시 EMAIL_NOT_VERIFIED 에러가 발생한다", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.clientAuth.login({
+        email: verifyEmail,
+        password: verifyPassword,
+      })
+    ).rejects.toThrow("EMAIL_NOT_VERIFIED");
+  });
+
+  it("유효한 토큰으로 이메일 인증이 성공한다", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.clientAuth.verifyEmail({
+      token: verifyToken,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("인증");
+  });
+
+  it("인증 후 로그인이 가능하다", async () => {
+    const { ctx, cookies } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.clientAuth.login({
+      email: verifyEmail,
+      password: verifyPassword,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.client.email).toBe(verifyEmail);
+    const tokenCookie = cookies.find((c) => c.name === "client_token");
+    expect(tokenCookie).toBeDefined();
+  });
+
+  it("이미 사용된 토큰으로 인증 시 에러가 발생한다", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.clientAuth.verifyEmail({
+        token: verifyToken,
+      })
+    ).rejects.toThrow();
+  });
+
+  it("유효하지 않은 토큰으로 인증 시 에러가 발생한다", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.clientAuth.verifyEmail({
+        token: "invalid-token-12345",
+      })
+    ).rejects.toThrow();
+  });
+
+  it("인증 메일을 재발송할 수 있다", async () => {
+    // 새 사용자 생성
+    const resendEmail = `resend_${Date.now()}@example.com`;
+    const { ctx: regCtx } = createPublicContext();
+    const regCaller = appRouter.createCaller(regCtx);
+    await regCaller.clientAuth.register({
+      email: resendEmail,
+      password: "ResendPass123!",
+      name: "재발송 테스트",
+    });
+
+    // 재발송
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.clientAuth.resendVerification({
+      email: resendEmail,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.emailVerifyToken).toBeDefined();
+  });
+
+  it("이미 인증된 사용자의 재발송 요청도 성공 메시지를 반환한다", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.clientAuth.resendVerification({
+      email: verifyEmail, // 이미 인증된 이메일
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("존재하지 않는 이메일의 재발송 요청도 성공 메시지를 반환한다 (보안)", async () => {
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.clientAuth.resendVerification({
+      email: "nonexistent_verify@example.com",
+    });
+
+    expect(result.success).toBe(true);
   });
 });

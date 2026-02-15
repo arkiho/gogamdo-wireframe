@@ -5,21 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, LogIn, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, LogIn, ArrowLeft, Mail } from "lucide-react";
 
 export default function ClientLogin() {
   const [, navigate] = useLocation();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+
+  const resendMutation = trpc.clientAuth.resendVerification.useMutation({
+    onSuccess: () => { setResendSuccess(true); setTimeout(() => setResendSuccess(false), 5000); },
+    onError: (err) => setError(err.message),
+  });
 
   const loginMutation = trpc.clientAuth.login.useMutation({
     onSuccess: () => {
       setError("");
+      setNeedsVerification(false);
       navigate("/portal");
     },
     onError: (err) => {
-      setError(err.message);
+      if (err.message === "EMAIL_NOT_VERIFIED") {
+        setNeedsVerification(true);
+        setError("");
+      } else {
+        setNeedsVerification(false);
+        setError(err.message);
+      }
     },
   });
 
@@ -88,6 +102,24 @@ export default function ClientLogin() {
                   </button>
                 </div>
               </div>
+
+              {needsVerification && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium mb-1">이메일 인증이 필요합니다</p>
+                      <p className="text-xs mb-2">회원가입 시 발송된 인증 메일의 링크를 클릭해주세요.</p>
+                      <Button variant="outline" size="sm" className="h-7 text-xs"
+                        disabled={resendMutation.isPending}
+                        onClick={() => resendMutation.mutate({ email: form.email })}>
+                        {resendMutation.isPending ? "발송 중..." : "인증 메일 재발송"}
+                      </Button>
+                      {resendSuccess && <p className="text-xs text-green-600 mt-1">인증 메일이 재발송되었습니다.</p>}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">

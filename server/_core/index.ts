@@ -67,6 +67,40 @@ async function startServer() {
       res.status(500).json({ error: err.message || "Upload failed" });
     }
   });
+  // Email verification endpoint (GET for link clicks)
+  app.get("/api/verify-email", async (req, res) => {
+    const token = req.query.token as string;
+    if (!token) {
+      return res.status(400).send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px">
+        <h2>❌ 인증 토큰이 없습니다</h2>
+        <p>유효한 인증 링크를 사용해주세요.</p></body></html>`);
+    }
+    try {
+      const { getClientByVerifyToken, updateClient } = await import("../db");
+      const client = await getClientByVerifyToken(token);
+      if (!client || !client.emailVerifyExpires || client.emailVerifyExpires < new Date()) {
+        return res.status(400).send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px">
+          <h2>❌ 유효하지 않거나 만료된 인증 토큰입니다</h2>
+          <p>회원가입 페이지에서 인증 메일을 재발송해주세요.</p>
+          <a href="/client/login" style="color:#B8860B">로그인 페이지로 이동</a></body></html>`);
+      }
+      await updateClient(client.id, {
+        emailVerified: "yes",
+        emailVerifyToken: null,
+        emailVerifyExpires: null,
+        status: "active",
+      });
+      return res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px">
+        <h2>✅ 이메일 인증이 완료되었습니다!</h2>
+        <p>이제 로그인하실 수 있습니다.</p>
+        <a href="/client/login" style="display:inline-block;margin-top:20px;padding:12px 24px;background:#B8860B;color:#fff;text-decoration:none;border-radius:4px">로그인 하기</a></body></html>`);
+    } catch (err: any) {
+      return res.status(500).send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px">
+        <h2>❌ 오류가 발생했습니다</h2>
+        <p>잠시 후 다시 시도해주세요.</p></body></html>`);
+    }
+  });
+
   // Sensor hardware API (REST, API-key auth)
   app.use("/api/sensor", sensorApiRouter);
 

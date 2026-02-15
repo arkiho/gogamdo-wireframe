@@ -435,3 +435,26 @@
 - [x] 포털: 동선 분석 읽기 전용 뷰 (TrafficTab)
 - [x] 포털: AI 최적화 리포트 열람 (ReportsTab)
 - [x] 테스트: 센서 API + 회원가입 + 고객 포털 vitest 테스트 작성 (31개 테스트 파일, 538개 테스트 전체 통과)
+
+## 관리자 API 키 관리 UI
+- [x] API키UI: AdminDDIA 내 API 키 관리 탭 추가 (프로젝트별 키 발급/폐기/조회)
+- [x] API키UI: API 키 생성 모달 (이름 입력 → 키 발급 → 복사 기능)
+- [x] API키UI: API 키 목록 테이블 (이름/생성일/상태/마지막사용/폐기 버튼)
+- [x] API키UI: 키 발급 시 한 번만 표시되는 보안 경고 + 복사 버튼
+
+## 고객 이메일 인증 플로우
+- [x] 이메일인증: clients_auth 테이블에 emailVerified/verificationToken 필드 이미 존재
+- [x] 이메일인증: 회원가입 시 notifyOwner로 관리자에게 인증토큰+링크 발송
+- [x] 이메일인증: GET /api/verify-email REST 엔드포인트 + tRPC verifyEmail 프로시저
+- [x] 이메일인증: 미인증 사용자 로그인 차단 + EMAIL_NOT_VERIFIED 에러 + 재발송 UI
+- [x] 이메일인증: resendVerification tRPC 프로시저 + 프론트엔드 재발송 버튼
+- [x] 이메일인증: ClientRegister 성공 화면 + ClientLogin 인증 안내 + ClientVerifyEmail 페이지
+
+## 센서 연동 가이드 문서 페이지
+- [x] 가이드: /developer/sensor-api 라우트 및 SensorApiDocs 페이지 생성
+- [x] 가이드: API 엔드포인트 스펙 문서 (Bearer 인증, 헤더, URL)
+- [x] 가이드: 요청/응답 예시 (단건/배치 이벤트, 범용 데이터, 하트비트, 상태 확인)
+- [x] 가이드: 에러 코드 테이블 + 재시도 전략 가이드
+- [x] 가이드: 코드 예제 (Python/cURL/Node.js/Arduino ESP32)
+- [ ] 가이드: 인터랙티브 API 테스트 섹션 (향후 구현 예정)
+- [x] 테스트: 이메일 인증 플로우 10개 테스트 추가 (전체 31파일 548개 통과)
