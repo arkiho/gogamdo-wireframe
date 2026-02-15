@@ -12,6 +12,7 @@ import {
   type InsertOpsContract, type InsertOpsCostItem, type InsertOpsClientInvite,
   type InsertOpsCamera,
   opsNotifications, type InsertOpsNotification,
+  opsSubEvaluations, type InsertOpsSubEvaluation,
   users,
 } from "../../drizzle/schema";
 
@@ -596,4 +597,149 @@ export async function getOpsStats() {
     totalExpenses: expenseCount?.count ?? 0,
     pendingApprovals: pendingCount?.count ?? 0,
   };
+}
+
+// ============ CHART STATISTICS ============
+
+/** 월별 지출 추이 (최근 12개월) */
+export async function getMonthlyExpenseTrend() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    month: sql<string>`DATE_FORMAT(createdAt, '%Y-%m')`,
+    total: sql<number>`COALESCE(SUM(CAST(totalAmount AS SIGNED)), 0)`,
+    count: sql<number>`COUNT(*)`,
+  }).from(opsExpenses)
+    .where(sql`createdAt >= DATE_SUB(NOW(), INTERVAL 12 MONTH)`)
+    .groupBy(sql`DATE_FORMAT(createdAt, '%Y-%m')`)
+    .orderBy(sql`DATE_FORMAT(createdAt, '%Y-%m')`);
+  return rows;
+}
+
+/** 프로젝트 상태 분포 */
+export async function getProjectStatusDistribution() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    status: opsProjects.status,
+    count: sql<number>`COUNT(*)`,
+  }).from(opsProjects)
+    .groupBy(opsProjects.status);
+  return rows;
+}
+
+/** 프로젝트별 원가 집행률 (예산 vs 실적) */
+export async function getProjectCostExecution(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    category: opsCostItems.category,
+    budget: sql<number>`COALESCE(SUM(CAST(budgetAmount AS SIGNED)), 0)`,
+    actual: sql<number>`COALESCE(SUM(CAST(actualAmount AS SIGNED)), 0)`,
+    paid: sql<number>`COALESCE(SUM(CAST(paidAmount AS SIGNED)), 0)`,
+  }).from(opsCostItems)
+    .where(eq(opsCostItems.projectId, projectId))
+    .groupBy(opsCostItems.category);
+  return rows;
+}
+
+/** 프로젝트별 공정 진행률 요약 */
+export async function getProjectScheduleProgress(projectId: number) {
+  const db = await getDb();
+  if (!db) return { total: 0, completed: 0, inProgress: 0, delayed: 0, avgProgress: 0 };
+  const [totals] = await db.select({
+    total: sql<number>`COUNT(*)`,
+    completed: sql<number>`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`,
+    inProgress: sql<number>`SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END)`,
+    delayed: sql<number>`SUM(CASE WHEN status = 'delayed' THEN 1 ELSE 0 END)`,
+    avgProgress: sql<number>`COALESCE(AVG(progress), 0)`,
+  }).from(opsScheduleItems)
+    .where(eq(opsScheduleItems.projectId, projectId));
+  return {
+    total: totals?.total ?? 0,
+    completed: totals?.completed ?? 0,
+    inProgress: totals?.inProgress ?? 0,
+    delayed: totals?.delayed ?? 0,
+    avgProgress: Math.round(totals?.avgProgress ?? 0),
+  };
+}
+
+/** 카테고리별 지출 분포 */
+export async function getExpenseCategoryDistribution(projectId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const q = db.select({
+    category: opsExpenses.category,
+    total: sql<number>`COALESCE(SUM(CAST(totalAmount AS SIGNED)), 0)`,
+    count: sql<number>`COUNT(*)`,
+  }).from(opsExpenses);
+  
+  const rows = projectId
+    ? await q.where(eq(opsExpenses.projectId, projectId)).groupBy(opsExpenses.category)
+    : await q.groupBy(opsExpenses.category);
+  return rows;
+}
+
+
+// ============ SUB EVALUATIONS ============
+export async function createSubEvaluation(data: InsertOpsSubEvaluation) {
+  const db = await getDb();
+  // 자동 종합 점수 계산
+  const overall = (
+    (data.qualityScore + data.scheduleScore + data.safetyScore +
+     data.communicationScore + data.cleanupScore) / 5
+  ).toFixed(1);
+  const result = await db.insert(opsSubEvaluations).values({
+    ...data,
+    overallScore: overall,
+  });
+  return result[0].insertId;
+}
+
+export async function listSubEvaluations(projectId: number) {
+  const db = await getDb();
+  return db.select().from(opsSubEvaluations)
+    .where(eq(opsSubEvaluations.projectId, projectId))
+    .orderBy(desc(opsSubEvaluations.createdAt));
+}
+
+export async function listSubEvaluationsBySubcontractor(subcontractorId: number) {
+  const db = await getDb();
+  return db.select().from(opsSubEvaluations)
+    .where(eq(opsSubEvaluations.subcontractorId, subcontractorId))
+    .orderBy(desc(opsSubEvaluations.createdAt));
+}
+
+export async function getSubEvaluationSummary(subcontractorId: number) {
+  const db = await getDb();
+  const evals = await db.select().from(opsSubEvaluations)
+    .where(eq(opsSubEvaluations.subcontractorId, subcontractorId));
+
+  if (!evals.length) return null;
+
+  const avg = (field: keyof typeof evals[0]) => {
+    const sum = evals.reduce((s, e) => s + Number(e[field] ?? 0), 0);
+    return Number((sum / evals.length).toFixed(1));
+  };
+
+  return {
+    totalEvaluations: evals.length,
+    avgQuality: avg("qualityScore"),
+    avgSchedule: avg("scheduleScore"),
+    avgSafety: avg("safetyScore"),
+    avgCommunication: avg("communicationScore"),
+    avgCleanup: avg("cleanupScore"),
+    avgOverall: avg("overallScore"),
+    recommendations: {
+      highly_recommended: evals.filter(e => e.recommendation === "highly_recommended").length,
+      recommended: evals.filter(e => e.recommendation === "recommended").length,
+      neutral: evals.filter(e => e.recommendation === "neutral").length,
+      not_recommended: evals.filter(e => e.recommendation === "not_recommended").length,
+    },
+  };
+}
+
+export async function deleteSubEvaluation(id: number) {
+  const db = await getDb();
+  return db.delete(opsSubEvaluations).where(eq(opsSubEvaluations.id, id));
 }

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import NotificationBell from "@/components/NotificationBell";
+import { MonthlyExpenseChart, ProjectStatusChart, ExpenseCategoryChart } from "@/components/OpsCharts";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   planning: { label: "기획", color: "bg-slate-100 text-slate-700" },
@@ -71,18 +72,18 @@ export default function OpsHome() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">프로젝트 관리</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">프로젝트 관리</h1>
+          <p className="text-muted-foreground text-sm sm:text-base mt-1">
             {user?.name}님, 안녕하세요. 진행 중인 프로젝트를 관리하세요.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <NotificationBell />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4 mr-2" />새 프로젝트</Button>
+              <Button size="sm" className="sm:size-default"><Plus className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">새 프로젝트</span><span className="sm:hidden">새로운</span></Button>
             </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -162,7 +163,7 @@ export default function OpsHome() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -209,6 +210,17 @@ export default function OpsHome() {
         </Card>
       </div>
 
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <MonthlyExpenseChart />
+        </div>
+        <ProjectStatusChart />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ExpenseCategoryChart />
+      </div>
+
       {/* Project List */}
       <Card>
         <CardHeader>
@@ -230,25 +242,25 @@ export default function OpsHome() {
                 return (
                   <div
                     key={p.id}
-                    className="flex items-center gap-4 p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors active:bg-accent/70"
                     onClick={() => setLocation(`/ops/project/${p.id}`)}
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold truncate">{p.name}</span>
-                        <Badge variant="outline" className="text-xs">{p.code}</Badge>
-                        <Badge className={`text-xs ${s.color} border-0`}>{s.label}</Badge>
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                        <span className="font-semibold truncate text-sm sm:text-base">{p.name}</span>
+                        <Badge variant="outline" className="text-[10px] sm:text-xs">{p.code}</Badge>
+                        <Badge className={`text-[10px] sm:text-xs ${s.color} border-0`}>{s.label}</Badge>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" />{p.clientName}</span>
-                        {p.siteAddress && <span className="flex items-center gap-1 truncate"><MapPin className="w-3.5 h-3.5" />{p.siteAddress}</span>}
-                        {p.startDate && <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{p.startDate}</span>}
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1"><Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.clientName}</span>
+                        {p.siteAddress && <span className="flex items-center gap-1 truncate max-w-[150px] sm:max-w-none"><MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.siteAddress}</span>}
+                        {p.startDate && <span className="flex items-center gap-1"><Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.startDate}</span>}
                       </div>
                     </div>
                     {p.contractAmount && (
-                      <div className="text-right">
-                        <p className="font-semibold text-sm">{Number(p.contractAmount).toLocaleString()}원</p>
-                        <p className="text-xs text-muted-foreground">계약금액</p>
+                      <div className="text-left sm:text-right flex-shrink-0">
+                        <p className="font-semibold text-xs sm:text-sm">{Number(p.contractAmount).toLocaleString()}원</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">계약금액</p>
                       </div>
                     )}
                   </div>

@@ -1674,3 +1674,33 @@ export const opsNotifications = mysqlTable("ops_notifications", {
 });
 export type OpsNotification = typeof opsNotifications.$inferSelect;
 export type InsertOpsNotification = typeof opsNotifications.$inferInsert;
+
+
+// ======================== 하도급 업체 평가 시스템 ========================
+export const opsSubEvaluations = mysqlTable("ops_sub_evaluations", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  subcontractorId: int("subcontractorId").notNull(),
+  evaluatorId: int("evaluatorId").notNull(), // 평가자 (직원)
+  // 평가 항목 (1-5점)
+  qualityScore: int("qualityScore").notNull(),       // 시공 품질
+  scheduleScore: int("scheduleScore").notNull(),      // 공정 준수
+  safetyScore: int("safetyScore").notNull(),          // 안전 관리
+  communicationScore: int("communicationScore").notNull(), // 소통/협업
+  cleanupScore: int("cleanupScore").notNull(),        // 현장 정리
+  overallScore: decimal("overallScore", { precision: 3, scale: 1 }), // 종합 점수 (자동 계산)
+  // 서술형 평가
+  strengths: text("strengths"),      // 강점
+  improvements: text("improvements"), // 개선사항
+  recommendation: mysqlEnum("recommendation", [
+    "highly_recommended", // 적극 추천
+    "recommended",        // 추천
+    "neutral",            // 보통
+    "not_recommended",    // 비추천
+  ]).default("neutral").notNull(),
+  comment: text("comment"),          // 추가 의견
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type OpsSubEvaluation = typeof opsSubEvaluations.$inferSelect;
+export type InsertOpsSubEvaluation = typeof opsSubEvaluations.$inferInsert;

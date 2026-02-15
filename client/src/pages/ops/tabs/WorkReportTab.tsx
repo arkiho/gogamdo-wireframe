@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { Plus, FileText, Calendar } from "lucide-react";
+import { Plus, FileText, Calendar, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export default function WorkReportTab({ projectId }: { projectId: string }) {
@@ -45,30 +45,30 @@ export default function WorkReportTab({ projectId }: { projectId: string }) {
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between">
-        <CardTitle className="text-lg flex items-center gap-2">
+      <CardHeader className="flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
           <FileText className="w-5 h-5" />작업보고서
         </CardTitle>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm"><Plus className="w-4 h-4 mr-1" />보고서 작성</Button>
+            <Button size="sm" className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-1" />보고서 작성</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
             <DialogHeader><DialogTitle>작업보고서 작성</DialogTitle></DialogHeader>
             <div className="space-y-3 mt-2">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>보고일 *</Label>
-                  <Input type="date" value={form.reportDate} onChange={e => setForm(f => ({ ...f, reportDate: e.target.value }))} />
+                  <Input type="date" value={form.reportDate} onChange={e => setForm(f => ({ ...f, reportDate: e.target.value }))} className="h-11 sm:h-9" />
                 </div>
                 <div>
                   <Label>투입 인원</Label>
-                  <Input type="number" min="0" value={form.workerCount} onChange={e => setForm(f => ({ ...f, workerCount: e.target.value }))} />
+                  <Input type="number" min="0" value={form.workerCount} onChange={e => setForm(f => ({ ...f, workerCount: e.target.value }))} className="h-11 sm:h-9" />
                 </div>
               </div>
               <div>
                 <Label>제목 *</Label>
-                <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="예: 2층 바닥 시공 완료" />
+                <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="예: 2층 바닥 시공 완료" className="h-11 sm:h-9" />
               </div>
               <div>
                 <Label>작업 내용 *</Label>
@@ -78,7 +78,7 @@ export default function WorkReportTab({ projectId }: { projectId: string }) {
                 <Label>특이사항 / 이슈</Label>
                 <Textarea value={form.issues} onChange={e => setForm(f => ({ ...f, issues: e.target.value }))} placeholder="문제 발생 시 기록" rows={3} />
               </div>
-              <Button onClick={handleCreate} className="w-full" disabled={createReport.isPending}>
+              <Button onClick={handleCreate} className="w-full h-11 sm:h-9 text-base sm:text-sm" disabled={createReport.isPending}>
                 {createReport.isPending ? "등록 중..." : "보고서 등록"}
               </Button>
             </div>
@@ -96,19 +96,21 @@ export default function WorkReportTab({ projectId }: { projectId: string }) {
         ) : (
           <div className="space-y-3">
             {reports.data.map(r => (
-              <div key={r.id} className="p-4 border rounded-lg hover:bg-accent/30 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-semibold">{r.title}</h4>
-                    <Badge variant="outline" className="text-xs">
-                      <Calendar className="w-3 h-3 mr-1" />{r.reportDate}
+              <div key={r.id} className="p-3 sm:p-4 border rounded-lg hover:bg-accent/30 active:bg-accent/50 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 mb-2">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <h4 className="font-semibold text-sm sm:text-base">{r.title}</h4>
+                    <Badge variant="outline" className="text-[10px] sm:text-xs">
+                      <Calendar className="w-3 h-3 mr-0.5 sm:mr-1" />{r.reportDate}
                     </Badge>
                   </div>
-                  <span className="text-xs text-muted-foreground">투입 {r.workerCount}명</span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Users className="w-3 h-3" />투입 {r.workerCount}명
+                  </span>
                 </div>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{r.content}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 sm:line-clamp-none">{r.content}</p>
                 {r.issues && (
-                  <div className="mt-2 p-2 bg-red-50 rounded text-sm text-red-700">
+                  <div className="mt-2 p-2 bg-red-50 rounded text-xs sm:text-sm text-red-700">
                     ⚠️ {r.issues}
                   </div>
                 )}

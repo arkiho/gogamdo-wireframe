@@ -26,6 +26,10 @@ import {
   getOpsStats,
   createNotification, listNotifications, getUnreadNotificationCount,
   markNotificationRead, markAllNotificationsRead, notifyAdminsAndPMs,
+  getMonthlyExpenseTrend, getProjectStatusDistribution,
+  getProjectCostExecution, getProjectScheduleProgress, getExpenseCategoryDistribution,
+  createSubEvaluation, listSubEvaluations, listSubEvaluationsBySubcontractor,
+  getSubEvaluationSummary, deleteSubEvaluation,
 } from "../db/ops";
 
 function generateToken() {
@@ -67,6 +71,30 @@ export const opsRouter = router({
   // ============ STATS ============
   stats: staffProcedure.query(async () => {
     return getOpsStats();
+  }),
+  // ============ CHART STATISTICS ============
+  charts: router({
+    monthlyExpense: staffProcedure.query(async () => {
+      return getMonthlyExpenseTrend();
+    }),
+    projectStatus: staffProcedure.query(async () => {
+      return getProjectStatusDistribution();
+    }),
+    costExecution: staffProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return getProjectCostExecution(input.projectId);
+      }),
+    scheduleProgress: staffProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return getProjectScheduleProgress(input.projectId);
+      }),
+    expenseCategory: staffProcedure
+      .input(z.object({ projectId: z.number().optional() }))
+      .query(async ({ input }) => {
+        return getExpenseCategoryDistribution(input.projectId);
+      }),
   }),
 
   // ============ PROJECTS ============
@@ -1332,6 +1360,56 @@ export const opsRouter = router({
           link: input.link,
           projectId: input.projectId,
         });
+        return { success: true };
+      }),
+  }),
+
+  // ============ SUB EVALUATIONS ============
+  evaluation: router({
+    list: staffProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return listSubEvaluations(input.projectId);
+      }),
+
+    bySubcontractor: staffProcedure
+      .input(z.object({ subcontractorId: z.number() }))
+      .query(async ({ input }) => {
+        return listSubEvaluationsBySubcontractor(input.subcontractorId);
+      }),
+
+    summary: staffProcedure
+      .input(z.object({ subcontractorId: z.number() }))
+      .query(async ({ input }) => {
+        return getSubEvaluationSummary(input.subcontractorId);
+      }),
+
+    create: staffProcedure
+      .input(z.object({
+        projectId: z.number(),
+        subcontractorId: z.number(),
+        qualityScore: z.number().min(1).max(5),
+        scheduleScore: z.number().min(1).max(5),
+        safetyScore: z.number().min(1).max(5),
+        communicationScore: z.number().min(1).max(5),
+        cleanupScore: z.number().min(1).max(5),
+        strengths: z.string().optional(),
+        improvements: z.string().optional(),
+        recommendation: z.enum(["highly_recommended", "recommended", "neutral", "not_recommended"]),
+        comment: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await createSubEvaluation({
+          ...input,
+          evaluatorId: ctx.user.id,
+        });
+        return { id };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteSubEvaluation(input.id);
         return { success: true };
       }),
   }),

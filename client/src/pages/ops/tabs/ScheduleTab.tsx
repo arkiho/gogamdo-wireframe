@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { Plus, ClipboardList } from "lucide-react";
+import { Plus, ClipboardList, Calendar, User } from "lucide-react";
 import { toast } from "sonner";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -61,25 +61,25 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between">
-        <CardTitle className="text-lg flex items-center gap-2">
+      <CardHeader className="flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
           <ClipboardList className="w-5 h-5" />공정표
         </CardTitle>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm"><Plus className="w-4 h-4 mr-1" />공정 추가</Button>
+            <Button size="sm" className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-1" />공정 추가</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>공정 추가</DialogTitle></DialogHeader>
             <div className="space-y-3 mt-2">
               <div>
                 <Label>작업명 *</Label>
-                <Input value={form.taskName} onChange={e => setForm(f => ({ ...f, taskName: e.target.value }))} placeholder="예: 바닥 철거" />
+                <Input value={form.taskName} onChange={e => setForm(f => ({ ...f, taskName: e.target.value }))} placeholder="예: 바닥 철거" className="h-11 sm:h-9" />
               </div>
               <div>
                 <Label>공종</Label>
                 <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-11 sm:h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
                       <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -87,27 +87,27 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>시작일 *</Label>
-                  <Input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+                  <Input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="h-11 sm:h-9" />
                 </div>
                 <div>
                   <Label>종료일 *</Label>
-                  <Input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
+                  <Input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} className="h-11 sm:h-9" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>담당자</Label>
-                  <Input value={form.assignee} onChange={e => setForm(f => ({ ...f, assignee: e.target.value }))} placeholder="담당자명" />
+                  <Input value={form.assignee} onChange={e => setForm(f => ({ ...f, assignee: e.target.value }))} placeholder="담당자명" className="h-11 sm:h-9" />
                 </div>
                 <div>
                   <Label>진행률 (%)</Label>
-                  <Input type="number" min="0" max="100" value={form.progress} onChange={e => setForm(f => ({ ...f, progress: e.target.value }))} />
+                  <Input type="number" min="0" max="100" value={form.progress} onChange={e => setForm(f => ({ ...f, progress: e.target.value }))} className="h-11 sm:h-9" />
                 </div>
               </div>
-              <Button onClick={handleCreate} className="w-full" disabled={createSchedule.isPending}>
+              <Button onClick={handleCreate} className="w-full h-12 sm:h-9 text-base sm:text-sm" disabled={createSchedule.isPending}>
                 {createSchedule.isPending ? "추가 중..." : "공정 추가"}
               </Button>
             </div>
@@ -123,51 +123,90 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
             공정이 없습니다. 공정을 추가해주세요.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-3 font-medium">작업명</th>
-                  <th className="text-left py-2 px-3 font-medium">공종</th>
-                  <th className="text-left py-2 px-3 font-medium">기간</th>
-                  <th className="text-left py-2 px-3 font-medium">담당자</th>
-                  <th className="text-left py-2 px-3 font-medium w-40">진행률</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedules.data.map(s => (
-                  <tr key={s.id} className="border-b hover:bg-accent/30">
-                    <td className="py-2.5 px-3 font-medium">{s.taskName}</td>
-                    <td className="py-2.5 px-3">
-                      <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[s.category] ?? s.category}</Badge>
-                    </td>
-                    <td className="py-2.5 px-3 text-muted-foreground">{s.startDate} ~ {s.endDate}</td>
-                    <td className="py-2.5 px-3">{s.assignee || "-"}</td>
-                    <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-muted rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${s.progress === 100 ? "bg-green-500" : s.progress >= 50 ? "bg-blue-500" : "bg-amber-500"}`}
-                            style={{ width: `${s.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-xs w-8 text-right">{s.progress}%</span>
-                        <select
-                          className="text-xs border rounded px-1 py-0.5"
-                          value={s.progress}
-                          onChange={e => updateProgress.mutate({ id: s.id, progress: parseInt(e.target.value) })}
-                        >
-                          {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => (
-                            <option key={v} value={v}>{v}%</option>
-                          ))}
-                        </select>
-                      </div>
-                    </td>
+          <>
+            {/* 데스크톱: 테이블 */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3 font-medium">작업명</th>
+                    <th className="text-left py-2 px-3 font-medium">공종</th>
+                    <th className="text-left py-2 px-3 font-medium">기간</th>
+                    <th className="text-left py-2 px-3 font-medium">담당자</th>
+                    <th className="text-left py-2 px-3 font-medium w-40">진행률</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {schedules.data.map(s => (
+                    <tr key={s.id} className="border-b hover:bg-accent/30">
+                      <td className="py-2.5 px-3 font-medium">{s.taskName}</td>
+                      <td className="py-2.5 px-3">
+                        <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[s.category] ?? s.category}</Badge>
+                      </td>
+                      <td className="py-2.5 px-3 text-muted-foreground">{s.startDate} ~ {s.endDate}</td>
+                      <td className="py-2.5 px-3">{s.assignee || "-"}</td>
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-muted rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${s.progress === 100 ? "bg-green-500" : s.progress >= 50 ? "bg-blue-500" : "bg-amber-500"}`}
+                              style={{ width: `${s.progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs w-8 text-right">{s.progress}%</span>
+                          <select
+                            className="text-xs border rounded px-1 py-0.5"
+                            value={s.progress}
+                            onChange={e => updateProgress.mutate({ id: s.id, progress: parseInt(e.target.value) })}
+                          >
+                            {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => (
+                              <option key={v} value={v}>{v}%</option>
+                            ))}
+                          </select>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 모바일: 카드형 */}
+            <div className="sm:hidden space-y-3">
+              {schedules.data.map(s => (
+                <div key={s.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-semibold text-sm">{s.taskName}</span>
+                      <Badge variant="outline" className="text-[10px]">{CATEGORY_LABELS[s.category] ?? s.category}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{s.startDate} ~ {s.endDate}</span>
+                    {s.assignee && <span className="flex items-center gap-1"><User className="w-3 h-3" />{s.assignee}</span>}
+                  </div>
+                  {/* 진행률 바 + 드롭다운 */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-muted rounded-full h-2.5">
+                      <div
+                        className={`h-2.5 rounded-full transition-all ${s.progress === 100 ? "bg-green-500" : s.progress >= 50 ? "bg-blue-500" : "bg-amber-500"}`}
+                        style={{ width: `${s.progress}%` }}
+                      />
+                    </div>
+                    <select
+                      className="text-sm border rounded px-2 py-1.5 min-w-[70px] bg-background"
+                      value={s.progress}
+                      onChange={e => updateProgress.mutate({ id: s.id, progress: parseInt(e.target.value) })}
+                    >
+                      {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => (
+                        <option key={v} value={v}>{v}%</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

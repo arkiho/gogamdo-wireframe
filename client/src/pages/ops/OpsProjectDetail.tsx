@@ -8,11 +8,11 @@ import { useState } from "react";
 import {
   ArrowLeft, Building2, MapPin, Calendar, Ruler, Banknote,
   BarChart3, ClipboardList, FileText, Receipt, Users, FileSpreadsheet,
-  FileSignature, Calculator, Camera, Link2, Copy,
+  FileSignature, Calculator, Camera, Link2, Star,
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Sub-tab components (lazy loaded inline for now)
+// Sub-tab components
 import ScheduleTab from "./tabs/ScheduleTab";
 import WorkReportTab from "./tabs/WorkReportTab";
 import MeetingTab from "./tabs/MeetingTab";
@@ -21,6 +21,8 @@ import SubcontractorTab from "./tabs/SubcontractorTab";
 import EstimateTab from "./tabs/EstimateTab";
 import ContractTab from "./tabs/ContractTab";
 import CostTab from "./tabs/CostTab";
+import EvaluationTab from "./tabs/EvaluationTab";
+import { CostExecutionChart, ScheduleProgressChart, ExpenseCategoryChart } from "@/components/OpsCharts";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   planning: { label: "기획", color: "bg-slate-100 text-slate-700" },
@@ -69,53 +71,53 @@ export default function OpsProjectDetail() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex flex-col gap-3">
+        <div className="min-w-0">
           <button
             onClick={() => setLocation("/ops")}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground active:text-foreground transition-colors mb-2 sm:mb-3 py-1"
           >
             <ArrowLeft className="w-4 h-4" />프로젝트 목록
           </button>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-2xl font-bold tracking-tight">{p.name}</h1>
-            <Badge variant="outline">{p.code}</Badge>
-            <Badge className={`${s.color} border-0`}>{s.label}</Badge>
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mb-2">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">{p.name}</h1>
+            <Badge variant="outline" className="text-[10px] sm:text-xs">{p.code}</Badge>
+            <Badge className={`text-[10px] sm:text-xs ${s.color} border-0`}>{s.label}</Badge>
           </div>
-          {p.description && <p className="text-muted-foreground text-sm max-w-2xl">{p.description}</p>}
+          {p.description && <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">{p.description}</p>}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleCopyInviteLink("client")}>
+          <Button variant="outline" size="sm" className="flex-1 sm:flex-initial h-9" onClick={() => handleCopyInviteLink("client")}>
             <Link2 className="w-4 h-4 mr-1" />고객사 초대
           </Button>
-          <Button variant="outline" size="sm" onClick={() => handleCopyInviteLink("subcontractor")}>
+          <Button variant="outline" size="sm" className="flex-1 sm:flex-initial h-9" onClick={() => handleCopyInviteLink("subcontractor")}>
             <Users className="w-4 h-4 mr-1" />하도급 초대
           </Button>
         </div>
       </div>
 
-      {/* Project Info Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      {/* Project Info Cards - 모바일에서 2열, 데스크톱에서 5열 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
         <Card>
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Building2 className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">고객사</p>
-                <p className="font-medium">{p.clientName}</p>
+          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">고객사</p>
+                <p className="font-medium truncate">{p.clientName}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         {p.siteAddress && (
           <Card>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">현장</p>
+            <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">현장</p>
                   <p className="font-medium truncate">{p.siteAddress}</p>
                 </div>
               </div>
@@ -124,11 +126,11 @@ export default function OpsProjectDetail() {
         )}
         {p.totalArea && (
           <Card>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Ruler className="w-4 h-4 text-muted-foreground" />
+            <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                <Ruler className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">면적</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">면적</p>
                   <p className="font-medium">{p.totalArea}㎡</p>
                 </div>
               </div>
@@ -137,11 +139,11 @@ export default function OpsProjectDetail() {
         )}
         {p.contractAmount && (
           <Card>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Banknote className="w-4 h-4 text-muted-foreground" />
+            <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                <Banknote className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">계약금액</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">계약금액</p>
                   <p className="font-medium">{Number(p.contractAmount).toLocaleString()}원</p>
                 </div>
               </div>
@@ -150,12 +152,12 @@ export default function OpsProjectDetail() {
         )}
         {p.startDate && (
           <Card>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
+            <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">공사기간</p>
-                  <p className="font-medium">{p.startDate} ~ {p.endDate || "미정"}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">공사기간</p>
+                  <p className="font-medium text-xs">{p.startDate} ~ {p.endDate || "미정"}</p>
                 </div>
               </div>
             </CardContent>
@@ -163,20 +165,23 @@ export default function OpsProjectDetail() {
         )}
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - 모바일에서 수평 스크롤 */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="overview" className="text-xs gap-1"><BarChart3 className="w-3.5 h-3.5" />개요</TabsTrigger>
-          <TabsTrigger value="schedule" className="text-xs gap-1"><ClipboardList className="w-3.5 h-3.5" />공정표</TabsTrigger>
-          <TabsTrigger value="reports" className="text-xs gap-1"><FileText className="w-3.5 h-3.5" />작업보고서</TabsTrigger>
-          <TabsTrigger value="meetings" className="text-xs gap-1"><FileText className="w-3.5 h-3.5" />회의록</TabsTrigger>
-          <TabsTrigger value="expenses" className="text-xs gap-1"><Receipt className="w-3.5 h-3.5" />지출결의서</TabsTrigger>
-          <TabsTrigger value="subcontractors" className="text-xs gap-1"><Users className="w-3.5 h-3.5" />하도급</TabsTrigger>
-          <TabsTrigger value="estimates" className="text-xs gap-1"><FileSpreadsheet className="w-3.5 h-3.5" />견적서</TabsTrigger>
-          <TabsTrigger value="contracts" className="text-xs gap-1"><FileSignature className="w-3.5 h-3.5" />계약서</TabsTrigger>
-          <TabsTrigger value="cost" className="text-xs gap-1"><Calculator className="w-3.5 h-3.5" />원가관리</TabsTrigger>
-          <TabsTrigger value="camera" className="text-xs gap-1"><Camera className="w-3.5 h-3.5" />현장카메라</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+          <TabsList className="inline-flex w-max sm:flex sm:flex-wrap sm:w-auto h-auto gap-0.5 sm:gap-1 bg-muted/50 p-1">
+            <TabsTrigger value="overview" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /><span className="hidden xs:inline">개요</span><span className="xs:hidden">개요</span></TabsTrigger>
+            <TabsTrigger value="schedule" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><ClipboardList className="w-3 h-3 sm:w-3.5 sm:h-3.5" />공정표</TabsTrigger>
+            <TabsTrigger value="reports" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />보고서</TabsTrigger>
+            <TabsTrigger value="meetings" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />회의록</TabsTrigger>
+            <TabsTrigger value="expenses" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Receipt className="w-3 h-3 sm:w-3.5 sm:h-3.5" />결의서</TabsTrigger>
+            <TabsTrigger value="subcontractors" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />하도급</TabsTrigger>
+            <TabsTrigger value="estimates" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileSpreadsheet className="w-3 h-3 sm:w-3.5 sm:h-3.5" />견적서</TabsTrigger>
+            <TabsTrigger value="contracts" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileSignature className="w-3 h-3 sm:w-3.5 sm:h-3.5" />계약서</TabsTrigger>
+            <TabsTrigger value="cost" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Calculator className="w-3 h-3 sm:w-3.5 sm:h-3.5" />원가</TabsTrigger>
+            <TabsTrigger value="evaluation" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Star className="w-3 h-3 sm:w-3.5 sm:h-3.5" />평가</TabsTrigger>
+            <TabsTrigger value="camera" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Camera className="w-3 h-3 sm:w-3.5 sm:h-3.5" />카메라</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview" className="mt-4">
           <OverviewTab projectId={id!} />
@@ -205,6 +210,9 @@ export default function OpsProjectDetail() {
         <TabsContent value="cost" className="mt-4">
           <CostTab projectId={id!} />
         </TabsContent>
+        <TabsContent value="evaluation" className="mt-4">
+          <EvaluationTab projectId={id!} />
+        </TabsContent>
         <TabsContent value="camera" className="mt-4">
           <CameraTab projectId={id!} />
         </TabsContent>
@@ -225,62 +233,50 @@ function OverviewTab({ projectId }: { projectId: string }) {
   const pendingExpenses = expenses.data?.filter(e => e.approvalStatus === "pending").length ?? 0;
   const activeSubs = subs.data?.filter(s => s.status === "active").length ?? 0;
 
+  const pid = Number(projectId);
+
   return (
-    <div className="grid lg:grid-cols-2 gap-4">
-      <Card>
-        <CardHeader><CardTitle className="text-sm">공정 현황</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span>전체 공정</span><span className="font-semibold">{totalSchedules}건</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>완료 공정</span><span className="font-semibold text-green-600">{completedSchedules}건</span>
-            </div>
+    <div className="space-y-4">
+      {/* Summary Cards - 모바일 2열 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        <Card>
+          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">전체 공정</p>
+            <p className="text-lg sm:text-xl font-bold">{totalSchedules}건</p>
             {totalSchedules > 0 && (
-              <div className="w-full bg-muted rounded-full h-2">
-                <div
-                  className="bg-green-500 h-2 rounded-full transition-all"
-                  style={{ width: `${(completedSchedules / totalSchedules) * 100}%` }}
-                />
+              <div className="w-full bg-muted rounded-full h-1.5 mt-2">
+                <div className="bg-green-500 h-1.5 rounded-full transition-all" style={{ width: `${(completedSchedules / totalSchedules) * 100}%` }} />
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">완료 공정</p>
+            <p className="text-lg sm:text-xl font-bold text-green-600">{completedSchedules}건</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">총 지출</p>
+            <p className="text-lg sm:text-xl font-bold">{totalExpenseAmount.toLocaleString()}원</p>
+            <p className="text-[10px] sm:text-xs text-amber-600 mt-1">결재 대기 {pendingExpenses}건</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">하도급 업체</p>
+            <p className="text-lg sm:text-xl font-bold">{activeSubs}개사</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      <Card>
-        <CardHeader><CardTitle className="text-sm">지출 현황</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span>총 지출</span><span className="font-semibold">{totalExpenseAmount.toLocaleString()}원</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>결재 대기</span><span className="font-semibold text-amber-600">{pendingExpenses}건</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-sm">하도급 현황</CardTitle></CardHeader>
-        <CardContent>
-          <div className="flex justify-between text-sm">
-            <span>활성 업체</span><span className="font-semibold">{activeSubs}개사</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-sm">현장 카메라</CardTitle></CardHeader>
-        <CardContent>
-          <div className="text-center py-4 text-muted-foreground text-sm">
-            <Camera className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            카메라 연동 후 실시간 확인 가능
-          </div>
-        </CardContent>
-      </Card>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ScheduleProgressChart projectId={pid} />
+        <ExpenseCategoryChart projectId={pid} />
+      </div>
+      <CostExecutionChart projectId={pid} />
     </div>
   );
 }
@@ -290,15 +286,15 @@ function CameraTab({ projectId }: { projectId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
           <Camera className="w-5 h-5" />현장 실시간 카메라
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-center py-16 border-2 border-dashed rounded-lg">
-          <Camera className="w-16 h-16 mx-auto text-muted-foreground/20 mb-4" />
-          <h3 className="text-lg font-semibold mb-2">현장 카메라 연동 준비 중</h3>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+        <div className="text-center py-10 sm:py-16 border-2 border-dashed rounded-lg">
+          <Camera className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-muted-foreground/20 mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold mb-2">현장 카메라 연동 준비 중</h3>
+          <p className="text-muted-foreground text-xs sm:text-sm max-w-md mx-auto px-4">
             실시간 현장 카메라가 설치되면 이 페이지에서 바로 확인할 수 있습니다.
             카메라 스트림 URL을 등록하면 실시간 모니터링이 가능합니다.
           </p>

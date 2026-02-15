@@ -90,7 +90,6 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
       } else {
         (item as any)[field] = Number(value) || 0;
       }
-      // Auto-calculate amount
       if (field === "quantity" || field === "unitPrice") {
         item.amount = item.quantity * item.unitPrice;
       }
@@ -159,49 +158,49 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Summary - 모바일에서 세로 스택 */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
         <Card>
-          <CardContent className="pt-4 pb-3 text-center">
-            <p className="text-xs text-muted-foreground">총 결의금액</p>
-            <p className="text-lg font-bold">{listTotalAmount.toLocaleString()}원</p>
+          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3 text-center">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">총 결의금액</p>
+            <p className="text-base sm:text-lg font-bold">{listTotalAmount.toLocaleString()}원</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4 pb-3 text-center">
-            <p className="text-xs text-muted-foreground">승인 금액</p>
-            <p className="text-lg font-bold text-green-600">{approvedAmount.toLocaleString()}원</p>
+          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3 text-center">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">승인 금액</p>
+            <p className="text-base sm:text-lg font-bold text-green-600">{approvedAmount.toLocaleString()}원</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4 pb-3 text-center">
-            <p className="text-xs text-muted-foreground">대기 건수</p>
-            <p className="text-lg font-bold text-amber-600">{pendingCount}건</p>
+          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3 text-center">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">대기 건수</p>
+            <p className="text-base sm:text-lg font-bold text-amber-600">{pendingCount}건</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
+        <CardHeader className="flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <Receipt className="w-5 h-5" />지출결의서
           </CardTitle>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4 mr-1" />결의서 작성</Button>
+              <Button size="sm" className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-1" />결의서 작성</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>지출결의서 작성</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-2">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>제목 *</Label>
-                    <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="예: 바닥재 구매" />
+                    <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="예: 바닥재 구매" className="h-11 sm:h-9" />
                   </div>
                   <div>
                     <Label>구분</Label>
                     <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-11 sm:h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
                           <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -211,7 +210,7 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                   </div>
                 </div>
 
-                {/* Items Table */}
+                {/* Items - 모바일에서 카드형 레이아웃 */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label>지출 항목</Label>
@@ -219,7 +218,9 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                       <Plus className="w-3 h-3 mr-1" />항목 추가
                     </Button>
                   </div>
-                  <div className="border rounded-lg overflow-hidden">
+
+                  {/* 데스크톱: 테이블 */}
+                  <div className="hidden sm:block border rounded-lg overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-muted">
                         <tr>
@@ -234,33 +235,15 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                         {items.map((item, i) => (
                           <tr key={i} className="border-t">
                             <td className="px-1 py-1">
-                              <Input
-                                value={item.description}
-                                onChange={e => updateItem(i, "description", e.target.value)}
-                                placeholder="내역"
-                                className="h-8 text-sm"
-                              />
+                              <Input value={item.description} onChange={e => updateItem(i, "description", e.target.value)} placeholder="내역" className="h-8 text-sm" />
                             </td>
                             <td className="px-1 py-1">
-                              <Input
-                                type="number"
-                                value={item.quantity}
-                                onChange={e => updateItem(i, "quantity", e.target.value)}
-                                className="h-8 text-sm text-center"
-                              />
+                              <Input type="number" value={item.quantity} onChange={e => updateItem(i, "quantity", e.target.value)} className="h-8 text-sm text-center" />
                             </td>
                             <td className="px-1 py-1">
-                              <Input
-                                type="number"
-                                value={item.unitPrice || ""}
-                                onChange={e => updateItem(i, "unitPrice", e.target.value)}
-                                placeholder="0"
-                                className="h-8 text-sm text-right"
-                              />
+                              <Input type="number" value={item.unitPrice} onChange={e => updateItem(i, "unitPrice", e.target.value)} placeholder="0" className="h-8 text-sm text-right" />
                             </td>
-                            <td className="px-2 py-1 text-right font-medium text-sm">
-                              {item.amount.toLocaleString()}
-                            </td>
+                            <td className="px-2 py-1 text-right font-medium text-sm">{item.amount.toLocaleString()}</td>
                             <td className="px-1 py-1">
                               {items.length > 1 && (
                                 <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeItem(i)}>
@@ -278,14 +261,47 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                       </tbody>
                     </table>
                   </div>
+
+                  {/* 모바일: 카드형 */}
+                  <div className="sm:hidden space-y-3">
+                    {items.map((item, i) => (
+                      <div key={i} className="border rounded-lg p-3 space-y-2 relative">
+                        {items.length > 1 && (
+                          <Button type="button" size="sm" variant="ghost" className="absolute top-1 right-1 h-7 w-7 p-0" onClick={() => removeItem(i)}>
+                            <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                          </Button>
+                        )}
+                        <div>
+                          <Label className="text-xs">내역</Label>
+                          <Input value={item.description} onChange={e => updateItem(i, "description", e.target.value)} placeholder="내역" className="h-10" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">수량</Label>
+                            <Input type="number" value={item.quantity} onChange={e => updateItem(i, "quantity", e.target.value)} className="h-10" />
+                          </div>
+                          <div>
+                            <Label className="text-xs">단가</Label>
+                            <Input type="number" value={item.unitPrice} onChange={e => updateItem(i, "unitPrice", e.target.value)} placeholder="0" className="h-10" />
+                          </div>
+                        </div>
+                        <div className="text-right text-sm font-semibold pt-1 border-t">
+                          금액: {item.amount.toLocaleString()}원
+                        </div>
+                      </div>
+                    ))}
+                    <div className="text-right font-bold text-base p-2 bg-muted/50 rounded-lg">
+                      합계: {totalAmount.toLocaleString()}원
+                    </div>
+                  </div>
                 </div>
 
                 {/* Payment Info */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>결제 방법</Label>
                     <Select value={form.paymentMethod} onValueChange={v => setForm(f => ({ ...f, paymentMethod: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-11 sm:h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="bank_transfer">계좌이체</SelectItem>
                         <SelectItem value="card">카드</SelectItem>
@@ -296,24 +312,24 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                   </div>
                   <div>
                     <Label>수취인</Label>
-                    <Input value={form.payeeName} onChange={e => setForm(f => ({ ...f, payeeName: e.target.value }))} placeholder="수취인명" />
+                    <Input value={form.payeeName} onChange={e => setForm(f => ({ ...f, payeeName: e.target.value }))} placeholder="수취인명" className="h-11 sm:h-9" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>은행명</Label>
-                    <Input value={form.payeeBank} onChange={e => setForm(f => ({ ...f, payeeBank: e.target.value }))} placeholder="예: 국민은행" />
+                    <Input value={form.payeeBank} onChange={e => setForm(f => ({ ...f, payeeBank: e.target.value }))} placeholder="예: 국민은행" className="h-11 sm:h-9" />
                   </div>
                   <div>
                     <Label>계좌번호</Label>
-                    <Input value={form.payeeAccount} onChange={e => setForm(f => ({ ...f, payeeAccount: e.target.value }))} placeholder="계좌번호" />
+                    <Input value={form.payeeAccount} onChange={e => setForm(f => ({ ...f, payeeAccount: e.target.value }))} placeholder="계좌번호" className="h-11 sm:h-9" />
                   </div>
                 </div>
                 <div>
                   <Label>비고</Label>
                   <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="추가 메모" rows={2} />
                 </div>
-                <Button onClick={handleCreate} className="w-full" disabled={createExpense.isPending}>
+                <Button onClick={handleCreate} className="w-full h-12 sm:h-9 text-base sm:text-sm" disabled={createExpense.isPending}>
                   {createExpense.isPending ? "상신 중..." : "결의서 상신"}
                 </Button>
               </div>
@@ -339,56 +355,70 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                 return (
                   <div key={e.id} className="border rounded-lg">
                     <div
-                      className="flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/30 transition-colors"
+                      className="flex items-center gap-2 sm:gap-3 p-3 cursor-pointer hover:bg-accent/30 active:bg-accent/50 transition-colors"
                       onClick={() => setExpandedId(isExpanded ? null : String(e.id))}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{e.title}</span>
-                          <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[e.category] ?? e.category}</Badge>
-                          <Badge className={`text-xs ${a.color} border-0`}>
-                            <Icon className="w-3 h-3 mr-1" />{a.label}
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                          <span className="font-medium text-sm truncate">{e.title}</span>
+                          <Badge variant="outline" className="text-[10px] sm:text-xs">{CATEGORY_LABELS[e.category] ?? e.category}</Badge>
+                          <Badge className={`text-[10px] sm:text-xs ${a.color} border-0`}>
+                            <Icon className="w-3 h-3 mr-0.5" />{a.label}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground mt-1">
                           {e.expenseNumber && <span className="font-mono">{e.expenseNumber}</span>}
                           <span>{new Date(e.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{amount.toLocaleString()}원</p>
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-semibold text-sm">{amount.toLocaleString()}원</p>
                       </div>
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      {isExpanded ? <ChevronUp className="w-4 h-4 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 flex-shrink-0" />}
                     </div>
                     {isExpanded && (
                       <div className="px-3 pb-3 border-t pt-3 space-y-3">
-                        {/* Items detail */}
+                        {/* Items detail - 데스크톱 테이블 */}
                         {e.items && Array.isArray(e.items) && e.items.length > 0 && (
-                          <div className="border rounded overflow-hidden">
-                            <table className="w-full text-xs">
-                              <thead className="bg-muted">
-                                <tr>
-                                  <th className="px-2 py-1.5 text-left">내역</th>
-                                  <th className="px-2 py-1.5 text-center w-12">수량</th>
-                                  <th className="px-2 py-1.5 text-right w-20">단가</th>
-                                  <th className="px-2 py-1.5 text-right w-20">금액</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {(e.items as ExpenseItem[]).map((item, idx) => (
-                                  <tr key={idx} className="border-t">
-                                    <td className="px-2 py-1.5">{item.description}</td>
-                                    <td className="px-2 py-1.5 text-center">{item.quantity}</td>
-                                    <td className="px-2 py-1.5 text-right">{Number(item.unitPrice).toLocaleString()}</td>
-                                    <td className="px-2 py-1.5 text-right">{Number(item.amount).toLocaleString()}</td>
+                          <>
+                            <div className="hidden sm:block border rounded overflow-hidden">
+                              <table className="w-full text-xs">
+                                <thead className="bg-muted">
+                                  <tr>
+                                    <th className="px-2 py-1.5 text-left">내역</th>
+                                    <th className="px-2 py-1.5 text-center w-12">수량</th>
+                                    <th className="px-2 py-1.5 text-right w-20">단가</th>
+                                    <th className="px-2 py-1.5 text-right w-20">금액</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                                </thead>
+                                <tbody>
+                                  {(e.items as ExpenseItem[]).map((item, idx) => (
+                                    <tr key={idx} className="border-t">
+                                      <td className="px-2 py-1.5">{item.description}</td>
+                                      <td className="px-2 py-1.5 text-center">{item.quantity}</td>
+                                      <td className="px-2 py-1.5 text-right">{Number(item.unitPrice).toLocaleString()}</td>
+                                      <td className="px-2 py-1.5 text-right">{Number(item.amount).toLocaleString()}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            {/* 모바일 카드형 */}
+                            <div className="sm:hidden space-y-2">
+                              {(e.items as ExpenseItem[]).map((item, idx) => (
+                                <div key={idx} className="bg-muted/30 rounded p-2 text-xs">
+                                  <div className="font-medium mb-1">{item.description}</div>
+                                  <div className="flex justify-between text-muted-foreground">
+                                    <span>{item.quantity}개 x {Number(item.unitPrice).toLocaleString()}원</span>
+                                    <span className="font-semibold text-foreground">{Number(item.amount).toLocaleString()}원</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
                         )}
 
-                        {e.notes && <p className="text-sm text-muted-foreground">{e.notes}</p>}
+                        {e.notes && <p className="text-xs sm:text-sm text-muted-foreground">{e.notes}</p>}
 
                         {/* Payment info */}
                         {(e.payeeName || e.payeeBank) && (
@@ -399,24 +429,23 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                           </div>
                         )}
 
-                        {/* Actions */}
-                        <div className="flex gap-2 flex-wrap">
-                          {/* PDF Download */}
+                        {/* Actions - 모바일에서 풀 너비 버튼 */}
+                        <div className="flex flex-col sm:flex-row gap-2 sm:flex-wrap">
                           <Button
                             size="sm"
                             variant="outline"
+                            className="w-full sm:w-auto h-10 sm:h-8"
                             onClick={(ev) => { ev.stopPropagation(); handleDownloadPdf(e); }}
                           >
                             <FileDown className="w-4 h-4 mr-1" />PDF 다운로드
                           </Button>
 
-                          {/* Approval Actions */}
                           {["submitted", "in_review", "pending"].includes(status) && user?.role === "admin" && (
-                            <>
+                            <div className="flex gap-2 w-full sm:w-auto">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-green-600 border-green-200 hover:bg-green-50"
+                                className="flex-1 sm:flex-initial text-green-600 border-green-200 hover:bg-green-50 active:bg-green-100 h-10 sm:h-8"
                                 onClick={() => approveExpense.mutate({ id: e.id, action: "approved", comment: "" })}
                               >
                                 <CheckCircle className="w-4 h-4 mr-1" />승인
@@ -424,7 +453,7 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                className="flex-1 sm:flex-initial text-red-600 border-red-200 hover:bg-red-50 active:bg-red-100 h-10 sm:h-8"
                                 onClick={() => {
                                   const reason = prompt("반려 사유를 입력해주세요:");
                                   if (reason) approveExpense.mutate({ id: e.id, action: "rejected", comment: reason });
@@ -432,7 +461,7 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                               >
                                 <XCircle className="w-4 h-4 mr-1" />반려
                               </Button>
-                            </>
+                            </div>
                           )}
                         </div>
                       </div>
