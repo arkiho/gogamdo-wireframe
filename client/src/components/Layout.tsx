@@ -1,14 +1,15 @@
 /*
  * DESIGN: Precision Studio — Swiss Design + Contemporary Editorial
  * Navigation: Minimal top nav with gold accent CTA + KOKAMDO logo
+ * AI 서비스 메뉴: 드롭다운(데스크톱 호버, 모바일 아코디언)
  * Footer: Editorial grid with newsletter signup
  * Scroll progress: Left vertical gold line
  */
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ArrowUpRight, Mail } from "lucide-react";
+import { Menu, X, ArrowUpRight, Mail, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { analytics } from "@/lib/analytics";
@@ -19,17 +20,184 @@ import ExitIntentPopup from "./ExitIntentPopup";
 import PopupModal from "./PopupModal";
 import RelatedPages from "./RelatedPages";
 
-const NAV_ITEMS = [
+type NavItem = {
+  label: string;
+  href: string;
+};
+
+type NavGroup = {
+  label: string;
+  children: NavItem[];
+};
+
+type NavEntry = NavItem | NavGroup;
+
+function isGroup(entry: NavEntry): entry is NavGroup {
+  return "children" in entry;
+}
+
+const NAV_ITEMS: NavEntry[] = [
   { label: "회사소개", href: "/about" },
   { label: "솔루션", href: "/solutions" },
   { label: "프로젝트", href: "/portfolio" },
-  { label: "AI 견적", href: "/estimator" },
-  { label: "AI 상담", href: "/ai-chat" },
-  { label: "AI 스타일", href: "/ai-style" },
-  { label: "AI 리디자인", href: "/ai-redesign" },
+  {
+    label: "AI 서비스",
+    children: [
+      { label: "AI 견적", href: "/estimator" },
+      { label: "AI 상담", href: "/ai-chat" },
+      { label: "AI 스타일", href: "/ai-style" },
+      { label: "AI 리디자인", href: "/ai-redesign" },
+    ],
+  },
   { label: "인사이트", href: "/insights" },
 ];
 
+/* ─── Desktop Dropdown ─── */
+function DesktopDropdown({
+  group,
+  isTransparent,
+  location,
+}: {
+  group: NavGroup;
+  isTransparent: boolean;
+  location: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const isChildActive = group.children.some((c) => location === c.href);
+
+  const handleEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpen(true);
+  };
+
+  const handleLeave = () => {
+    timeoutRef.current = setTimeout(() => setOpen(false), 150);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      <button
+        className={`flex items-center gap-1 text-sm font-medium tracking-wide transition-colors duration-300 hover:text-gold ${
+          isChildActive
+            ? "text-gold"
+            : isTransparent
+              ? "text-white/70"
+              : "text-ink-light"
+        }`}
+      >
+        {group.label}
+        <ChevronDown
+          className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-full left-1/2 -translate-x-1/2 pt-3"
+          >
+            <div className="bg-paper/95 backdrop-blur-xl border border-border/50 shadow-lg min-w-[180px]">
+              {group.children.map((child) => (
+                <Link key={child.href} href={child.href}>
+                  <span
+                    className={`block px-5 py-3 text-sm font-medium transition-colors hover:bg-gold/5 hover:text-gold ${
+                      location === child.href
+                        ? "text-gold bg-gold/5"
+                        : "text-ink-light"
+                    }`}
+                  >
+                    {child.label}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─── Mobile Accordion ─── */
+function MobileAccordion({
+  group,
+  location,
+  index,
+}: {
+  group: NavGroup;
+  location: string;
+  index: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const isChildActive = group.children.some((c) => location === c.href);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className={`flex items-center justify-between w-full py-4 text-2xl font-heading font-semibold border-b border-border/30 transition-colors ${
+          isChildActive ? "text-gold" : "text-ink"
+        }`}
+      >
+        <span>{group.label}</span>
+        <ChevronDown
+          className={`w-5 h-5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="pl-4 pb-2">
+              {group.children.map((child) => (
+                <Link key={child.href} href={child.href}>
+                  <span
+                    className={`block py-3 text-lg font-medium transition-colors ${
+                      location === child.href
+                        ? "text-gold"
+                        : "text-ink/70 hover:text-ink"
+                    }`}
+                  >
+                    {child.label}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+/* ─── Newsletter Form ─── */
 function NewsletterForm() {
   const [email, setEmail] = useState("");
   const subscribe = trpc.newsletter.subscribe.useMutation({
@@ -77,6 +245,7 @@ function NewsletterForm() {
   );
 }
 
+/* ─── Main Layout ─── */
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -134,17 +303,26 @@ export default function Layout({ children }: { children: ReactNode }) {
 
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-8">
-            {NAV_ITEMS.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <span
-                  className={`text-sm font-medium tracking-wide transition-colors duration-300 hover:text-gold ${
-                    location === item.href ? "text-gold" : isTransparent ? "text-white/70" : "text-ink-light"
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            ))}
+            {NAV_ITEMS.map((entry) =>
+              isGroup(entry) ? (
+                <DesktopDropdown
+                  key={entry.label}
+                  group={entry}
+                  isTransparent={isTransparent}
+                  location={location}
+                />
+              ) : (
+                <Link key={entry.href} href={entry.href}>
+                  <span
+                    className={`text-sm font-medium tracking-wide transition-colors duration-300 hover:text-gold ${
+                      location === entry.href ? "text-gold" : isTransparent ? "text-white/70" : "text-ink-light"
+                    }`}
+                  >
+                    {entry.label}
+                  </span>
+                </Link>
+              )
+            )}
           </div>
 
           {/* CTA + Mobile Toggle */}
@@ -181,24 +359,33 @@ export default function Layout({ children }: { children: ReactNode }) {
             className="fixed inset-0 z-40 bg-paper pt-20"
           >
             <div className="container flex flex-col gap-1 pt-8">
-              {NAV_ITEMS.map((item, i) => (
-                <motion.div
-                  key={item.href}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <Link href={item.href}>
-                    <span
-                      className={`block py-4 text-2xl font-heading font-semibold border-b border-border/30 transition-colors ${
-                        location === item.href ? "text-gold" : "text-ink"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </Link>
-                </motion.div>
-              ))}
+              {NAV_ITEMS.map((entry, i) =>
+                isGroup(entry) ? (
+                  <MobileAccordion
+                    key={entry.label}
+                    group={entry}
+                    location={location}
+                    index={i}
+                  />
+                ) : (
+                  <motion.div
+                    key={entry.href}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <Link href={entry.href}>
+                      <span
+                        className={`block py-4 text-2xl font-heading font-semibold border-b border-border/30 transition-colors ${
+                          location === entry.href ? "text-gold" : "text-ink"
+                        }`}
+                      >
+                        {entry.label}
+                      </span>
+                    </Link>
+                  </motion.div>
+                )
+              )}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -294,9 +481,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 {[
                   { label: "회사소개", href: "/about" },
                   { label: "프로젝트", href: "/portfolio" },
-                  { label: "AI 상담", href: "/ai-chat" },
-                  { label: "AI 스타일", href: "/ai-style" },
-                  { label: "AI 리디자인", href: "/ai-redesign" },
+                  { label: "AI 서비스", href: "/ai-redesign" },
                   { label: "FAQ", href: "/faq" },
                   { label: "문의하기", href: "/contact" },
                 ].map((item) => (
