@@ -511,3 +511,11 @@
 - [x] 리디자인: 이력 저장 (DB 테이블 + 관리자 조회)
 - [x] 리디자인: 네비게이션 연동 (헤더 메뉴 + 홈 AI 섹션)
 - [x] 리디자인: Vitest 테스트 작성 (6개 테스트, 전체 569개 통과)
+
+## CRM 리드 자동 등록 (AI 리디자인 → CRM 연동)
+- [x] CRM: 기존 CRM 테이블(crmClients, crmDeals, crmActivities) 활용 — 별도 leads 테이블 불필요
+- [x] CRM: AI 리디자인 요청 시 자동 리드 생성 연동 (이메일 매칭 or 익명 리드)
+- [x] CRM: 딜(영업기회) + 활동 로그 자동 생성
+- [x] CRM: 관리자 알림 (notifyOwner + 알림센터)
+- [x] CRM: 기존 CRM 대시보드에서 AI 리디자인 리드 확인 가능
+- [x] CRM: Vitest 테스트 작성 (전체 572개 통과)
