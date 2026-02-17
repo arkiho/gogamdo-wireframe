@@ -5,7 +5,7 @@
  * Sections: Hero → Client Logos → Stats → Pain Points → Solutions → Featured Projects → CTA
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "wouter";
 import { motion, useInView } from "framer-motion";
 import { ArrowUpRight, ArrowRight, ChevronRight, Ruler, PenTool, HardHat, CheckCircle2, BarChart3, Database, LineChart, TrendingUp } from "lucide-react";
@@ -50,6 +50,54 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
     >
       {children}
     </motion.div>
+  );
+}
+
+const HERO_VIDEOS = [
+  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/ToJmpAZAZvhUrMjR.mp4",
+  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/QLCIDjFJJQiBUZMh.mp4",
+];
+
+function HeroVideo() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handleVideoEnd = useCallback(() => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % HERO_VIDEOS.length);
+      setIsTransitioning(false);
+    }, 800);
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.load();
+    video.play().catch(() => {});
+  }, [currentIndex]);
+
+  return (
+    <div className="absolute inset-0">
+      <video
+        ref={videoRef}
+        className={`w-full h-full object-cover transition-opacity duration-800 ${
+          isTransitioning ? "opacity-0" : "opacity-100"
+        }`}
+        src={HERO_VIDEOS[currentIndex]}
+        muted
+        playsInline
+        onEnded={handleVideoEnd}
+        poster={HERO_IMG}
+      />
+      {/* Fallback image for slow connections */}
+      <img
+        src={HERO_IMG}
+        alt="고감도 사무공간 인테리어"
+        className="absolute inset-0 w-full h-full object-cover -z-10"
+      />
+    </div>
   );
 }
 
@@ -126,25 +174,19 @@ export default function Home() {
       <SEOHead {...SEO_CONFIG.home} />
       {/* ==================== HERO SECTION ==================== */}
       <section className="relative min-h-screen flex items-end pb-16 lg:pb-24 overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <img
-            src={HERO_IMG}
-            alt="고감도 사무공간 인테리어"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" />
-        </div>
+        {/* Background Video */}
+        <HeroVideo />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10 z-[1]" />
 
         {/* Oversize Section Number */}
-        <div className="absolute top-24 right-8 lg:right-16 opacity-[0.06] select-none pointer-events-none">
+        <div className="absolute top-24 right-8 lg:right-16 opacity-[0.06] select-none pointer-events-none z-[2]">
           <span className="font-heading text-[12rem] lg:text-[20rem] font-extrabold text-white leading-none">
             01
           </span>
         </div>
 
         {/* Hero Content */}
-        <div className="container relative z-10">
+        <div className="container relative z-[3]">
           <div className="max-w-3xl">
             <motion.div
               initial={{ opacity: 0, y: 40 }}
