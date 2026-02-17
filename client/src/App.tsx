@@ -32,6 +32,7 @@ import ClientProjectDetail from "./pages/ClientProjectDetail";
 import Resources from "./pages/Resources";
 import AIChat from "./pages/AIChat";
 import AIStyle from "./pages/AIStyle";
+import AIRedesign from "./pages/AIRedesign";
 import FAQ from "./pages/FAQ";
 import OpsXProcess from "./pages/OpsXProcess";
 import OpsHome from "./pages/ops/OpsHome";
@@ -64,6 +65,7 @@ function PublicRouter() {
         <Route path="/resources" component={Resources} />
         <Route path="/ai-chat" component={AIChat} />
         <Route path="/ai-style" component={AIStyle} />
+        <Route path="/ai-redesign" component={AIRedesign} />
         <Route path="/faq" component={FAQ} />
         <Route path="/opsx" component={OpsXProcess} />
         <Route path="/contact" component={Contact} />

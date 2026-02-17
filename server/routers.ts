@@ -52,6 +52,7 @@ import { designAutomationRouter } from "./routers/designAutomation";
 import { clientPipelineRouter } from "./routers/clientPipeline";
 import { opsRouter } from "./routers/ops";
 import { ipProtectionRouter } from "./routers/ipProtection";
+import { aiRedesignRouter } from "./routers/aiRedesign";
 import { sendReviewRequestEmail } from "./email";
 import { hash, compare } from "bcryptjs";
 import { randomBytes } from "crypto";
@@ -84,6 +85,7 @@ function mapInquiryTypeToSpaceType(type?: string): "office" | "commercial" | "me
 
 export const appRouter = router({
   ipProtection: ipProtectionRouter,
+  aiRedesign: aiRedesignRouter,
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

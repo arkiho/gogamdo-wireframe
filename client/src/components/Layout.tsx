@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { label: "AI 견적", href: "/estimator" },
   { label: "AI 상담", href: "/ai-chat" },
   { label: "AI 스타일", href: "/ai-style" },
+  { label: "AI 리디자인", href: "/ai-redesign" },
   { label: "인사이트", href: "/insights" },
 ];
 
@@ -295,6 +296,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   { label: "프로젝트", href: "/portfolio" },
                   { label: "AI 상담", href: "/ai-chat" },
                   { label: "AI 스타일", href: "/ai-style" },
+                  { label: "AI 리디자인", href: "/ai-redesign" },
                   { label: "FAQ", href: "/faq" },
                   { label: "문의하기", href: "/contact" },
                 ].map((item) => (

@@ -1848,3 +1848,35 @@ export const clients = mysqlTable("clients_auth", {
 });
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = typeof clients.$inferInsert;
+
+
+/**
+ * AI 공간 리디자인 이력
+ */
+export const aiRedesigns = mysqlTable("ai_redesigns", {
+  id: int("id").autoincrement().primaryKey(),
+  /** 원본 이미지 URL (S3) */
+  originalImageUrl: text("originalImageUrl").notNull(),
+  /** 고객 요청 텍스트 */
+  prompt: text("prompt").notNull(),
+  /** AI 생성 결과 이미지 URL (S3) */
+  resultImageUrl: text("resultImageUrl"),
+  /** 상태 */
+  status: mysqlEnum("status", ["pending", "processing", "completed", "failed"]).default("pending").notNull(),
+  /** 에러 메시지 (실패 시) */
+  errorMessage: text("errorMessage"),
+  /** 고객 이름 (선택) */
+  customerName: varchar("customerName", { length: 100 }),
+  /** 고객 이메일 (선택) */
+  customerEmail: varchar("customerEmail", { length: 320 }),
+  /** 고객 전화번호 (선택) */
+  customerPhone: varchar("customerPhone", { length: 30 }),
+  /** 공간 유형 (사무실, 회의실, 라운지 등) */
+  spaceType: varchar("spaceType", { length: 50 }),
+  /** 사용자 IP */
+  userIp: varchar("userIp", { length: 45 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type AiRedesign = typeof aiRedesigns.$inferSelect;
+export type InsertAiRedesign = typeof aiRedesigns.$inferInsert;
