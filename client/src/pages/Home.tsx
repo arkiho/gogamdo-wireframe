@@ -146,13 +146,6 @@ const FEATURED_PROJECTS = [
     image: PORTFOLIO.huxeed.image,
   },
   {
-    slug: "lab543",
-    title: "LAB543 크리에이티브 스튜디오",
-    category: "크리에이티브 스튜디오",
-    area: "200㎡",
-    image: PORTFOLIO.lab543.image,
-  },
-  {
     slug: "philips",
     title: "필립스 코리아 오피스",
     category: "글로벌 기업 오피스",
@@ -160,9 +153,30 @@ const FEATURED_PROJECTS = [
     image: PORTFOLIO.philips.image,
   },
   {
+    slug: "lawfirmjnp",
+    title: "JNP 법률사무소",
+    category: "사무실 인테리어",
+    area: "420㎡",
+    image: PORTFOLIO.lawfirmjnp.image,
+  },
+  {
+    slug: "fintechpaybo",
+    title: "페이보 핀테크 오피스",
+    category: "IT 오피스",
+    area: "380㎡",
+    image: PORTFOLIO.fintechpaybo.image,
+  },
+  {
+    slug: "coworkbridge",
+    title: "브릿지 코워킹 스페이스",
+    category: "크리에이티브 오피스",
+    area: "450㎡",
+    image: PORTFOLIO.coworkbridge.image,
+  },
+  {
     slug: "heal",
     title: "HEAL 헬스케어 오피스",
-    category: "헬스케어",
+    category: "헬스케어 오피스",
     area: "350㎡",
     image: PORTFOLIO.heal.image,
   },
@@ -560,9 +574,9 @@ export default function Home() {
             </div>
           </FadeUp>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURED_PROJECTS.map((project, i) => (
-              <FadeUp key={i} delay={i * 0.1}>
+              <FadeUp key={i} delay={i * 0.08}>
                 <Link href={`/portfolio/${project.slug}`}>
                   <div className="group relative overflow-hidden aspect-[4/3] cursor-pointer">
                     <img

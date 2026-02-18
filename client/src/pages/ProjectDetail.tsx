@@ -217,6 +217,26 @@ export default function ProjectDetail() {
                   </p>
                 </div>
               </FadeUp>
+
+              {/* Highlights */}
+              {project.highlights && project.highlights.length > 0 && (
+                <FadeUp delay={0.4}>
+                  <div className="p-6 lg:p-8 bg-paper-warm">
+                    <h3 className="font-heading text-lg font-bold text-ink mb-4 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-gold rounded-full" />
+                      Key Highlights
+                    </h3>
+                    <ul className="space-y-3">
+                      {project.highlights.map((item, i) => (
+                        <li key={i} className="flex items-start gap-3 text-sm text-ink/70">
+                          <span className="mt-1.5 w-1.5 h-1.5 bg-gold rounded-full flex-shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </FadeUp>
+              )}
             </div>
           </div>
         </div>
