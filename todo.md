@@ -568,3 +568,9 @@
 - [x] 블로그 자동 발행 시스템 (AI 아티클 생성 + AdminInsights 페이지 + 뉴스레터 연동)
 - [x] 리타겟팅 광고 픽셀 설치 (Facebook Pixel + Google Ads + Naver Analytics)
 - [x] 미완료 테스트 보강 (insights-analytics.test.ts 추가, 607개 테스트 전체 통과)
+
+## 다음 단계 진행
+- [x] 광고 픽셀 ID 환경변수 등록 (Google Ads AW-17962101741 등록 완료)
+- [ ] 도메인 연결 및 배포 준비 안내
+- [ ] AI 아티클 첫 발행 테스트
+- [ ] 뉴스레터 발송 연동 확인
