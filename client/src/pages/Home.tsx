@@ -54,8 +54,8 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
 }
 
 const HERO_VIDEOS = [
-  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/ToJmpAZAZvhUrMjR.mp4",
-  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/QLCIDjFJJQiBUZMh.mp4",
+  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/vsYbidLbLhXLdbjW.mp4",
+  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/rNdPLaRnkSlXbrTD.mp4",
 ];
 
 function HeroVideo() {
