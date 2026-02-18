@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import NotificationBell from "@/components/NotificationBell";
 import { MonthlyExpenseChart, ProjectStatusChart, ExpenseCategoryChart } from "@/components/OpsCharts";
+import PWAInstallBanner from "@/components/PWAInstallBanner";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   planning: { label: "기획", color: "bg-slate-100 text-slate-700" },
@@ -80,6 +81,7 @@ export default function OpsHome() {
 
   return (
     <div className="space-y-6">
+      <PWAInstallBanner />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

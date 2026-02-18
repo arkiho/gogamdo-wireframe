@@ -9,7 +9,9 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ArrowUpRight, Mail, ChevronDown } from "lucide-react";
+import { Menu, X, ArrowUpRight, Mail, ChevronDown, User, Building2, HardHat, LogIn, LogOut, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { analytics } from "@/lib/analytics";
@@ -197,6 +199,236 @@ function MobileAccordion({
   );
 }
 
+/* ─── Login Dropdown ─── */
+function LoginDropdown({ isTransparent }: { isTransparent: boolean }) {
+  const [open, setOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpen(true);
+  };
+
+  const handleLeave = () => {
+    timeoutRef.current = setTimeout(() => setOpen(false), 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  // 로그인 상태: 사용자 이름 + 역할별 바로가기
+  if (isAuthenticated && user) {
+    const isStaff = user.role === "admin" || (user as any).opsRole !== "none";
+    return (
+      <div
+        className="relative"
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
+      >
+        <button
+          className={`flex items-center gap-2 text-sm font-medium tracking-wide transition-colors duration-300 hover:text-gold ${
+            isTransparent ? "text-white/70" : "text-ink-light"
+          }`}
+        >
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+            isTransparent ? "bg-white/20 text-white" : "bg-gold/15 text-gold"
+          }`}>
+            {user.name?.charAt(0) || "U"}
+          </div>
+          <span className="hidden xl:inline">{user.name}</span>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        </button>
+
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-full right-0 pt-3"
+            >
+              <div className="bg-paper/95 backdrop-blur-xl border border-border/50 shadow-lg min-w-[200px]">
+                <div className="px-4 py-3 border-b border-border/30">
+                  <p className="text-sm font-semibold text-ink">{user.name}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                </div>
+                {isStaff && (
+                  <Link href="/ops">
+                    <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
+                      <HardHat className="w-4 h-4" />
+                      OpsX 대시보드
+                    </span>
+                  </Link>
+                )}
+                <Link href="/my">
+                  <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
+                    <Building2 className="w-4 h-4" />
+                    고객 포털
+                  </span>
+                </Link>
+                {user.role === "admin" && (
+                  <Link href="/admin">
+                    <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
+                      <LayoutDashboard className="w-4 h-4" />
+                      관리자
+                    </span>
+                  </Link>
+                )}
+                <button
+                  onClick={() => { logout(); setOpen(false); }}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors border-t border-border/30"
+                >
+                  <LogOut className="w-4 h-4" />
+                  로그아웃
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  // 비로그인 상태: 로그인 드롭다운
+  return (
+    <div
+      className="relative"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      <button
+        className={`flex items-center gap-1.5 text-sm font-medium tracking-wide transition-colors duration-300 hover:text-gold ${
+          isTransparent ? "text-white/70" : "text-ink-light"
+        }`}
+      >
+        <User className="w-4 h-4" />
+        <span className="hidden xl:inline">로그인</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-full right-0 pt-3"
+          >
+            <div className="bg-paper/95 backdrop-blur-xl border border-border/50 shadow-lg min-w-[220px]">
+              <div className="px-4 py-3 border-b border-border/30">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">로그인</p>
+              </div>
+              <Link href="/client/login">
+                <span className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
+                  <Building2 className="w-4 h-4" />
+                  <div>
+                    <p className="font-semibold text-ink">고객사 로그인</p>
+                    <p className="text-xs text-muted-foreground">프로젝트 현황 · 서베이 · 보고서</p>
+                  </div>
+                </span>
+              </Link>
+              <a href={getLoginUrl()}>
+                <span className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors border-t border-border/20">
+                  <HardHat className="w-4 h-4" />
+                  <div>
+                    <p className="font-semibold text-ink">직원 로그인</p>
+                    <p className="text-xs text-muted-foreground">OpsX · 공정관리 · 결재</p>
+                  </div>
+                </span>
+              </a>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─── Mobile Login Buttons ─── */
+function MobileLoginButtons() {
+  const { user, isAuthenticated, logout } = useAuth();
+
+  if (isAuthenticated && user) {
+    const isStaff = user.role === "admin" || (user as any).opsRole !== "none";
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: (NAV_ITEMS.length + 1) * 0.05 }}
+        className="mt-4 pt-4 border-t border-border/30"
+      >
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
+          {user.name}님
+        </p>
+        <div className="flex flex-col gap-2">
+          {isStaff && (
+            <Link href="/ops">
+              <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
+                <HardHat className="w-5 h-5" />
+                OpsX 대시보드
+              </span>
+            </Link>
+          )}
+          <Link href="/my">
+            <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
+              <Building2 className="w-5 h-5" />
+              고객 포털
+            </span>
+          </Link>
+          {user.role === "admin" && (
+            <Link href="/admin">
+              <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
+                <LayoutDashboard className="w-5 h-5" />
+                관리자
+              </span>
+            </Link>
+          )}
+          <button
+            onClick={() => logout()}
+            className="flex items-center gap-3 py-3 text-lg font-medium text-red-500 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            로그아웃
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: (NAV_ITEMS.length + 1) * 0.05 }}
+      className="mt-4 pt-4 border-t border-border/30"
+    >
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
+        로그인
+      </p>
+      <div className="flex gap-3">
+        <Link href="/client/login">
+          <span className="inline-flex items-center gap-2 px-5 py-3 border border-border text-ink text-base font-medium hover:border-gold hover:text-gold transition-colors">
+            <Building2 className="w-4 h-4" />
+            고객사
+          </span>
+        </Link>
+        <a href={getLoginUrl()}>
+          <span className="inline-flex items-center gap-2 px-5 py-3 bg-gold/10 text-gold text-base font-medium hover:bg-gold/20 transition-colors">
+            <HardHat className="w-4 h-4" />
+            직원
+          </span>
+        </a>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ─── Newsletter Form ─── */
 function NewsletterForm() {
   const [email, setEmail] = useState("");
@@ -325,8 +557,11 @@ export default function Layout({ children }: { children: ReactNode }) {
             )}
           </div>
 
-          {/* CTA + Mobile Toggle */}
-          <div className="flex items-center gap-4">
+          {/* Login + CTA + Mobile Toggle */}
+          <div className="flex items-center gap-3">
+            <div className="hidden lg:block">
+              <LoginDropdown isTransparent={isTransparent} />
+            </div>
             <Link href="/contact">
               <span className={`hidden lg:inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium tracking-wide transition-colors duration-300 ${
                 isTransparent
@@ -398,6 +633,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </span>
                 </Link>
               </motion.div>
+
+              {/* 모바일 로그인 버튼 */}
+              <MobileLoginButtons />
             </div>
           </motion.div>
         )}
