@@ -11,11 +11,51 @@ export const ABOUT_TEAM_IMG = "https://private-us-east-1.manuscdn.com/sessionFil
 export const SOLUTION_CONSULT_IMG = "https://private-us-east-1.manuscdn.com/sessionFile/161FV9HPbAyEn7ahlYrN3P/sandbox/YjEko9OIemDyThxiw5ItzH-img-3_1771026096000_na1fn_c29sdXRpb24tY29uc3VsdGF0aW9u.jpg?x-oss-process=image/resize,w_1920,h_1920/format,webp/quality,q_80&Expires=1798761600&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvMTYxRlY5SFBiQXlFbjdhaGxZck4zUC9zYW5kYm94L1lqRWtvOU9JZW1EeVRoeGl3NUl0ekgtaW1nLTNfMTc3MTAyNjA5NjAwMF9uYTFmbl9jMjlzZFhScGIyNHRZMjl1YzNWc2RHRjBhVzl1LmpwZz94LW9zcy1wcm9jZXNzPWltYWdlL3Jlc2l6ZSx3XzE5MjAsaF8xOTIwL2Zvcm1hdCx3ZWJwL3F1YWxpdHkscV84MCIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc5ODc2MTYwMH19fV19&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=Z9duSAEGNJRHMsV58JMVJa6V72R0IDMv2DyQjNO2mNzL6eYsWF7UOVsdeXN3s0gCaN1veVIpJZQKqfoRJDRW7wb~QcD-DKNyQx3lq2cGipJzqgN9nughUpsjOwkNJzOKciltkhumv7ynhV32NRngN~BG281JSEuckHle8XpqXVJYeMoMcAr9bd3xbzhIGrhQnLbeJE1chrBWTKNqxpknseonNlgdlYPoTnXQ7rEc9ik6~S7Th-4Wse6Ipqx51diXxciWBPRrr3j2ld-8F1hlHXXzwY1hmOoCtx1pQBv0J81t00aaVVQmBx~kTiLw76f6VkZJ~98BHE36v7rq16jGDA__";
 
 // 고품질 포트폴리오 이미지 (CDN)
+// 대분류 카테고리 (필터 탭)
+export const MAJOR_CATEGORIES = [
+  "전체",
+  "사무 공간",
+  "상업 공간",
+  "의료·복지",
+  "산업·공공",
+] as const;
+
+export type MajorCategory = (typeof MAJOR_CATEGORIES)[number];
+
+// 세부 카테고리 → 대분류 매핑
+export const CATEGORY_MAP: Record<string, MajorCategory> = {
+  "사무실 인테리어": "사무 공간",
+  "크리에이티브 오피스": "사무 공간",
+  "크리에이티브 스튜디오": "사무 공간",
+  "글로벌 기업 오피스": "사무 공간",
+  "IT 오피스": "사무 공간",
+  "상업공간": "상업 공간",
+  "코워킹 스페이스": "상업 공간",
+  "F&B": "상업 공간",
+  "리테일": "상업 공간",
+  "헬스케어 오피스": "의료·복지",
+  "병원": "의료·복지",
+  "클리닉": "의료·복지",
+  "복지시설": "의료·복지",
+  "공공기관": "산업·공공",
+  "산업시설": "산업·공공",
+  "교육시설": "산업·공공",
+};
+
+// 대분류에서 해당하는 세부 카테고리 목록 반환
+export function getSubCategories(major: MajorCategory): string[] {
+  if (major === "전체") return [];
+  return Object.entries(CATEGORY_MAP)
+    .filter(([, m]) => m === major)
+    .map(([sub]) => sub);
+}
+
 export type ProjectData = {
   slug: string;
   name: string;
   nameEn: string;
   category: string;
+  majorCategory: MajorCategory;
   area: string;
   year: string;
   duration: string;
@@ -36,6 +76,7 @@ export const PROJECTS: ProjectData[] = [
     name: "허시드",
     nameEn: "Huxeed",
     category: "사무실 인테리어",
+    majorCategory: "사무 공간",
     area: "250㎡ (76평)",
     year: "2024",
     duration: "8주",
@@ -53,6 +94,7 @@ export const PROJECTS: ProjectData[] = [
     name: "LAB543",
     nameEn: "LAB543",
     category: "크리에이티브 스튜디오",
+    majorCategory: "사무 공간",
     area: "200㎡ (60평)",
     year: "2023",
     duration: "6주",
@@ -70,6 +112,7 @@ export const PROJECTS: ProjectData[] = [
     name: "필립스",
     nameEn: "Philips Korea",
     category: "글로벌 기업 오피스",
+    majorCategory: "사무 공간",
     area: "500㎡ (151평)",
     year: "2023",
     duration: "12주",
@@ -87,6 +130,7 @@ export const PROJECTS: ProjectData[] = [
     name: "페이퍼랩",
     nameEn: "Paperlab",
     category: "크리에이티브 오피스",
+    majorCategory: "사무 공간",
     area: "180㎡ (54평)",
     year: "2024",
     duration: "7주",
@@ -103,6 +147,7 @@ export const PROJECTS: ProjectData[] = [
     name: "휴레이",
     nameEn: "Huray",
     category: "IT 오피스",
+    majorCategory: "사무 공간",
     area: "300㎡ (91평)",
     year: "2024",
     duration: "10주",
@@ -120,6 +165,7 @@ export const PROJECTS: ProjectData[] = [
     name: "HEAL",
     nameEn: "HEAL",
     category: "헬스케어 오피스",
+    majorCategory: "의료·복지",
     area: "350㎡ (106평)",
     year: "2023",
     duration: "9주",
@@ -136,6 +182,7 @@ export const PROJECTS: ProjectData[] = [
     name: "SBA/SETEC",
     nameEn: "SBA/SETEC",
     category: "공공기관",
+    majorCategory: "산업·공공",
     area: "400㎡ (121평)",
     year: "2022",
     duration: "14주",
@@ -152,6 +199,7 @@ export const PROJECTS: ProjectData[] = [
     name: "제조시설 리모델링",
     nameEn: "Factory Remodeling",
     category: "산업시설",
+    majorCategory: "산업·공공",
     area: "600㎡ (181평)",
     year: "2022",
     duration: "16주",
@@ -168,6 +216,7 @@ export const PROJECTS: ProjectData[] = [
     name: "JNP 법률사무소",
     nameEn: "JNP Law Firm",
     category: "사무실 인테리어",
+    majorCategory: "사무 공간",
     area: "420㎡ (127평)",
     year: "2024",
     duration: "11주",
@@ -185,6 +234,7 @@ export const PROJECTS: ProjectData[] = [
     name: "페이보",
     nameEn: "Paybo",
     category: "IT 오피스",
+    majorCategory: "사무 공간",
     area: "380㎡ (115평)",
     year: "2024",
     duration: "9주",
@@ -202,6 +252,7 @@ export const PROJECTS: ProjectData[] = [
     name: "메디플러스 클리닉",
     nameEn: "MediPlus Clinic",
     category: "헬스케어 오피스",
+    majorCategory: "의료·복지",
     area: "280㎡ (85평)",
     year: "2023",
     duration: "10주",
@@ -218,7 +269,8 @@ export const PROJECTS: ProjectData[] = [
     slug: "cowork-bridge",
     name: "브릿지 코워킹",
     nameEn: "Bridge Coworking",
-    category: "크리에이티브 오피스",
+    category: "상업공간",
+    majorCategory: "상업 공간",
     area: "450㎡ (136평)",
     year: "2024",
     duration: "13주",

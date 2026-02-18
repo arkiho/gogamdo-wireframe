@@ -1,7 +1,7 @@
 /*
  * DESIGN: Precision Studio — Portfolio Page
  * Neurodesign: Social proof, before/after contrast
- * Sections: Hero → Filter → Project Grid → CTA
+ * Sections: Hero → Filter (대분류 + 세부) → Project Grid → CTA
  * 
  * 정적 프로젝트(PROJECTS)와 DB에서 게시된 포트폴리오를 합쳐서 표시
  */
@@ -9,8 +9,8 @@
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
-import { PROJECTS } from "@/lib/images";
+import { ArrowUpRight, Building2, Store, HeartPulse, Factory } from "lucide-react";
+import { PROJECTS, MAJOR_CATEGORIES, CATEGORY_MAP, type MajorCategory } from "@/lib/images";
 import { trpc } from "@/lib/trpc";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
@@ -28,13 +28,29 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
-const CATEGORIES = ["전체", "사무실 인테리어", "크리에이티브 오피스", "크리에이티브 스튜디오", "글로벌 기업 오피스", "공공기관", "헬스케어 오피스", "IT 오피스", "산업시설"];
+// 대분류 아이콘 매핑
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  "사무 공간": <Building2 className="w-4 h-4" />,
+  "상업 공간": <Store className="w-4 h-4" />,
+  "의료·복지": <HeartPulse className="w-4 h-4" />,
+  "산업·공공": <Factory className="w-4 h-4" />,
+};
+
+// 대분류별 설명 텍스트
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  "전체": "35년간 2,800건 이상의 프로젝트를 수행하며 쌓아온 경험과 노하우를 확인하세요.",
+  "사무 공간": "스타트업부터 글로벌 기업까지, 업무 효율과 기업 문화를 반영한 맞춤형 오피스 인테리어",
+  "상업 공간": "코워킹 스페이스, F&B, 리테일 등 고객 경험을 극대화하는 상업 공간 설계",
+  "의료·복지": "환자와 이용자의 심리적 안정을 고려한 치유적 공간 디자인",
+  "산업·공공": "공공기관, 산업시설, 교육시설 등 공공성과 기능성을 겸비한 공간 설계",
+};
 
 // Unified project type for display
 type DisplayProject = {
   id: string;
   name: string;
   category: string;
+  majorCategory: MajorCategory;
   area: string;
   year: string;
   image: string;
@@ -43,7 +59,8 @@ type DisplayProject = {
 };
 
 export default function Portfolio() {
-  const [activeCategory, setActiveCategory] = useState("전체");
+  const [activeMajor, setActiveMajor] = useState<MajorCategory>("전체");
+  const [activeSub, setActiveSub] = useState<string | null>(null);
   
   // Fetch published portfolios from DB
   const publishedPortfolios = trpc.portfolio.published.useQuery(undefined, {
@@ -56,6 +73,7 @@ export default function Portfolio() {
       id: `static-${p.slug}`,
       name: p.name,
       category: p.category,
+      majorCategory: p.majorCategory,
       area: p.area.split(" ")[0],
       year: p.year,
       image: p.image,
@@ -63,24 +81,60 @@ export default function Portfolio() {
       source: "static" as const,
     }));
 
-    const dbProjects: DisplayProject[] = (publishedPortfolios.data || []).map((p: any) => ({
-      id: `db-${p.id}`,
-      name: p.title,
-      category: p.category || "기타",
-      area: p.area || "",
-      year: p.createdAt ? new Date(p.createdAt).getFullYear().toString() : new Date().getFullYear().toString(),
-      image: p.coverImage || "",
-      href: `/portfolio/p/${p.id}`,
-      source: "db" as const,
-    }));
+    const dbProjects: DisplayProject[] = (publishedPortfolios.data || []).map((p: any) => {
+      const cat = p.category || "기타";
+      const major = CATEGORY_MAP[cat] || "사무 공간";
+      return {
+        id: `db-${p.id}`,
+        name: p.title,
+        category: cat,
+        majorCategory: major,
+        area: p.area || "",
+        year: p.createdAt ? new Date(p.createdAt).getFullYear().toString() : new Date().getFullYear().toString(),
+        image: p.coverImage || "",
+        href: `/portfolio/p/${p.id}`,
+        source: "db" as const,
+      };
+    });
 
     // DB projects first (newest), then static
     return [...dbProjects, ...staticProjects];
   }, [publishedPortfolios.data]);
 
-  const filtered = activeCategory === "전체"
-    ? allProjects
-    : allProjects.filter((p) => p.category === activeCategory);
+  // 현재 대분류에 속하는 세부 카테고리 목록 (실제 프로젝트가 있는 것만)
+  const availableSubCategories = useMemo(() => {
+    if (activeMajor === "전체") return [];
+    const subsInMajor = allProjects
+      .filter(p => p.majorCategory === activeMajor)
+      .map(p => p.category);
+    return [...new Set(subsInMajor)];
+  }, [activeMajor, allProjects]);
+
+  // 필터링 로직
+  const filtered = useMemo(() => {
+    let result = allProjects;
+    if (activeMajor !== "전체") {
+      result = result.filter(p => p.majorCategory === activeMajor);
+    }
+    if (activeSub) {
+      result = result.filter(p => p.category === activeSub);
+    }
+    return result;
+  }, [allProjects, activeMajor, activeSub]);
+
+  // 대분류별 프로젝트 수
+  const majorCounts = useMemo(() => {
+    const counts: Record<string, number> = { "전체": allProjects.length };
+    for (const p of allProjects) {
+      counts[p.majorCategory] = (counts[p.majorCategory] || 0) + 1;
+    }
+    return counts;
+  }, [allProjects]);
+
+  const handleMajorChange = (cat: MajorCategory) => {
+    setActiveMajor(cat);
+    setActiveSub(null); // 대분류 변경 시 세부 필터 초기화
+  };
 
   return (
     <>
@@ -92,32 +146,102 @@ export default function Portfolio() {
             <p className="text-xs font-medium tracking-widest uppercase text-gold mb-6">
               Projects
             </p>
-            <h1 className="font-heading text-4xl lg:text-6xl font-bold text-ink leading-tight mb-8 max-w-3xl">
+            <h1 className="font-heading text-4xl lg:text-6xl font-bold text-ink leading-tight mb-4 max-w-3xl">
               35년, 2,800건 이상의
               <br />프로젝트가 증명합니다
             </h1>
+            <p className="text-muted-foreground max-w-xl text-base lg:text-lg leading-relaxed">
+              {CATEGORY_DESCRIPTIONS[activeMajor]}
+            </p>
           </FadeUp>
         </div>
       </section>
 
-      {/* Filter */}
-      <section className="pb-12">
+      {/* 대분류 필터 */}
+      <section className="pb-4">
         <div className="container">
-          <div className="flex gap-2 flex-wrap">
-            {CATEGORIES.map((cat) => (
+          <div className="flex gap-3 flex-wrap">
+            {MAJOR_CATEGORIES.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-4 py-2 text-sm font-medium transition-all duration-300 ${
-                  activeCategory === cat
-                    ? "bg-ink text-white"
-                    : "bg-paper-warm text-ink/60 hover:text-ink"
+                onClick={() => handleMajorChange(cat)}
+                className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all duration-300 border ${
+                  activeMajor === cat
+                    ? "bg-ink text-white border-ink"
+                    : "bg-transparent text-ink/60 border-border hover:text-ink hover:border-ink/30"
                 }`}
               >
-                {cat}
+                {cat !== "전체" && CATEGORY_ICONS[cat]}
+                <span>{cat}</span>
+                <span className={`text-xs ml-1 ${
+                  activeMajor === cat ? "text-white/60" : "text-muted-foreground"
+                }`}>
+                  {majorCounts[cat] || 0}
+                </span>
               </button>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* 세부 카테고리 필터 (대분류 선택 시에만 표시) */}
+      <AnimatePresence>
+        {availableSubCategories.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="pb-8 overflow-hidden"
+          >
+            <div className="container">
+              <div className="flex gap-2 flex-wrap pt-3 border-t border-border/50">
+                <button
+                  onClick={() => setActiveSub(null)}
+                  className={`px-3 py-1.5 text-xs font-medium transition-all duration-300 ${
+                    activeSub === null
+                      ? "bg-gold/10 text-gold border border-gold/30"
+                      : "text-muted-foreground hover:text-ink"
+                  }`}
+                >
+                  전체 보기
+                </button>
+                {availableSubCategories.map((sub) => {
+                  const count = allProjects.filter(p => p.category === sub).length;
+                  return (
+                    <button
+                      key={sub}
+                      onClick={() => setActiveSub(activeSub === sub ? null : sub)}
+                      className={`px-3 py-1.5 text-xs font-medium transition-all duration-300 ${
+                        activeSub === sub
+                          ? "bg-gold/10 text-gold border border-gold/30"
+                          : "text-muted-foreground hover:text-ink"
+                      }`}
+                    >
+                      {sub}
+                      <span className="ml-1 text-[10px] opacity-60">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      {/* 결과 수 표시 */}
+      <section className="pb-6">
+        <div className="container">
+          <p className="text-sm text-muted-foreground">
+            {activeMajor !== "전체" || activeSub ? (
+              <>
+                <span className="font-medium text-ink">{filtered.length}</span>개 프로젝트
+                {activeSub && <span className="ml-1">· {activeSub}</span>}
+              </>
+            ) : (
+              <>전체 <span className="font-medium text-ink">{allProjects.length}</span>개 프로젝트</>
+            )}
+          </p>
         </div>
       </section>
 
@@ -126,7 +250,7 @@ export default function Portfolio() {
         <div className="container">
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeCategory}
+              key={`${activeMajor}-${activeSub}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -157,6 +281,12 @@ export default function Portfolio() {
                           <span className="px-2 py-0.5 text-[10px] font-medium bg-gold/90 text-ink rounded-full">NEW</span>
                         </div>
                       )}
+                      {/* 대분류 배지 */}
+                      <div className="absolute top-3 right-3">
+                        <span className="px-2 py-0.5 text-[10px] font-medium bg-white/90 text-ink/70 backdrop-blur-sm">
+                          {project.majorCategory}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-xs font-medium text-gold">{project.category}</span>
@@ -171,6 +301,19 @@ export default function Portfolio() {
               ))}
             </motion.div>
           </AnimatePresence>
+
+          {/* 빈 결과 */}
+          {filtered.length === 0 && (
+            <div className="text-center py-20">
+              <p className="text-muted-foreground text-lg mb-2">해당 카테고리의 프로젝트가 아직 없습니다.</p>
+              <button
+                onClick={() => handleMajorChange("전체")}
+                className="text-gold font-medium text-sm hover:underline"
+              >
+                전체 프로젝트 보기
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
