@@ -22,6 +22,7 @@ import AdminCRM from "./pages/AdminCRM";
 import AdminDesignAuto from "./pages/AdminDesignAuto";
 import AdminReviews from "./pages/AdminReviews";
 import AdminNewsletter from "./pages/AdminNewsletter";
+import AdminInsights from "./pages/AdminInsights";
 import AdminClientPipeline from "./pages/AdminClientPipeline";
 import AdminDownloadLogs from "./pages/AdminDownloadLogs";
 import Unsubscribe from "./pages/Unsubscribe";
@@ -106,6 +107,7 @@ function Router() {
       <Route path="/admin/design-auto" component={AdminDesignAuto} />
       <Route path="/admin/reviews" component={AdminReviews} />
       <Route path="/admin/newsletter" component={AdminNewsletter} />
+      <Route path="/admin/insights" component={AdminInsights} />
       <Route path="/admin/client-pipeline" component={AdminClientPipeline} />
       <Route path="/admin/download-logs" component={AdminDownloadLogs} />
       <Route component={PublicRouter} />

@@ -1994,6 +1994,122 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       .mutation(async ({ input }) => {
         return deleteInsightArticle(input.id);
       }),
+    // 관리자: AI 아티클 자동 생성
+    aiGenerate: adminProcedure
+      .input(z.object({
+        topic: z.string().optional(),
+        category: z.enum(["trend", "cost_guide", "case_study", "tip", "news"]).optional(),
+        targetAudience: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const category = input.category || "trend";
+        const categoryLabels: Record<string, string> = {
+          trend: "인테리어 트렌드",
+          cost_guide: "비용 가이드",
+          case_study: "사례 연구",
+          tip: "실용 팁",
+          news: "업계 뉴스",
+        };
+        const catLabel = categoryLabels[category] || "인테리어";
+        const audience = input.targetAudience || "사무실 인테리어를 계획 중인 기업 담당자";
+
+        const topicPrompt = input.topic
+          ? `주제: ${input.topic}`
+          : `${catLabel} 분야에서 ${audience}에게 유용한 최신 주제를 선정해주세요.`;
+
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `당신은 고감도 인테리어의 전문 콘텐츠 에디터입니다. 사무실 인테리어, 상업공간 디자인, 공간 최적화 분야의 전문가입니다. B2B 독자를 위한 전문적이면서도 읽기 쉬운 아티클을 작성합니다. 마크다운 형식으로 작성하되, 소제목(##), 불릿 포인트, 강조(**) 등을 활용하여 가독성을 높여주세요. 분량은 1500~2500자 정도로 작성합니다.`,
+            },
+            {
+              role: "user",
+              content: `다음 조건으로 인테리어 인사이트 아티클을 작성해주세요.
+
+카테고리: ${catLabel}
+대상 독자: ${audience}
+${topicPrompt}
+
+반드시 아래 JSON 형식으로 응답해주세요:
+{
+  "title": "아티클 제목",
+  "subtitle": "부제목",
+  "excerpt": "2~3문장 요약",
+  "content": "마크다운 본문 (1500~2500자)",
+  "tags": ["태그1", "태그2", "태그3"],
+  "readTimeMinutes": 숫자
+}`,
+            },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "article_generation",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  title: { type: "string", description: "아티클 제목" },
+                  subtitle: { type: "string", description: "부제목" },
+                  excerpt: { type: "string", description: "2~3문장 요약" },
+                  content: { type: "string", description: "마크다운 본문" },
+                  tags: { type: "array", items: { type: "string" }, description: "태그 목록" },
+                  readTimeMinutes: { type: "integer", description: "예상 읽기 시간(분)" },
+                },
+                required: ["title", "subtitle", "excerpt", "content", "tags", "readTimeMinutes"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        const parsed = JSON.parse(response.choices[0].message.content || "{}");
+
+        // 슬러그 생성
+        const slug = parsed.title
+          .toLowerCase()
+          .replace(/[^a-z0-9가-힣\s-]/g, "")
+          .replace(/\s+/g, "-")
+          .slice(0, 80)
+          + "-" + Date.now().toString(36);
+
+        // 커버 이미지 생성
+        let coverImageUrl: string | undefined;
+        try {
+          const imgResult = await generateImage({
+            prompt: `Professional editorial cover image for an interior design article titled "${parsed.title}". Modern office interior, architectural photography style, warm lighting, high-end commercial space. Minimalist composition with strong visual impact. No text overlay.`,
+          });
+          coverImageUrl = imgResult.url ?? undefined;
+        } catch (err) {
+          console.error("[AI Article] Cover image generation failed:", err);
+        }
+
+        // DB에 초안으로 저장
+        const articleId = await createInsightArticle({
+          slug,
+          title: parsed.title,
+          subtitle: parsed.subtitle,
+          category,
+          excerpt: parsed.excerpt,
+          content: parsed.content,
+          coverImageUrl: coverImageUrl || null,
+          author: "고감도 AI 에디터",
+          readTimeMinutes: parsed.readTimeMinutes || 5,
+          tags: parsed.tags || [],
+          featured: false,
+          status: "draft",
+        } as any);
+
+        return {
+          id: articleId,
+          slug,
+          title: parsed.title,
+          excerpt: parsed.excerpt,
+          category,
+          status: "draft",
+        };
+      }),
   }),
 
   // ===== 뉴스레터 구독 =====

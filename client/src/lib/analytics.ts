@@ -66,6 +66,75 @@ export function initClarity() {
   })(window, document, "clarity", "script", id);
 }
 
+// ─── Facebook Pixel ───
+let fbPixelLoaded = false;
+export function initFBPixel() {
+  const id = import.meta.env.VITE_FB_PIXEL_ID;
+  if (!id || fbPixelLoaded) return;
+  fbPixelLoaded = true;
+  (function (f: any, b: any, e: any, v: any, n?: any, t?: any, s?: any) {
+    if (f.fbq) return;
+    n = f.fbq = function (...args: any[]) {
+      n.callMethod ? n.callMethod.apply(n, args) : n.queue.push(args);
+    };
+    if (!f._fbq) f._fbq = n;
+    n.push = n;
+    n.loaded = true;
+    n.version = "2.0";
+    n.queue = [];
+    t = b.createElement(e);
+    t.async = true;
+    t.src = v;
+    s = b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t, s);
+  })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+  (window as any).fbq("init", id);
+  (window as any).fbq("track", "PageView");
+}
+
+// ─── Google Ads Remarketing ───
+let gAdsLoaded = false;
+export function initGoogleAds() {
+  const id = import.meta.env.VITE_GOOGLE_ADS_ID;
+  if (!id || gAdsLoaded) return;
+  gAdsLoaded = true;
+  if (window.gtag) {
+    window.gtag("config", id);
+  } else {
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${id}`;
+    document.head.appendChild(script);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function (...args: unknown[]) {
+      window.dataLayer.push(args);
+    };
+    window.gtag("js", new Date());
+    window.gtag("config", id);
+  }
+}
+
+// ─── Naver Analytics ───
+let naverLoaded = false;
+export function initNaverAnalytics() {
+  const id = import.meta.env.VITE_NAVER_ANALYTICS_ID;
+  if (!id || naverLoaded) return;
+  naverLoaded = true;
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = "https://wcs.naver.net/wcslog.js";
+  document.head.appendChild(script);
+  script.onload = () => {
+    if ((window as any).wcs) {
+      const wcs = (window as any).wcs;
+      if (wcs.inflow) wcs.inflow("kokamdo.co.kr");
+      wcs.cntr = id;
+      wcs.act = "jt";
+      wcs.log();
+    }
+  };
+}
+
 // ─── Custom Events ───
 
 /**
@@ -91,6 +160,10 @@ export function trackEvent(eventName: string, params?: Record<string, unknown>) 
   // Clarity custom tags
   if (window.clarity) {
     window.clarity("set", eventName, JSON.stringify(params || {}));
+  }
+  // Facebook Pixel custom events
+  if ((window as any).fbq) {
+    (window as any).fbq("trackCustom", eventName, params);
   }
 }
 

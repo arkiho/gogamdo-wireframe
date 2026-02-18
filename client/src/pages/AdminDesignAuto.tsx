@@ -20,6 +20,8 @@ import {
   Sparkles, RefreshCw, Download, Send
 } from "lucide-react";
 import { Link } from "wouter";
+import { generateProposalPdf, type ProposalPdfData } from "@/lib/proposalPdf";
+import { generateEstimatePdf, type EstimatePdfData } from "@/lib/estimatePdf";
 
 // ===== Stage Config =====
 const STAGES = [
@@ -680,9 +682,31 @@ function ProposalTab({ projectId, proposals, onRefresh }: { projectId: number; p
                   <h4 className="font-semibold">{p.title}</h4>
                   <p className="text-xs text-muted-foreground">v{p.version} · {new Date(p.createdAt).toLocaleDateString("ko-KR")}</p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setViewId(p.id)}>
-                  <Eye className="w-4 h-4 mr-1" /> 상세보기
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setViewId(p.id)}>
+                    <Eye className="w-4 h-4 mr-1" /> 상세보기
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const pdfData: ProposalPdfData = {
+                      title: p.title || "인테리어 제안서",
+                      version: p.version,
+                      createdAt: p.createdAt,
+                      projectName: p.title || "프로젝트",
+                      clientAnalysis: p.clientAnalysis as any,
+                      designConcept: p.designConcept as string,
+                      spaceProgram: p.spaceProgram as any,
+                      materialPlan: p.materialPlan as any,
+                      furniturePlan: p.furniturePlan as any,
+                      projectTimeline: p.projectTimeline as any,
+                      companyIntro: p.companyIntro as string,
+                      differentiators: p.differentiators as string[],
+                    };
+                    generateProposalPdf(pdfData);
+                    toast.success("제안서 PDF가 다운로드됩니다");
+                  }}>
+                    <Download className="w-4 h-4 mr-1" /> PDF
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -782,9 +806,32 @@ function EstimateTab({ projectId, estimates, proposals, onRefresh }: { projectId
                     총 {est.totalAmount?.toLocaleString()}원 (VAT 포함) · v{est.version}
                   </p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setViewId(est.id)}>
-                  <Eye className="w-4 h-4 mr-1" /> 상세보기
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setViewId(est.id)}>
+                    <Eye className="w-4 h-4 mr-1" /> 상세보기
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const pdfData: EstimatePdfData = {
+                      estimateNumber: `EST-${est.id}`,
+                      title: est.title || "견적서",
+                      version: est.version,
+                      items: (est.items as any[]) || [],
+                      subtotal: est.subtotal || 0,
+                      overhead: est.overhead || 0,
+                      profit: est.profit || 0,
+                      vat: est.vat || 0,
+                      grandTotal: est.totalAmount || 0,
+                      notes: est.notes as string,
+                      status: est.status || "draft",
+                      createdAt: est.createdAt,
+                      projectName: est.title || "프로젝트",
+                    };
+                    generateEstimatePdf(pdfData);
+                    toast.success("견적서 PDF가 다운로드됩니다");
+                  }}>
+                    <Download className="w-4 h-4 mr-1" /> PDF
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

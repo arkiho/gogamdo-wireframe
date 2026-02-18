@@ -18,7 +18,7 @@ import {
   ChevronDown, ChevronUp, LogOut, Download,
   Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
-  HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2, Shield,
+  HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2, Shield, FileText,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
@@ -320,6 +320,22 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="font-heading font-bold text-ink">포트폴리오 리뷰</h3>
                     <p className="text-xs text-muted-foreground">담당자 리뷰 요청 생성, 승인/거절 관리</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            {/* 인사이트 관리 바로가기 */}
+            <Card className="border-purple-300/30 bg-gradient-to-r from-purple-50/50 to-transparent cursor-pointer hover:border-purple-400/50 transition-colors" onClick={() => navigate("/admin/insights")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">인사이트 관리</h3>
+                    <p className="text-xs text-muted-foreground">아티클 관리 및 AI 자동 생성</p>
                   </div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-muted-foreground" />

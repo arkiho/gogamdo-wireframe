@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { initGA4, initClarity, trackPageView, analytics } from "@/lib/analytics";
+import { initGA4, initClarity, initFBPixel, initGoogleAds, initNaverAnalytics, trackPageView, analytics } from "@/lib/analytics";
 
 /**
  * AnalyticsProvider
- * - GA4 + Clarity 초기화
+ * - GA4 + Clarity + Facebook Pixel + Google Ads + Naver Analytics 초기화
  * - SPA 라우트 변경 시 자동 page_view 전송
  * - 스크롤 깊이 추적 (25%, 50%, 75%, 100%)
  * - 페이지 체류 시간 추적
@@ -18,6 +18,9 @@ export default function AnalyticsProvider({ children }: { children: React.ReactN
   useEffect(() => {
     initGA4();
     initClarity();
+    initFBPixel();
+    initGoogleAds();
+    initNaverAnalytics();
   }, []);
 
   // Track page views on route change
