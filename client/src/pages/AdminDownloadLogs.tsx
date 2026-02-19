@@ -97,7 +97,7 @@ export default function AdminDownloadLogs() {
     return <div className="flex items-center justify-center min-h-screen">로딩 중...</div>;
   }
 
-  if (!user || user.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "master")) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Shield className="w-12 h-12 text-muted-foreground" />

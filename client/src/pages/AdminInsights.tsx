@@ -72,7 +72,7 @@ export default function AdminInsights() {
     onError: (err) => toast.error(`삭제 실패: ${err.message}`),
   });
 
-  if (!user || user.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "master")) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>

@@ -84,7 +84,7 @@ export default function AdminClientPipeline() {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-gold" /></div>;
   }
 
-  if (!user || user.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "master")) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md"><CardContent className="py-12 text-center">

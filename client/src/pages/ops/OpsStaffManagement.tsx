@@ -77,7 +77,7 @@ export default function OpsStaffManagement() {
     return acc;
   }, {} as Record<string, number>) ?? {};
 
-  if (user?.role !== "admin") {
+  if (user?.role !== "admin" && user?.role !== "master") {
     return (
       <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
         관리자만 접근 가능합니다.
