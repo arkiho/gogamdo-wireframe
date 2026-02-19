@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, Plus, FileUp, MessageSquare, Layout, Image, FileText, Calculator,
   CheckCircle2, Clock, Loader2, ChevronRight, Building2, Upload, Trash2, Eye,
-  Sparkles, RefreshCw, Download, Send
+  Sparkles, RefreshCw, Download, Send, Video, Play, Pause, SkipForward
 } from "lucide-react";
 import { Link } from "wouter";
 import { generateProposalPdf, type ProposalPdfData } from "@/lib/proposalPdf";
@@ -30,6 +30,7 @@ const STAGES = [
   { key: "analysis", label: "데이터 분석", icon: Sparkles, color: "bg-indigo-500" },
   { key: "layout", label: "레이아웃", icon: Layout, color: "bg-green-500" },
   { key: "rendering", label: "렌더링", icon: Image, color: "bg-orange-500" },
+  { key: "tour", label: "투어 영상", icon: Video, color: "bg-cyan-500" },
   { key: "proposal", label: "제안서", icon: FileText, color: "bg-pink-500" },
   { key: "estimate", label: "견적서", icon: Calculator, color: "bg-red-500" },
   { key: "completed", label: "완료", icon: CheckCircle2, color: "bg-emerald-500" },
@@ -199,6 +200,7 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
       {activeTab === "analysis" && <AnalysisTab projectId={projectId} rfp={summary.rfp} floorPlans={summary.floorPlans} />}
       {activeTab === "layout" && <LayoutTab projectId={projectId} layouts={summary.layouts} onRefresh={refetch} />}
       {activeTab === "rendering" && <RenderingTab projectId={projectId} renderings={summary.renderings} onRefresh={refetch} />}
+      {activeTab === "tour" && <TourVideoTab projectId={projectId} renderings={summary.renderings} tourVideos={summary.tourVideos} onRefresh={refetch} />}
       {activeTab === "proposal" && <ProposalTab projectId={projectId} proposals={summary.proposals} onRefresh={refetch} />}
       {activeTab === "estimate" && <EstimateTab projectId={projectId} estimates={summary.estimates} proposals={summary.proposals} onRefresh={refetch} />}
       {activeTab === "completed" && <CompletedTab summary={summary} />}
@@ -644,6 +646,210 @@ function RenderingTab({ projectId, renderings, onRefresh }: { projectId: number;
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// ===== Tour Video Tab =====
+function TourVideoTab({ projectId, renderings, tourVideos, onRefresh }: {
+  projectId: number; renderings: any[]; tourVideos: any[]; onRefresh: () => void;
+}) {
+  const generateTour = trpc.designAuto.generateTourVideo.useMutation();
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [tourStyle, setTourStyle] = useState<"walkthrough" | "cinematic" | "presentation">("walkthrough");
+  const [title, setTitle] = useState("");
+  const [viewingTour, setViewingTour] = useState<any>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const completedRenderings = renderings.filter(r => r.status === "done" && r.imageUrl);
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleGenerate = async () => {
+    if (selectedIds.length === 0) { toast.error("렌더링 이미지를 선택해주세요"); return; }
+    try {
+      const result = await generateTour.mutateAsync({
+        projectId, renderingIds: selectedIds, style: tourStyle,
+        title: title || undefined,
+      });
+      toast.success("투어 영상이 생성되었습니다");
+      if (result.tourData) setViewingTour(result.tourData);
+      onRefresh();
+    } catch { toast.error("투어 영상 생성 실패"); }
+  };
+
+  // 슬라이드쇼 자동 재생
+  const tourSlides = viewingTour?.narration?.slides || [];
+  const tourRenderings = viewingTour?.renderings || [];
+
+  return (
+    <div className="space-y-6">
+      {/* 투어 영상 생성 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Video className="w-5 h-5" /> AI 투어 영상 생성</CardTitle>
+          <CardDescription>렌더링 이미지를 선택하여 가상 투어 영상을 생성합니다</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {completedRenderings.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Image className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>렌더링 이미지가 없습니다. 렌더링 탭에서 먼저 이미지를 생성해주세요.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                {completedRenderings.map(r => (
+                  <div
+                    key={r.id}
+                    onClick={() => toggleSelect(r.id)}
+                    className={`relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                      selectedIds.includes(r.id) ? "border-cyan-500 ring-2 ring-cyan-500/30" : "border-transparent hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <img src={r.imageUrl} alt={r.spaceName} className="w-full aspect-[4/3] object-cover" />
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 p-2">
+                      <span className="text-white text-xs">{r.spaceName || r.spaceType}</span>
+                    </div>
+                    {selectedIds.includes(r.id) && (
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center">
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <Label className="text-xs mb-1">투어 제목 (선택)</Label>
+                  <Input placeholder="예: OO기업 사무실 가상 투어" value={title} onChange={e => setTitle(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs mb-1">스타일</Label>
+                  <select className="border rounded-md px-3 py-2 text-sm" value={tourStyle} onChange={e => setTourStyle(e.target.value as any)}>
+                    <option value="walkthrough">워크스루</option>
+                    <option value="cinematic">시네마틱</option>
+                    <option value="presentation">프레젠테이션</option>
+                  </select>
+                </div>
+                <Button onClick={handleGenerate} disabled={generateTour.isPending || selectedIds.length === 0}>
+                  {generateTour.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
+                  투어 생성 ({selectedIds.length}개 선택)
+                </Button>
+              </div>
+            </>
+          )}
+          {generateTour.isPending && (
+            <div className="text-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+              <p className="text-muted-foreground">AI가 투어 내레이션을 생성하고 있습니다...</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 투어 영상 뷰어 */}
+      {viewingTour && tourSlides.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Play className="w-5 h-5" /> 투어 미리보기</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="relative rounded-lg overflow-hidden bg-black">
+              {tourRenderings[currentSlide] && (
+                <img
+                  src={tourRenderings[currentSlide].imageUrl}
+                  alt={tourRenderings[currentSlide].spaceName}
+                  className="w-full aspect-video object-contain"
+                />
+              )}
+              {/* 내레이션 오버레이 */}
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 p-4">
+                <h3 className="text-white font-bold text-lg mb-1">
+                  {tourSlides[currentSlide]?.spaceName || "인트로"}
+                </h3>
+                <p className="text-white/80 text-sm leading-relaxed">
+                  {currentSlide === -1 ? viewingTour.narration.intro : tourSlides[currentSlide]?.narration}
+                </p>
+                {tourSlides[currentSlide]?.highlights && (
+                  <div className="flex gap-2 mt-2">
+                    {tourSlides[currentSlide].highlights.map((h: string, i: number) => (
+                      <Badge key={i} variant="secondary" className="bg-white/20 text-white text-xs">{h}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* 컨트롤 */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))} disabled={currentSlide <= 0}>
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setCurrentSlide(Math.min(tourSlides.length - 1, currentSlide + 1))} disabled={currentSlide >= tourSlides.length - 1}>
+                  <SkipForward className="w-4 h-4" />
+                </Button>
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {currentSlide + 1} / {tourSlides.length} 슬라이드 · 예상 {viewingTour.estimatedDuration}초
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 기존 투어 목록 */}
+      {tourVideos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">생성된 투어 영상</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {tourVideos.map((tv: any) => (
+                <div key={tv.id} className="flex items-center gap-4 p-3 border rounded-lg">
+                  {tv.thumbnailUrl ? (
+                    <img src={tv.thumbnailUrl} alt={tv.title} className="w-24 h-16 object-cover rounded" />
+                  ) : (
+                    <div className="w-24 h-16 bg-muted rounded flex items-center justify-center"><Video className="w-6 h-6 text-muted-foreground" /></div>
+                  )}
+                  <div className="flex-1">
+                    <h4 className="font-medium text-sm">{tv.title}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {tv.duration ? `${tv.duration}초` : "시간 미정"} · {new Date(tv.createdAt).toLocaleDateString("ko-KR")}
+                    </p>
+                  </div>
+                  <Badge variant={tv.status === "done" ? "default" : tv.status === "error" ? "destructive" : "secondary"}>
+                    {tv.status === "done" ? "완료" : tv.status === "error" ? "오류" : "생성중"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Matterport/CloudPano 임베드 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">가상 투어 임베드</CardTitle>
+          <CardDescription>Matterport, CloudPano 등 외부 가상 투어 URL을 임베드할 수 있습니다</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Input placeholder="https://my.matterport.com/show/?m=..." className="flex-1" />
+            <Button variant="outline" onClick={() => toast.info("가상 투어 임베드 기능이 곧 추가됩니다")}>
+              임베드 추가
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            지원 플랫폼: Matterport, CloudPano, Kuula, Insta360 등
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { SensorFloorPlan } from "@/components/SensorFloorPlan";
 import { OccupancyHeatmap, type ZoneData, type HeatmapEntry } from "@/components/OccupancyHeatmap";
 import { TrafficFlowChart } from "@/components/TrafficFlowChart";
+import { SensorTimeSeriesChart } from "@/components/SensorTimeSeriesChart";
 import { Flame, Route, Key, Copy, AlertTriangle, Shield } from "lucide-react";
 
 const SENSOR_TYPES = [
@@ -169,7 +170,9 @@ function ProjectList({ onSelect }: { onSelect: (id: number) => void }) {
 function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () => void }) {
   const project = trpc.ddia.getProject.useQuery({ id: projectId });
   const sensorsList = trpc.ddia.listSensors.useQuery({ projectId });
-  const latestData = trpc.ddia.getLatestData.useQuery({ projectId });
+  const [timeSeriesPeriod, setTimeSeriesPeriod] = useState<"1d" | "7d" | "30d">("7d");
+  const latestData = trpc.ddia.getLatestData.useQuery({ projectId }, { refetchInterval: 30000 });
+  const timeSeries = trpc.ddia.sensorTimeSeries.useQuery({ projectId, period: timeSeriesPeriod }, { refetchInterval: 60000 });
   const analyses = trpc.ddia.listAnalyses.useQuery({ projectId });
   const updateProject = trpc.ddia.updateProject.useMutation({ onSuccess: () => project.refetch() });
   const createSensor = trpc.ddia.createSensor.useMutation({
@@ -453,6 +456,14 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
                 )}
               </CardContent>
             </Card>
+
+            {/* 시계열 트렌드 차트 */}
+            <SensorTimeSeriesChart
+              series={timeSeries.data?.series ?? []}
+              period={timeSeriesPeriod}
+              onPeriodChange={setTimeSeriesPeriod}
+              isLoading={timeSeries.isLoading}
+            />
 
             {/* Heatmap-style zone summary */}
             {latestData.data && latestData.data.length > 0 && (

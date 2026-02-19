@@ -587,6 +587,117 @@ Space: ${input.spaceName || input.spaceType}.`;
       return deleteRendering(input.id);
     }),
 
+  // ===== Tour Video Generation =====
+  generateTourVideo: adminProcedure
+    .input(z.object({
+      projectId: z.number(),
+      title: z.string().optional(),
+      renderingIds: z.array(z.number()).min(1),
+      style: z.enum(["walkthrough", "cinematic", "presentation"]).default("walkthrough"),
+    }))
+    .mutation(async ({ input }) => {
+      const project = await getDesignProject(input.projectId);
+      if (!project) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const renderingsList = await listRenderings(input.projectId);
+      const selectedRenderings = renderingsList.filter(r => input.renderingIds.includes(r.id) && r.status === "done" && r.imageUrl);
+
+      if (selectedRenderings.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "\uc644\ub8cc\ub41c \ub80c\ub354\ub9c1 \uc774\ubbf8\uc9c0\uac00 \ud544\uc694\ud569\ub2c8\ub2e4" });
+      }
+
+      const tourId = await createTourVideo({
+        projectId: input.projectId,
+        title: input.title || `${project.name} \uac00\uc0c1 \ud22c\uc5b4`,
+        renderingIds: input.renderingIds,
+        status: "generating",
+      });
+
+      try {
+        // AI\ub85c \uac01 \ub80c\ub354\ub9c1 \uc774\ubbf8\uc9c0\uc5d0 \ub300\ud55c \ub0b4\ub808\uc774\uc158 \uc2a4\ud06c\ub9bd\ud2b8 \uc0dd\uc131
+        const rfp = await getRfpData(input.projectId);
+        const narrationResponse = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `\ub2f9\uc2e0\uc740 (\uc8fc)\uace0\uac10\ub3c4\uc758 \uc778\ud14c\ub9ac\uc5b4 \ud22c\uc5b4 \ub0b4\ub808\uc774\uc158 \uc791\uac00\uc785\ub2c8\ub2e4.
+\uac01 \uacf5\uac04\uc5d0 \ub300\ud55c \uc804\ubb38\uc801\uc774\uba74\uc11c \uce5c\uadfc\ud55c \ub0b4\ub808\uc774\uc158\uc744 \uc791\uc131\ud558\uc138\uc694.
+\uac01 \uc2ac\ub77c\uc774\ub4dc\ub294 15-20\ucd08 \ubd84\ub7c9\uc73c\ub85c \uc791\uc131\ud558\uc138\uc694.`,
+            },
+            {
+              role: "user",
+              content: `\ub2e4\uc74c \uacf5\uac04\ub4e4\uc5d0 \ub300\ud55c \ud22c\uc5b4 \ub0b4\ub808\uc774\uc158\uc744 \uc791\uc131\ud574\uc8fc\uc138\uc694:\n${selectedRenderings.map((r, i) => `${i + 1}. ${r.spaceName || r.spaceType} (\uc2a4\ud0c0\uc77c: ${r.style || "\ubaa8\ub358"})`).join("\n")}\n\n\uace0\uac1d\uc0ac: ${project.companyName || "\ubbf8\uc815"}\n\uc2a4\ud0c0\uc77c: ${rfp?.preferredStyle || "\ubaa8\ub358"}`,
+            },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "tour_narration",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  intro: { type: "string", description: "\ud22c\uc5b4 \uc2dc\uc791 \uc778\uc0ac\ub9d0 (5\ucd08)" },
+                  slides: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        spaceName: { type: "string" },
+                        narration: { type: "string", description: "15-20\ucd08 \ubd84\ub7c9 \ub0b4\ub808\uc774\uc158" },
+                        highlights: { type: "array", items: { type: "string" }, description: "\uc8fc\uc694 \ud3ec\uc778\ud2b8 2-3\uac1c" },
+                      },
+                      required: ["spaceName", "narration", "highlights"],
+                      additionalProperties: false,
+                    },
+                  },
+                  outro: { type: "string", description: "\ub9c8\ubb34\ub9ac \uba58\ud2b8 (5\ucd08)" },
+                },
+                required: ["intro", "slides", "outro"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        const narrationContent = narrationResponse.choices?.[0]?.message?.content as string;
+        const narration = JSON.parse(narrationContent);
+
+        // \ud22c\uc5b4 \ub370\uc774\ud130 \uc800\uc7a5 (\ub80c\ub354\ub9c1 \uc774\ubbf8\uc9c0 + \ub0b4\ub808\uc774\uc158 \uc2a4\ud06c\ub9bd\ud2b8)
+        const tourData = {
+          narration,
+          renderings: selectedRenderings.map(r => ({
+            id: r.id,
+            spaceName: r.spaceName || r.spaceType,
+            imageUrl: r.imageUrl,
+            style: r.style,
+          })),
+          style: input.style,
+          estimatedDuration: selectedRenderings.length * 18 + 10, // 18\ucd08/\uc2ac\ub77c\uc774\ub4dc + 10\ucd08 \uc778\ud2b8\ub85c/\uc544\uc6c3\ud2b8\ub85c
+        };
+
+        await updateTourVideo(tourId!, {
+          status: "done",
+          duration: tourData.estimatedDuration,
+          thumbnailUrl: selectedRenderings[0]?.imageUrl || null,
+        });
+
+        return { id: tourId, tourData };
+      } catch (error: any) {
+        await updateTourVideo(tourId!, {
+          status: "error",
+          error: error.message,
+        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "\ud22c\uc5b4 \uc601\uc0c1 \uc0dd\uc131 \uc911 \uc624\ub958\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4" });
+      }
+    }),
+
+  listTourVideos: adminProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      return listTourVideos(input.projectId);
+    }),
+
   // ===== AI Proposal Generation =====
   generateProposal: adminProcedure
     .input(z.object({ projectId: z.number() }))

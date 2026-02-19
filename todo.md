@@ -609,7 +609,7 @@
 - [x] 검증3: AI 서비스 개별 토글 ON/OFF 홈페이지 반영 브라우저 확인 (네비/홈/푸터 모두 정상 반영)
 
 ## 후속 개발 작업 (Phase 3)
-- [ ] henrykkim@kokamdo.co.kr 실제 로그인 마스터 계정 자동 부여 테스트
+- [x] henrykkim@kokamdo.co.kr 실제 로그인 마스터 계정 자동 부여 테스트 (성공 - role: master 확인, 마스터 탭 정상 표시)
 - [x] AI 리디자인 페이지 구현 (이미 완료 - 백엔드 + 프론트엔드 + CRM 연동 모두 구현됨)
 - [x] 마스터 전용 기능: 시스템 통계 조회 (DB 테이블별 레코드 수, 역할 분포)
 - [x] 마스터 전용 기능: 활동 로그 (activity_logs 테이블 + 조회 UI)
@@ -617,3 +617,12 @@
 - [x] 마스터 전용 기능: 전체 사용자 역할 초기화 (master 제외 모두 user로)
 - [x] 마스터 전용 UI: AdminSettings에 마스터 탭 추가 (master 역할만 표시)
 - [x] 버그 수정: 로그아웃 버튼 클릭 시 오류 페이지 발생 (연산자 우선순위 버그 + 홈 리다이렉트 추가)
+
+## 후속 개발 작업 (Phase 4)
+- [x] henrykkim@kokamdo.co.kr 실제 로그인 마스터 계정 자동 부여 테스트 (성공 - role: master 확인, 마스터 탭 정상 표시)
+- [x] DDIA 센서 데이터 실시간 시각화: 시계열 라인 차트 + 30초 폴링 자동갱신 + 이상치 감지
+- [x] DDIA 센서 데이터 실시간 시각화: SensorTimeSeriesChart 컴포넌트 (1일/7일/30일 기간 선택)
+- [x] DDIA 센서 데이터 실시간 시각화: AdminDDIA 데이터 탭에 시계열 차트 통합
+- [x] 설계자동화 AI 투어 영상 생성: 백엔드 API (createTourVideo + listTourVideos + updateTourVideo)
+- [x] 설계자동화 AI 투어 영상 생성: TourVideoTab UI (렌더링 선택 → AI 내레이션 → 슬라이드쇼 + Matterport 임베드)
+- [x] 설계자동화 AI 투어 영상 생성: STAGES에 투어 영상 단계 추가 + AdminDesignAuto 통합

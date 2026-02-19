@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, name, email, role FROM users WHERE email LIKE '%kokamdo%' OR email LIKE '%henryk%' OR name LIKE '%기호%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, name, email, role FROM users WHERE email LIKE '%kokamdo%' OR email LIKE '%henryk%' OR name LIKE '%기호%';",
+  "rows": [
+    {
+      "id": "840006",
+      "name": "기호 김",
+      "email": "henrykkim@kokamdo.co.kr",
+      "role": "master"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\n840006\t기호 김\thenrykkim@kokamdo.co.kr\tmaster\n",
+  "stderr": "",
+  "execution_time_ms": 1520
+}

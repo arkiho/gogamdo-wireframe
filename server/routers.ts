@@ -1250,6 +1250,33 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       .query(async ({ input }) => {
         return getSensorLatestData(input.projectId);
       }),
+    sensorTimeSeries: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        period: z.enum(["1d", "7d", "30d"]).default("7d"),
+      }))
+      .query(async ({ input }) => {
+        const now = new Date();
+        const periodMs = input.period === "1d" ? 86400000 : input.period === "7d" ? 604800000 : 2592000000;
+        const from = new Date(now.getTime() - periodMs);
+        const sensorList = await listSensors(input.projectId);
+        const series = [];
+        for (const sensor of sensorList) {
+          const data = await getSensorDataRange(sensor.id, from, now);
+          series.push({
+            sensorId: sensor.id,
+            sensorName: sensor.name,
+            sensorType: sensor.type,
+            zone: sensor.zone,
+            unit: sensor.unit,
+            data: data.map((d: any) => ({
+              value: parseFloat(d.value) || 0,
+              recordedAt: d.recordedAt,
+            })),
+          });
+        }
+        return { projectId: input.projectId, period: input.period, from, to: now, series };
+      }),
 
     // --- Space Analysis ---
     createAnalysis: adminProcedure
