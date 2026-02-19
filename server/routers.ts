@@ -41,6 +41,7 @@ import {
   createSensorApiKey, listSensorApiKeys, revokeSensorApiKey,
   createClient, getClientByEmail, getClientById, updateClient, listClients, getClientByVerifyToken, getClientByResetToken,
   getSiteSetting, setSiteSetting, listSiteSettings, deleteUser,
+  listStaffMembers, updateUserRole, updateUserDepartment,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
