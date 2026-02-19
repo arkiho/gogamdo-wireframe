@@ -89,15 +89,24 @@ export default function CompanySurvey() {
   }
 
   if (surveyInfo.error) {
+    const isNotFound = surveyInfo.error.message === "NOT_FOUND" || surveyInfo.error.data?.code === "NOT_FOUND";
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
         <Card className="max-w-md w-full mx-4">
           <CardContent className="py-12 text-center space-y-4">
             <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto" />
-            <h2 className="font-heading text-xl font-bold text-ink">설문을 찾을 수 없습니다</h2>
+            <h2 className="font-heading text-xl font-bold text-ink">
+              {isNotFound ? "유효하지 않은 설문 링크입니다" : "설문을 불러올 수 없습니다"}
+            </h2>
             <p className="text-muted-foreground text-sm">
-              {surveyInfo.error.message || "유효하지 않은 설문 링크입니다."}
+              {isNotFound
+                ? "설문 링크가 만료되었거나 존재하지 않습니다. 설문 요청자에게 새 링크를 요청해 주세요."
+                : surveyInfo.error.message === "설문이 마감되었습니다." || surveyInfo.error.message === "설문 기한이 만료되었습니다."
+                  ? surveyInfo.error.message
+                  : "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+              }
             </p>
+            <a href="/" className="inline-block mt-4 text-sm text-gold hover:underline">홈으로 돌아가기</a>
           </CardContent>
         </Card>
       </div>
