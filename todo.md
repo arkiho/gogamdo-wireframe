@@ -585,3 +585,5 @@
 - [x] 인사이트 AI 작성 표시 문구 변경: 'AI가 작성한 콘텐츠입니다' → 'AI가 함께 만들었어요'
 - [x] 버그 수정: /survey/:token 페이지에서 NOT_FOUND 에러 발생 (에러 UI 개선 - 친절한 안내 메시지 + 홈 링크)
 - [x] 이탈 방지 팝업(Exit Intent) 제거
+- [x] 버그 수정: MobileLoginButtons에서 NAV_ITEMS is not defined 에러 (BASE_NAV_ITEMS로 교체)
+- [x] 히어로 영상을 얼굴이 보이지 않는 사무실 인테리어 중심 영상으로 교체
