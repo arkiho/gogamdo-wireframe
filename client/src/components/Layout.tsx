@@ -18,7 +18,7 @@ import { analytics } from "@/lib/analytics";
 import Logo from "./Logo";
 import KakaoChat from "./KakaoChat";
 import AnnouncementBanner from "./AnnouncementBanner";
-import ExitIntentPopup from "./ExitIntentPopup";
+// import ExitIntentPopup from "./ExitIntentPopup"; // 이탈 방지 팝업 비활성화
 import PopupModal from "./PopupModal";
 import RelatedPages from "./RelatedPages";
 
@@ -672,7 +672,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <KakaoChat />
 
       {/* Exit Intent & Engagement Popup */}
-      <ExitIntentPopup />
+      {/* <ExitIntentPopup /> 이탈 방지 팝업 비활성화 */}
       <PopupModal />
 
       {/* Related Pages - SEO Internal Linking */}
