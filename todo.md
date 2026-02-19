@@ -587,3 +587,7 @@
 - [x] 이탈 방지 팝업(Exit Intent) 제거
 - [x] 버그 수정: MobileLoginButtons에서 NAV_ITEMS is not defined 에러 (BASE_NAV_ITEMS로 교체)
 - [x] 히어로 영상을 얼굴이 보이지 않는 사무실 인테리어 중심 영상으로 교체
+- [x] 히어로 포스터 이미지를 사람 없는 인테리어 이미지로 교체
+- [x] 모바일 UI 확인 및 수정 (RelatedPages AI 링크 조건부 처리 + 푸터 AI 링크 조건부 처리 확인)
+- [x] AI 서비스 토글 기능 테스트 및 검증 (네비/히어로/AI섹션/푸터/RelatedPages 모두 반영 확인)
+- [x] Insta360 RS1 가상투어 가능 여부 조사 및 홈페이지 가상투어 기능 기획 (조사 완료)

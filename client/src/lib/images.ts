@@ -3,12 +3,12 @@
  * 모든 이미지를 한 곳에서 관리
  */
 
-// AI 생성 이미지 (한국인 사무실 장면)
-export const HERO_IMG = "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/HbvlVcSrmljLGlxV.jpg";
+// AI 생성 이미지 (사람 없는 고급 사무실 인테리어)
+export const HERO_IMG = "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/FoTJgIhXQbYpbExT.jpg";
 
-export const ABOUT_TEAM_IMG = "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/amLAAkFYmeWDAgbK.jpg";
+export const ABOUT_TEAM_IMG = "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/HNxDbnrjBxaAWQcD.jpg";
 
-export const SOLUTION_CONSULT_IMG = "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/XgvEIVdQJKYgXHjR.jpg";
+export const SOLUTION_CONSULT_IMG = "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/aIFyBWbzwawLDmbf.jpg";
 
 // 고품질 포트폴리오 이미지 (CDN)
 // 대분류 카테고리 (필터 탭)
