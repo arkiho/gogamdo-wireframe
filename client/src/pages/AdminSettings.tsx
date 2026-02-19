@@ -19,6 +19,7 @@ import {
   ArrowLeft, Settings, Bot, Users, Shield, Trash2, Loader2,
   ToggleLeft, ToggleRight, AlertCircle, CheckCircle2,
   Calculator, MessageCircle, Palette, RefreshCw, Power,
+  Crown, Activity, BarChart3, RotateCcw, Database,
 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -79,7 +80,7 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bgColor: strin
 
 export default function AdminSettings() {
   const { user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<"ai" | "staff">("ai");
+  const [activeTab, setActiveTab] = useState<"ai" | "staff" | "master">("ai");
   const [togglingKey, setTogglingKey] = useState<string | null>(null);
   const isMaster = currentUser?.role === "master";
 
@@ -200,6 +201,19 @@ export default function AdminSettings() {
             <Users className="w-4 h-4 inline mr-2" />
             직원 관리
           </button>
+          {isMaster && (
+            <button
+              onClick={() => setActiveTab("master")}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "master"
+                  ? "border-red-500 text-red-600"
+                  : "border-transparent text-muted-foreground hover:text-ink"
+              }`}
+            >
+              <Crown className="w-4 h-4 inline mr-2" />
+              마스터 전용
+            </button>
+          )}
         </div>
       </div>
 
@@ -504,7 +518,215 @@ export default function AdminSettings() {
             </Card>
           </div>
         )}
+
+        {/* 마스터 전용 탭 */}
+        {activeTab === "master" && isMaster && <MasterPanel />}
       </div>
+    </div>
+  );
+}
+
+// ===== 마스터 전용 패널 컴포넌트 =====
+function MasterPanel() {
+  const systemStats = trpc.master.systemStats.useQuery(undefined, { staleTime: 30_000 });
+  const activityLogs = trpc.master.activityLogs.useQuery({ limit: 50 }, { staleTime: 10_000 });
+  const resetSettings = trpc.master.resetSettings.useMutation({
+    onSuccess: () => {
+      toast.success("사이트 설정이 초기화되었습니다.");
+      systemStats.refetch();
+      activityLogs.refetch();
+    },
+    onError: () => toast.error("설정 초기화에 실패했습니다."),
+  });
+  const resetRoles = trpc.master.resetRoles.useMutation({
+    onSuccess: () => {
+      toast.success("모든 사용자 역할이 초기화되었습니다.");
+      systemStats.refetch();
+      activityLogs.refetch();
+    },
+    onError: () => toast.error("역할 초기화에 실패했습니다."),
+  });
+
+  const stats = systemStats.data;
+
+  const ACTION_LABELS: Record<string, string> = {
+    role_change: "역할 변경",
+    setting_update: "설정 변경",
+    user_delete: "사용자 삭제",
+    site_settings_reset: "설정 초기화",
+    roles_reset: "역할 일괄 초기화",
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-heading text-xl font-bold text-ink mb-2 flex items-center gap-2">
+          <Crown className="w-5 h-5 text-red-500" />
+          마스터 전용 관리
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          시스템 통계, 활동 로그, 위험 작업(초기화) 등 마스터만 접근할 수 있는 기능입니다.
+        </p>
+      </div>
+
+      {/* 시스템 통계 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BarChart3 className="w-5 h-5 text-gold" />
+            시스템 통계
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {systemStats.isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : stats ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {[
+                { label: "총 사용자", value: stats.totalUsers, icon: Users },
+                { label: "문의 건수", value: stats.totalInquiries, icon: MessageCircle },
+                { label: "AI 견적", value: stats.totalEstimates, icon: Calculator },
+                { label: "포트폴리오", value: stats.totalPortfolios, icon: Palette },
+                { label: "CRM 고객", value: stats.totalCrmClients, icon: Database },
+                { label: "인사이트", value: stats.totalArticles, icon: Activity },
+                { label: "구독자", value: stats.totalSubscribers, icon: Users },
+                { label: "AI 리디자인", value: stats.totalRedesigns, icon: RefreshCw },
+              ].map((item) => (
+                <div key={item.label} className="p-4 bg-paper-warm rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <item.icon className="w-4 h-4 text-gold" />
+                    <span className="text-xs text-muted-foreground">{item.label}</span>
+                  </div>
+                  <span className="font-heading text-2xl font-bold text-ink">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">통계를 불러올 수 없습니다.</p>
+          )}
+
+          {/* 역할 분포 */}
+          {stats?.roleDistribution && stats.roleDistribution.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-border/50">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">역할 분포</p>
+              <div className="flex gap-4">
+                {stats.roleDistribution.map((r: any) => (
+                  <div key={r.role} className="flex items-center gap-2">
+                    <Badge
+                      variant={r.role === "master" ? "destructive" : r.role === "admin" ? "default" : "secondary"}
+                      className={ROLE_CONFIG[r.role]?.bgColor || ""}
+                    >
+                      {ROLE_CONFIG[r.role]?.label || r.role}
+                    </Badge>
+                    <span className="font-semibold text-ink">{r.count}명</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 위험 작업 */}
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base text-red-700">
+            <AlertCircle className="w-5 h-5" />
+            위험 작업
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
+            <div>
+              <p className="font-medium text-red-800 text-sm">사이트 설정 초기화</p>
+              <p className="text-xs text-red-600 mt-1">모든 AI 서비스 설정을 기본값(전체 ON)으로 복원합니다.</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-300 text-red-600 hover:bg-red-100"
+              onClick={() => {
+                if (confirm("정말 사이트 설정을 초기화하시겠습니까? 모든 AI 서비스가 켜집니다.")) {
+                  resetSettings.mutate();
+                }
+              }}
+              disabled={resetSettings.isPending}
+            >
+              {resetSettings.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-1" />}
+              초기화
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
+            <div>
+              <p className="font-medium text-red-800 text-sm">전체 역할 초기화</p>
+              <p className="text-xs text-red-600 mt-1">마스터를 제외한 모든 사용자를 "일반 사용자"로 초기화합니다.</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-300 text-red-600 hover:bg-red-100"
+              onClick={() => {
+                if (confirm("정말 모든 사용자 역할을 초기화하시겠습니까? 마스터를 제외한 모든 관리자가 일반 사용자로 변경됩니다.")) {
+                  resetRoles.mutate();
+                }
+              }}
+              disabled={resetRoles.isPending}
+            >
+              {resetRoles.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-1" />}
+              초기화
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 활동 로그 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="w-5 h-5 text-gold" />
+            활동 로그
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {activityLogs.isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (activityLogs.data?.length ?? 0) === 0 ? (
+            <div className="text-center py-8">
+              <Activity className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">기록된 활동이 없습니다.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {activityLogs.data?.map((log: any) => (
+                <div key={log.id} className="flex items-start gap-3 p-3 bg-paper-warm rounded-lg text-sm">
+                  <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Activity className="w-4 h-4 text-gold" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-ink">{log.userName || "Unknown"}</span>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        {ACTION_LABELS[log.action] || log.action}
+                      </Badge>
+                    </div>
+                    {log.target && (
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">대상: {log.target}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground/60 mt-1">
+                      {new Date(log.createdAt).toLocaleString("ko-KR")} · IP: {log.ipAddress || "-"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1898,3 +1898,20 @@ export const siteSettings = mysqlTable("site_settings", {
 
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type InsertSiteSetting = typeof siteSettings.$inferInsert;
+
+
+/**
+ * 활동 로그 (Activity Logs) - 마스터 전용: 주요 관리 활동 기록
+ */
+export const activityLogs = mysqlTable("activity_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  userName: varchar("userName", { length: 200 }),
+  action: varchar("action", { length: 100 }).notNull(), // e.g. "role_change", "setting_update", "user_delete", "site_reset"
+  target: varchar("target", { length: 200 }), // e.g. "user:123", "setting:ai_features_enabled"
+  details: text("details"), // JSON string with additional context
+  ipAddress: varchar("ipAddress", { length: 50 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type InsertActivityLog = typeof activityLogs.$inferInsert;

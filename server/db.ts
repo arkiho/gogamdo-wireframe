@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -2094,5 +2094,90 @@ export async function deleteUser(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(users).where(eq(users.id, userId));
+  return { success: true };
+}
+
+
+// ===== Activity Logs (마스터 전용) =====
+
+export async function createActivityLog(log: Omit<InsertActivityLog, "id" | "createdAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(activityLogs).values(log).$returningId();
+  return result?.id ?? null;
+}
+
+export async function listActivityLogs(limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(limit);
+}
+
+// ===== 마스터 전용: 시스템 통계 =====
+
+export async function getSystemStats() {
+  const db = await getDb();
+  if (!db) return null;
+
+  const [userCount] = await db.select({ count: count() }).from(users);
+  const [inquiryCount] = await db.select({ count: count() }).from(inquiries);
+  const [estimateCount] = await db.select({ count: count() }).from(estimates);
+  const [portfolioCount] = await db.select({ count: count() }).from(portfolioDrafts);
+  const [crmClientCount] = await db.select({ count: count() }).from(crmClients);
+  const [articleCount] = await db.select({ count: count() }).from(insightArticles);
+  const [subscriberCount] = await db.select({ count: count() }).from(newsletterSubscribers);
+  const [redesignCount] = await db.select({ count: count() }).from(aiRedesigns);
+  const [settingCount] = await db.select({ count: count() }).from(siteSettings);
+
+  // 역할별 사용자 수
+  const roleStats = await db.select({
+    role: users.role,
+    count: count(),
+  }).from(users).groupBy(users.role);
+
+  return {
+    totalUsers: userCount?.count ?? 0,
+    totalInquiries: inquiryCount?.count ?? 0,
+    totalEstimates: estimateCount?.count ?? 0,
+    totalPortfolios: portfolioCount?.count ?? 0,
+    totalCrmClients: crmClientCount?.count ?? 0,
+    totalArticles: articleCount?.count ?? 0,
+    totalSubscribers: subscriberCount?.count ?? 0,
+    totalRedesigns: redesignCount?.count ?? 0,
+    totalSettings: settingCount?.count ?? 0,
+    roleDistribution: roleStats,
+  };
+}
+
+// ===== 마스터 전용: 사이트 설정 초기화 =====
+
+export async function resetSiteSettings() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // 기본 설정값으로 초기화
+  const defaults = [
+    { key: "ai_features_enabled", value: "true", description: "AI 서비스 전체 마스터 토글" },
+    { key: "ai_estimator_enabled", value: "true", description: "AI 견적 활성화" },
+    { key: "ai_chat_enabled", value: "true", description: "AI 상담 활성화" },
+    { key: "ai_style_enabled", value: "true", description: "AI 스타일 활성화" },
+    { key: "ai_redesign_enabled", value: "true", description: "AI 리디자인 활성화" },
+  ];
+
+  for (const setting of defaults) {
+    await db.insert(siteSettings)
+      .values(setting)
+      .onDuplicateKeyUpdate({ set: { value: setting.value } });
+  }
+
+  return { success: true, resetCount: defaults.length };
+}
+
+// ===== 마스터 전용: 전체 사용자 역할 일괄 초기화 (master 제외) =====
+
+export async function resetAllUserRoles() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ role: "user" }).where(ne(users.role, "master"));
   return { success: true };
 }

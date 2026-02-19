@@ -42,6 +42,7 @@ import {
   createClient, getClientByEmail, getClientById, updateClient, listClients, getClientByVerifyToken, getClientByResetToken,
   getSiteSetting, setSiteSetting, listSiteSettings, deleteUser,
   listStaffMembers, updateUserRole, updateUserDepartment,
+  createActivityLog, listActivityLogs, getSystemStats, resetSiteSettings, resetAllUserRoles,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
@@ -2989,6 +2990,78 @@ ${topicPrompt}
       .mutation(async ({ input }) => {
         return deleteUser(input.userId);
       }),
+  }),
+
+  // ===== 마스터 전용 기능 =====
+  master: router({
+    // 시스템 통계 조회
+    systemStats: masterProcedure.query(async () => {
+      return getSystemStats();
+    }),
+
+    // 활동 로그 조회
+    activityLogs: masterProcedure
+      .input(z.object({ limit: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        return listActivityLogs(input?.limit ?? 100);
+      }),
+
+    // 활동 로그 기록 (내부 사용)
+    logActivity: masterProcedure
+      .input(z.object({
+        action: z.string(),
+        target: z.string().optional(),
+        details: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const ipAddress = ctx.req?.headers?.["x-forwarded-for"]?.toString()?.split(",")[0]?.trim()
+          || ctx.req?.socket?.remoteAddress || "unknown";
+        return createActivityLog({
+          userId: ctx.user.id,
+          userName: ctx.user.name ?? "Unknown",
+          action: input.action,
+          target: input.target ?? null,
+          details: input.details ?? null,
+          ipAddress,
+        });
+      }),
+
+    // 사이트 설정 초기화
+    resetSettings: masterProcedure.mutation(async ({ ctx }) => {
+      const ipAddress = ctx.req?.headers?.["x-forwarded-for"]?.toString()?.split(",")[0]?.trim()
+        || ctx.req?.socket?.remoteAddress || "unknown";
+      const result = await resetSiteSettings();
+      await createActivityLog({
+        userId: ctx.user.id,
+        userName: ctx.user.name ?? "Unknown",
+        action: "site_settings_reset",
+        target: "site_settings",
+        details: JSON.stringify({ resetCount: result.resetCount }),
+        ipAddress,
+      });
+      return result;
+    }),
+
+    // 전체 사용자 역할 초기화 (master 제외)
+    resetRoles: masterProcedure.mutation(async ({ ctx }) => {
+      const ipAddress = ctx.req?.headers?.["x-forwarded-for"]?.toString()?.split(",")[0]?.trim()
+        || ctx.req?.socket?.remoteAddress || "unknown";
+      const result = await resetAllUserRoles();
+      await createActivityLog({
+        userId: ctx.user.id,
+        userName: ctx.user.name ?? "Unknown",
+        action: "roles_reset",
+        target: "all_users",
+        details: "All non-master users reset to 'user' role",
+        ipAddress,
+      });
+      return result;
+    }),
+
+    // 전체 설정 목록 조회
+    allSettings: masterProcedure.query(async () => {
+      return listSiteSettings();
+    }),
   }),
 });
 

@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "5",
-      "when": 1771298792854,
-      "tag": "0000_high_miss_america",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1771461529994,
-      "tag": "0001_equal_scrambler",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1771482189773,
-      "tag": "0002_dark_runaways",
+      "when": 1771509296466,
+      "tag": "0000_nosy_captain_universe",
       "breakpoints": true
     }
   ]
