@@ -12,6 +12,7 @@ import { ArrowUpRight, ArrowRight, ChevronRight, Ruler, PenTool, HardHat, CheckC
 import { HERO_IMG, PORTFOLIO } from "@/lib/images";
 import { analytics } from "@/lib/analytics";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
+import { trpc } from "@/lib/trpc";
 
 // Counter animation hook
 function useCounter(end: number, duration: number = 2000) {
@@ -54,8 +55,8 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
 }
 
 const HERO_VIDEOS = [
-  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/vsYbidLbLhXLdbjW.mp4",
-  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/rNdPLaRnkSlXbrTD.mp4",
+  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/ZlsHWiISvwlDIFdQ.mp4",
+  "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/zrLjiZAfRptnMaDh.mp4",
 ];
 
 function HeroVideo() {
@@ -183,6 +184,12 @@ const FEATURED_PROJECTS = [
 ];
 
 export default function Home() {
+  const { data: aiSetting } = trpc.settings.aiEnabled.useQuery(undefined, {
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const aiEnabled = aiSetting?.enabled ?? true;
+
   return (
     <>
       <SEOHead {...SEO_CONFIG.home} />
@@ -244,12 +251,21 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-wrap gap-4"
             >
-              <Link href="/estimator" onClick={() => analytics.ctaClick("AI 견적", "hero")}>
-                <span className="inline-flex items-center gap-2 px-7 py-3.5 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
-                  AI 예상 견적 받기
-                  <ArrowUpRight className="w-4 h-4" />
-                </span>
-              </Link>
+              {aiEnabled ? (
+                <Link href="/estimator" onClick={() => analytics.ctaClick("AI 견적", "hero")}>
+                  <span className="inline-flex items-center gap-2 px-7 py-3.5 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
+                    AI 예상 견적 받기
+                    <ArrowUpRight className="w-4 h-4" />
+                  </span>
+                </Link>
+              ) : (
+                <Link href="/contact" onClick={() => analytics.ctaClick("무료 상담", "hero")}>
+                  <span className="inline-flex items-center gap-2 px-7 py-3.5 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
+                    무료 상담 신청
+                    <ArrowUpRight className="w-4 h-4" />
+                  </span>
+                </Link>
+              )}
               <Link href="/portfolio" onClick={() => analytics.ctaClick("포트폴리오", "hero")}>
                 <span className="inline-flex items-center gap-2 px-7 py-3.5 border border-white/30 text-white font-medium text-sm tracking-wide hover:bg-white/10 transition-all duration-300">
                   프로젝트 보기
@@ -612,8 +628,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ==================== AI FEATURES ==================== */}
-      <section className="py-20 lg:py-28 bg-ink text-white relative overflow-hidden">
+      {/* ==================== AI FEATURES (conditionally rendered) ==================== */}
+      {aiEnabled && <section className="py-20 lg:py-28 bg-ink text-white relative overflow-hidden">
         <div className="absolute top-8 right-8 lg:right-16 opacity-[0.04] select-none pointer-events-none">
           <span className="font-heading text-[10rem] lg:text-[16rem] font-extrabold leading-none">
             05
@@ -690,7 +706,7 @@ export default function Home() {
             </FadeUp>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ==================== FINAL CTA ==================== */}
       <section className="py-24 lg:py-32 relative overflow-hidden">
@@ -705,18 +721,19 @@ export default function Home() {
               시작할 준비가 되셨나요?
             </h2>
             <p className="text-muted-foreground mb-10 max-w-lg mx-auto">
-              AI 견적으로 예상 비용을 먼저 확인하거나,
-              전문 컨설턴트와 무료 상담을 시작하세요.
+              {aiEnabled ? "AI 견적으로 예상 비용을 먼저 확인하거나, 전문 컨설턴트와 무료 상담을 시작하세요." : "전문 컨설턴트와 무료 상담을 시작하세요."}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/estimator">
-                <span className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
-                  AI 예상 견적 받기
-                  <ArrowUpRight className="w-4 h-4" />
-                </span>
-              </Link>
+              {aiEnabled && (
+                <Link href="/estimator">
+                  <span className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
+                    AI 예상 견적 받기
+                    <ArrowUpRight className="w-4 h-4" />
+                  </span>
+                </Link>
+              )}
               <Link href="/contact">
-                <span className="inline-flex items-center gap-2 px-8 py-4 bg-ink text-white font-medium text-sm tracking-wide hover:bg-ink/90 transition-all duration-300">
+                <span className={`inline-flex items-center gap-2 px-8 py-4 font-medium text-sm tracking-wide transition-all duration-300 ${aiEnabled ? "bg-ink text-white hover:bg-ink/90" : "bg-gold text-ink font-semibold hover:bg-gold-light"}`}>
                   무료 상담 신청
                   <ArrowRight className="w-4 h-4" />
                 </span>

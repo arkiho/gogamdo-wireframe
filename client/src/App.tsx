@@ -25,6 +25,7 @@ import AdminNewsletter from "./pages/AdminNewsletter";
 import AdminInsights from "./pages/AdminInsights";
 import AdminClientPipeline from "./pages/AdminClientPipeline";
 import AdminDownloadLogs from "./pages/AdminDownloadLogs";
+import AdminSettings from "./pages/AdminSettings";
 import Unsubscribe from "./pages/Unsubscribe";
 import ReviewWrite from "./pages/ReviewWrite";
 import CompanySurvey from "./pages/CompanySurvey";
@@ -110,6 +111,7 @@ function Router() {
       <Route path="/admin/insights" component={AdminInsights} />
       <Route path="/admin/client-pipeline" component={AdminClientPipeline} />
       <Route path="/admin/download-logs" component={AdminDownloadLogs} />
+      <Route path="/admin/settings" component={AdminSettings} />
       <Route component={PublicRouter} />
     </Switch>
   );

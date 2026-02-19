@@ -40,6 +40,7 @@ import {
   getHourlyOccupancyPattern, getZoneTransitions,
   createSensorApiKey, listSensorApiKeys, revokeSensorApiKey,
   createClient, getClientByEmail, getClientById, updateClient, listClients, getClientByVerifyToken, getClientByResetToken,
+  getSiteSetting, setSiteSetting, listSiteSettings, deleteUser,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
@@ -2905,6 +2906,58 @@ ${topicPrompt}
 
       return { zones, stats, heatmap };
     }),
+  }),
+
+  // ===== 사이트 설정 (Site Settings) =====
+  settings: router({
+    // 공개: 특정 설정값 조회
+    get: publicProcedure
+      .input(z.object({ key: z.string() }))
+      .query(async ({ input }) => {
+        const value = await getSiteSetting(input.key);
+        return { key: input.key, value };
+      }),
+    // 공개: AI 서비스 활성화 여부 조회
+    aiEnabled: publicProcedure.query(async () => {
+      const value = await getSiteSetting("ai_features_enabled");
+      return { enabled: value !== "false" }; // 기본값 true
+    }),
+    // 관리자: 설정값 변경
+    set: adminProcedure
+      .input(z.object({ key: z.string(), value: z.string(), description: z.string().optional() }))
+      .mutation(async ({ input }) => {
+        return setSiteSetting(input.key, input.value, input.description);
+      }),
+    // 관리자: 전체 설정 목록
+    list: adminProcedure.query(async () => {
+      return listSiteSettings();
+    }),
+  }),
+
+  // ===== 직원 관리 (Staff Management) =====
+  staff: router({
+    // 관리자: 전체 직원 목록
+    list: adminProcedure.query(async () => {
+      return listStaffMembers();
+    }),
+    // 관리자: 직원 역할 변경 (admin/user)
+    updateRole: adminProcedure
+      .input(z.object({ userId: z.number(), role: z.enum(["user", "admin"]) }))
+      .mutation(async ({ input }) => {
+        return updateUserRole(input.userId, input.role);
+      }),
+    // 관리자: 직원 부서/역할 변경
+    updateDepartment: adminProcedure
+      .input(z.object({ userId: z.number(), department: z.string(), opsRole: z.string() }))
+      .mutation(async ({ input }) => {
+        return updateUserDepartment(input.userId, input.department, input.opsRole);
+      }),
+    // 관리자: 직원 삭제
+    delete: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        return deleteUser(input.userId);
+      }),
   }),
 });
 

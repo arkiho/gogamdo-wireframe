@@ -405,6 +405,21 @@ export default function AdminDashboard() {
                 <ExternalLink className="w-4 h-4 text-muted-foreground" />
               </CardContent>
             </Card>
+            {/* 사이트 설정 바로가기 */}
+            <Card className="border-purple-300/30 bg-gradient-to-r from-purple-50/50 to-transparent cursor-pointer hover:border-purple-400/50 transition-colors" onClick={() => navigate("/admin/settings")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <ToggleRight className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">사이트 설정 & 직원 관리</h3>
+                    <p className="text-xs text-muted-foreground">AI 서비스 ON/OFF, 직원 권한 관리, 사이트 구성 설정</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
           </div>
         )}
 

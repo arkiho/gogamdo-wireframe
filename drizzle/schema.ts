@@ -903,6 +903,9 @@ export const insightArticles = mysqlTable("insight_articles", {
   metaTitle: varchar("metaTitle", { length: 200 }),
   metaDescription: text("metaDescription"),
   
+  // AI 생성 여부
+  isAiGenerated: boolean("isAiGenerated").default(false),
+  
   // 상태
   featured: boolean("featured").default(false),
   status: mysqlEnum("status", ["draft", "published", "archived"]).default("draft").notNull(),
@@ -1880,3 +1883,18 @@ export const aiRedesigns = mysqlTable("ai_redesigns", {
 });
 export type AiRedesign = typeof aiRedesigns.$inferSelect;
 export type InsertAiRedesign = typeof aiRedesigns.$inferInsert;
+
+
+/**
+ * 사이트 설정 (Site Settings) - 관리자가 기능을 켜고 끌 수 있는 키-값 저장소
+ */
+export const siteSettings = mysqlTable("site_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  value: text("value").notNull(),
+  description: varchar("description", { length: 500 }),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = typeof siteSettings.$inferInsert;

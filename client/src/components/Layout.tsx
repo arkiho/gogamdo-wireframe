@@ -38,21 +38,37 @@ function isGroup(entry: NavEntry): entry is NavGroup {
   return "children" in entry;
 }
 
-const NAV_ITEMS: NavEntry[] = [
+const BASE_NAV_ITEMS: NavEntry[] = [
   { label: "회사소개", href: "/about" },
   { label: "솔루션", href: "/solutions" },
   { label: "프로젝트", href: "/portfolio" },
-  {
-    label: "AI 서비스",
-    children: [
-      { label: "AI 견적", href: "/estimator" },
-      { label: "AI 상담", href: "/ai-chat" },
-      { label: "AI 스타일", href: "/ai-style" },
-      { label: "AI 리디자인", href: "/ai-redesign" },
-    ],
-  },
   { label: "인사이트", href: "/insights" },
 ];
+
+const AI_NAV_GROUP: NavGroup = {
+  label: "AI 서비스",
+  children: [
+    { label: "AI 견적", href: "/estimator" },
+    { label: "AI 상담", href: "/ai-chat" },
+    { label: "AI 스타일", href: "/ai-style" },
+    { label: "AI 리디자인", href: "/ai-redesign" },
+  ],
+};
+
+function useNavItems(): NavEntry[] {
+  const { data: aiSetting } = trpc.settings.aiEnabled.useQuery(undefined, {
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const aiEnabled = aiSetting?.enabled ?? true;
+  if (!aiEnabled) return BASE_NAV_ITEMS;
+  // Insert AI group before "인사이트"
+  return [
+    ...BASE_NAV_ITEMS.slice(0, 3),
+    AI_NAV_GROUP,
+    ...BASE_NAV_ITEMS.slice(3),
+  ];
+}
 
 /* ─── Desktop Dropdown ─── */
 function DesktopDropdown({
@@ -483,6 +499,12 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const NAV_ITEMS = useNavItems();
+  const { data: aiSetting } = trpc.settings.aiEnabled.useQuery(undefined, {
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const aiEnabled = aiSetting?.enabled ?? true;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -697,7 +719,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   { label: "사무실 인테리어", href: "/solutions" },
                   { label: "상업공간 설계", href: "/solutions" },
                   { label: "OpsX 컨설팅", href: "/opsx" },
-                  { label: "AI 견적", href: "/estimator" },
+                  ...(aiEnabled ? [{ label: "AI 견적", href: "/estimator" }] : []),
                 ].map((item) => (
                   <li key={item.label}>
                     <Link href={item.href}>
@@ -719,7 +741,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 {[
                   { label: "회사소개", href: "/about" },
                   { label: "프로젝트", href: "/portfolio" },
-                  { label: "AI 서비스", href: "/ai-redesign" },
+                  ...(aiEnabled ? [{ label: "AI 서비스", href: "/ai-redesign" }] : []),
                   { label: "FAQ", href: "/faq" },
                   { label: "문의하기", href: "/contact" },
                 ].map((item) => (
