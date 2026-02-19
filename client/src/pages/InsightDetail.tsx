@@ -208,7 +208,7 @@ export default function InsightDetail() {
           {(article.author === "고감도 AI 에디터" || (article as any).isAiGenerated) && (
             <div className="mt-8 pt-4 border-t border-border/30">
               <p className="text-xs text-muted-foreground/60 italic">
-                이 글은 AI가 작성한 콘텐츠입니다.
+                AI가 함께 만들었어요 ✨
               </p>
             </div>
           )}
