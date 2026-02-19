@@ -51,15 +51,15 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [expandedInquiry, setExpandedInquiry] = useState<number | null>(null);
 
-  const stats = trpc.admin.stats.useQuery(undefined, { enabled: !!user && user.role === "admin" });
-  const inquiries = trpc.inquiry.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
-  const subscribers = trpc.newsletter.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
-  const estimates = trpc.estimate.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
-  const leadDownloads = trpc.leadMagnet.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
-  const chatSessions = trpc.aiChat.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
-  const styleRecs = trpc.aiStyle.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
-  const announcementsList = trpc.announcement.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
-  const portfolioDrafts = trpc.portfolio.list.useQuery(undefined, { enabled: !!user && user.role === "admin" });
+  const stats = trpc.admin.stats.useQuery(undefined, { enabled: !!user && user.role === "admin" || user.role === "master" });
+  const inquiries = trpc.inquiry.list.useQuery(undefined, { enabled: !!user && user.role === "admin" || user.role === "master" });
+  const subscribers = trpc.newsletter.list.useQuery(undefined, { enabled: !!user && user.role === "admin" || user.role === "master" });
+  const estimates = trpc.estimate.list.useQuery(undefined, { enabled: !!user && user.role === "admin" || user.role === "master" });
+  const leadDownloads = trpc.leadMagnet.list.useQuery(undefined, { enabled: !!user && user.role === "admin" || user.role === "master" });
+  const chatSessions = trpc.aiChat.list.useQuery(undefined, { enabled: !!user && user.role === "admin" || user.role === "master" });
+  const styleRecs = trpc.aiStyle.list.useQuery(undefined, { enabled: !!user && user.role === "admin" || user.role === "master" });
+  const announcementsList = trpc.announcement.list.useQuery(undefined, { enabled: !!user && user.role === "admin" || user.role === "master" });
+  const portfolioDrafts = trpc.portfolio.list.useQuery(undefined, { enabled: !!user && user.role === "admin" || user.role === "master" });
 
   // Announcement mutations
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);

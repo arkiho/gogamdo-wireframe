@@ -37,7 +37,7 @@ export default function AdminPortfolioDetail() {
   const [, navigate] = useLocation();
   const draftId = parseInt(params.id || "0");
 
-  const draft = trpc.portfolio.get.useQuery({ id: draftId }, { enabled: !!user && user.role === "admin" && draftId > 0 });
+  const draft = trpc.portfolio.get.useQuery({ id: draftId }, { enabled: !!user && user.role === "admin" || user.role === "master" && draftId > 0 });
   const updateDraft = trpc.portfolio.update.useMutation({ onSuccess: () => draft.refetch() });
   const publishDraft = trpc.portfolio.publish.useMutation({ onSuccess: () => draft.refetch() });
   const archiveDraft = trpc.portfolio.archive.useMutation({ onSuccess: () => draft.refetch() });

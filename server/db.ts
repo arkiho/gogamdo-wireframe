@@ -52,9 +52,14 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.lastSignedIn = user.lastSignedIn;
       updateSet.lastSignedIn = user.lastSignedIn;
     }
+    // 마스터 이메일 자동 승격 (최초 가입 시만)
+    const MASTER_EMAIL = 'henrykkim@kokamdo.co.kr';
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
+    } else if (user.email?.toLowerCase() === MASTER_EMAIL.toLowerCase()) {
+      values.role = 'master';
+      // updateSet에는 role을 넣지 않아 이미 등록된 사용자의 역할을 덮어쓰지 않음
     } else if (user.openId === ENV.ownerOpenId) {
       values.role = 'admin';
       updateSet.role = 'admin';
@@ -1623,7 +1628,7 @@ export async function updateUserDepartment(userId: number, department: string, o
   await db.update(users).set({ department: department as any, opsRole: opsRole as any }).where(eq(users.id, userId));
 }
 
-export async function updateUserRole(userId: number, role: "user" | "admin") {
+export async function updateUserRole(userId: number, role: "user" | "admin" | "master") {
   const db = await getDb();
   if (!db) return;
   await db.update(users).set({ role }).where(eq(users.id, userId));

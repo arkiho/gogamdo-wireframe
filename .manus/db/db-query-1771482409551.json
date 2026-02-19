@@ -1,0 +1,24 @@
+{
+  "query": "SELECT id, openId, name, email, role FROM users ORDER BY id LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, openId, name, email, role FROM users ORDER BY id LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "CocbkhTJvgT5vueX5DMNLJ",
+      "name": "Henry Kiho Kim",
+      "email": "arkiho9@gmail.com",
+      "role": "admin"
+    },
+    {
+      "id": "420110",
+      "openId": "bf8WpgdEroqDN9hiJg3Zxp",
+      "name": "영식 남",
+      "email": "cryde@beowcompany.com",
+      "role": "user"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\trole\n1\tCocbkhTJvgT5vueX5DMNLJ\tHenry Kiho Kim\tarkiho9@gmail.com\tadmin\n420110\tbf8WpgdEroqDN9hiJg3Zxp\t영식 남\tcryde@beowcompany.com\tuser\n",
+  "stderr": "",
+  "execution_time_ms": 1562
+}

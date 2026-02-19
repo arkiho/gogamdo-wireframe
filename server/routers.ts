@@ -58,10 +58,18 @@ import { sendReviewRequestEmail } from "./email";
 import { hash, compare } from "bcryptjs";
 import { randomBytes } from "crypto";
 
-// Admin-only procedure
+// Admin-only procedure (admin + master 모두 허용)
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") {
+  if (ctx.user.role !== "admin" && ctx.user.role !== "master") {
     throw new TRPCError({ code: "FORBIDDEN", message: "관리자 권한이 필요합니다." });
+  }
+  return next({ ctx });
+});
+
+// Master-only procedure (master만 허용)
+const masterProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "master") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "마스터 권한이 필요합니다." });
   }
   return next({ ctx });
 });
@@ -2917,10 +2925,23 @@ ${topicPrompt}
         const value = await getSiteSetting(input.key);
         return { key: input.key, value };
       }),
-    // 공개: AI 서비스 활성화 여부 조회
+    // 공개: AI 서비스 활성화 여부 조회 (개별 서비스별)
     aiEnabled: publicProcedure.query(async () => {
-      const value = await getSiteSetting("ai_features_enabled");
-      return { enabled: value !== "false" }; // 기본값 true
+      const [master, estimator, chat, style, redesign] = await Promise.all([
+        getSiteSetting("ai_features_enabled"),
+        getSiteSetting("ai_estimator_enabled"),
+        getSiteSetting("ai_chat_enabled"),
+        getSiteSetting("ai_style_enabled"),
+        getSiteSetting("ai_redesign_enabled"),
+      ]);
+      const masterEnabled = master !== "false"; // 기본값 true
+      return {
+        enabled: masterEnabled, // 전체 마스터 토글 (하위 서비스 중 하나라도 켜져있으면 true)
+        estimator: masterEnabled && estimator !== "false", // 기본값 true
+        chat: masterEnabled && chat !== "false",
+        style: masterEnabled && style !== "false",
+        redesign: masterEnabled && redesign !== "false",
+      };
     }),
     // 관리자: 설정값 변경
     set: adminProcedure
@@ -2940,10 +2961,19 @@ ${topicPrompt}
     list: adminProcedure.query(async () => {
       return listStaffMembers();
     }),
-    // 관리자: 직원 역할 변경 (admin/user)
+    // 직원 역할 변경 (master/admin/user)
+    // master 역할 부여는 master만 가능, admin 역할 부여는 master만 가능
     updateRole: adminProcedure
-      .input(z.object({ userId: z.number(), role: z.enum(["user", "admin"]) }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ userId: z.number(), role: z.enum(["user", "admin", "master"]) }))
+      .mutation(async ({ ctx, input }) => {
+        // master 또는 admin 역할 부여는 master만 가능
+        if ((input.role === "master" || input.role === "admin") && ctx.user.role !== "master") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "마스터만 관리자/마스터 역할을 부여할 수 있습니다." });
+        }
+        // 자기 자신의 역할은 변경 불가
+        if (input.userId === ctx.user.id) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "자신의 역할은 변경할 수 없습니다." });
+        }
         return updateUserRole(input.userId, input.role);
       }),
     // 관리자: 직원 부서/역할 변경

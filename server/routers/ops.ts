@@ -43,7 +43,7 @@ function generateToken() {
 
 // Admin check middleware
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "관리자 권한이 필요합니다." });
+  if (ctx.user.role !== "admin" && ctx.user.role !== "master") throw new TRPCError({ code: "FORBIDDEN", message: "관리자 권한이 필요합니다." });
   return next({ ctx });
 });
 // Staff or admin check - department 배정된 직원 또는 admin

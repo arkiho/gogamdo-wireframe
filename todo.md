@@ -591,3 +591,14 @@
 - [x] 모바일 UI 확인 및 수정 (RelatedPages AI 링크 조건부 처리 + 푸터 AI 링크 조건부 처리 확인)
 - [x] AI 서비스 토글 기능 테스트 및 검증 (네비/히어로/AI섹션/푸터/RelatedPages 모두 반영 확인)
 - [x] Insta360 RS1 가상투어 가능 여부 조사 및 홈페이지 가상투어 기능 기획 (조사 완료)
+
+## AI 서비스 개별 ON/OFF 토글
+- [x] DB: siteSettings에 개별 AI 서비스 설정 추가 (ai_estimator, ai_chat, ai_style, ai_redesign)
+- [x] 백엔드: 개별 AI 서비스 설정 조회/수정 API
+- [x] 관리자 설정 UI: 개별 AI 서비스 토글 스위치 (기존 전체 토글 → 개별 토글로 변경)
+- [x] 프론트엔드: 네비게이션/푸터/홈/RelatedPages에서 개별 AI 서비스 조건부 표시
+- [x] 버그 수정: 고객 포털 /portal 페이지 404 에러 (라우트 추가)
+- [x] 역할 체계 변경: master/admin/user 3단계 (DB 스키마 + 라우터 + UI)
+- [x] henrykkim@kokamdo.co.kr 마스터 계정 자동 부여 로직 구현 (가입 시 자동 master 역할)
+- [x] 영식 남 계정 관리자(admin) 승격
+- [x] 서버/프론트 전체에서 admin 역할 체크에 master 포함 (라우터, Layout, 대시보드 등)

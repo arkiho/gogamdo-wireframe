@@ -1,0 +1,24 @@
+{
+  "query": "SELECT * FROM site_settings LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT * FROM site_settings LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "key": "ai_services_enabled",
+      "value": "true",
+      "description": "AI 서비스 메뉴 표시 여부 (true/false)",
+      "updatedAt": "2026-02-19 00:39:27"
+    },
+    {
+      "id": "30001",
+      "key": "ai_features_enabled",
+      "value": "false",
+      "description": "AI 서비스 기능 활성화 여부",
+      "updatedAt": "2026-02-19 05:54:32"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tkey\tvalue\tdescription\tupdatedAt\n1\tai_services_enabled\ttrue\tAI 서비스 메뉴 표시 여부 (true/false)\t2026-02-19 00:39:27\n30001\tai_features_enabled\tfalse\tAI 서비스 기능 활성화 여부\t2026-02-19 05:54:32\n",
+  "stderr": "",
+  "execution_time_ms": 1606
+}

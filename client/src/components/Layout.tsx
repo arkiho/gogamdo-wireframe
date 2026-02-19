@@ -60,12 +60,26 @@ function useNavItems(): NavEntry[] {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
-  const aiEnabled = aiSetting?.enabled ?? true;
-  if (!aiEnabled) return BASE_NAV_ITEMS;
+  const masterEnabled = aiSetting?.enabled ?? true;
+  if (!masterEnabled) return BASE_NAV_ITEMS;
+
+  // 개별 AI 서비스별 필터링
+  const aiChildren = AI_NAV_GROUP.children.filter((item) => {
+    if (item.href === "/estimator") return aiSetting?.estimator ?? true;
+    if (item.href === "/ai-chat") return aiSetting?.chat ?? true;
+    if (item.href === "/ai-style") return aiSetting?.style ?? true;
+    if (item.href === "/ai-redesign") return aiSetting?.redesign ?? true;
+    return true;
+  });
+
+  // 활성화된 AI 서비스가 없으면 AI 그룹 자체를 숨김
+  if (aiChildren.length === 0) return BASE_NAV_ITEMS;
+
+  const filteredAiGroup: NavGroup = { label: "AI 서비스", children: aiChildren };
   // Insert AI group before "인사이트"
   return [
     ...BASE_NAV_ITEMS.slice(0, 3),
-    AI_NAV_GROUP,
+    filteredAiGroup,
     ...BASE_NAV_ITEMS.slice(3),
   ];
 }
@@ -238,7 +252,7 @@ function LoginDropdown({ isTransparent }: { isTransparent: boolean }) {
 
   // 로그인 상태: 사용자 이름 + 역할별 바로가기
   if (isAuthenticated && user) {
-    const isStaff = user.role === "admin" || (user as any).opsRole !== "none";
+    const isStaff = user.role === "admin" || user.role === "master" || (user as any).opsRole !== "none";
     return (
       <div
         className="relative"
@@ -287,7 +301,7 @@ function LoginDropdown({ isTransparent }: { isTransparent: boolean }) {
                     고객 포털
                   </span>
                 </Link>
-                {user.role === "admin" && (
+                {(user.role === "admin" || user.role === "master") && (
                   <Link href="/admin">
                     <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
                       <LayoutDashboard className="w-4 h-4" />
@@ -371,7 +385,7 @@ function MobileLoginButtons() {
   const { user, isAuthenticated, logout } = useAuth();
 
   if (isAuthenticated && user) {
-    const isStaff = user.role === "admin" || (user as any).opsRole !== "none";
+    const isStaff = user.role === "admin" || user.role === "master" || (user as any).opsRole !== "none";
     return (
       <motion.div
         initial={{ opacity: 0, x: -20 }}
@@ -397,7 +411,7 @@ function MobileLoginButtons() {
               고객 포털
             </span>
           </Link>
-          {user.role === "admin" && (
+          {(user.role === "admin" || user.role === "master") && (
             <Link href="/admin">
               <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
                 <LayoutDashboard className="w-5 h-5" />
@@ -719,7 +733,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   { label: "사무실 인테리어", href: "/solutions" },
                   { label: "상업공간 설계", href: "/solutions" },
                   { label: "OpsX 컨설팅", href: "/opsx" },
-                  ...(aiEnabled ? [{ label: "AI 견적", href: "/estimator" }] : []),
+                  ...(aiSetting?.estimator ? [{ label: "AI 견적", href: "/estimator" }] : []),
                 ].map((item) => (
                   <li key={item.label}>
                     <Link href={item.href}>
@@ -741,7 +755,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 {[
                   { label: "회사소개", href: "/about" },
                   { label: "프로젝트", href: "/portfolio" },
-                  ...(aiEnabled ? [{ label: "AI 서비스", href: "/ai-redesign" }] : []),
+                  ...(aiSetting?.chat ? [{ label: "AI 상담", href: "/ai-chat" }] : []),
+                  ...(aiSetting?.redesign ? [{ label: "AI 리디자인", href: "/ai-redesign" }] : []),
                   { label: "FAQ", href: "/faq" },
                   { label: "문의하기", href: "/contact" },
                 ].map((item) => (

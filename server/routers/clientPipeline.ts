@@ -58,7 +58,7 @@ export const clientPipelineRouter = router({
     .query(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.id);
       if (!project) throw new TRPCError({ code: "NOT_FOUND" });
-      if (project.userId !== ctx.user.id && ctx.user.role !== "admin") {
+      if (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master") {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       return project;
@@ -77,7 +77,7 @@ export const clientPipelineRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
@@ -108,7 +108,7 @@ export const clientPipelineRouter = router({
     .input(z.object({ projectId: z.number() }))
     .query(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       return getFloorPlansByProject(input.projectId);
@@ -118,7 +118,7 @@ export const clientPipelineRouter = router({
     .input(z.object({ floorPlanId: z.number(), projectId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
@@ -239,7 +239,7 @@ export const clientPipelineRouter = router({
     .input(z.object({ projectId: z.number() }))
     .query(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       return getWorkSurveyByProject(input.projectId);
@@ -250,7 +250,7 @@ export const clientPipelineRouter = router({
     .input(z.object({ projectId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
@@ -357,7 +357,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
     .input(z.object({ reportId: z.number(), projectId: z.number(), origin: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       const reports = await getReportsByProject(input.projectId);
@@ -379,7 +379,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
     .input(z.object({ projectId: z.number() }))
     .query(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       return getReportsByProject(input.projectId);
@@ -396,7 +396,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
     }))
     .mutation(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
@@ -476,7 +476,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
     .input(z.object({ projectId: z.number() }))
     .query(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       return getCompanySurveysByProject(input.projectId);
@@ -486,7 +486,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
     .input(z.object({ surveyId: z.number(), projectId: z.number() }))
     .query(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       return getResponsesBySurvey(input.surveyId);
@@ -496,7 +496,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
     .input(z.object({ surveyId: z.number(), projectId: z.number() }))
     .query(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       return getSurveyResponseStats(input.surveyId);
@@ -543,7 +543,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
     .input(z.object({ projectId: z.number() }))
     .query(async ({ ctx, input }) => {
       const project = await getClientProjectById(input.projectId);
-      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin")) {
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       return getMeetingsByProject(input.projectId);
@@ -551,12 +551,12 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
 
   // ============ Admin APIs ============
   adminListProjects: protectedProcedure.query(async ({ ctx }) => {
-    if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+    if (ctx.user.role !== "admin" && ctx.user.role !== "master") throw new TRPCError({ code: "FORBIDDEN" });
     return getAllClientProjects();
   }),
 
   adminListMeetings: protectedProcedure.query(async ({ ctx }) => {
-    if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+    if (ctx.user.role !== "admin" && ctx.user.role !== "master") throw new TRPCError({ code: "FORBIDDEN" });
     return getAllMeetings();
   }),
 
@@ -569,7 +569,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
       confirmedTime: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      if (ctx.user.role !== "admin" && ctx.user.role !== "master") throw new TRPCError({ code: "FORBIDDEN" });
       await updateMeetingStatus(input.id, input.status, input.adminNotes, input.confirmedDate, input.confirmedTime);
       return { success: true };
     }),
@@ -577,7 +577,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
   adminUpdateProjectStatus: protectedProcedure
     .input(z.object({ id: z.number(), status: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      if (ctx.user.role !== "admin" && ctx.user.role !== "master") throw new TRPCError({ code: "FORBIDDEN" });
       await updateClientProjectStatus(input.id, input.status);
       return { success: true };
     }),

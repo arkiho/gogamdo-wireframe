@@ -72,6 +72,7 @@ function PublicRouter() {
         <Route path="/opsx" component={OpsXProcess} />
         <Route path="/contact" component={Contact} />
         {/* 고객 포털 (로그인 필요) */}
+        <Route path="/portal" component={ClientPortal} />
         <Route path="/my" component={ClientPortal} />
         <Route path="/my/project/:id" component={ClientProjectDetail} />
         <Route path="/404" component={NotFound} />

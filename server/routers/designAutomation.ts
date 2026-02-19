@@ -24,7 +24,7 @@ import { notifyOwner } from "../_core/notification";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") {
+  if (ctx.user.role !== "admin" && ctx.user.role !== "master") {
     throw new TRPCError({ code: "FORBIDDEN", message: "관리자 권한이 필요합니다." });
   }
   return next({ ctx });

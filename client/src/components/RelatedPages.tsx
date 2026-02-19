@@ -12,13 +12,14 @@ interface RelatedPage {
   label: string;
   href: string;
   description: string;
-  isAi?: boolean;
+  /** Which AI service this page requires (undefined = always visible) */
+  aiService?: "estimator" | "chat" | "style" | "redesign";
 }
 
 const ALL_PAGES: RelatedPage[] = [
-  { label: "AI 견적", href: "/estimator", description: "30초 만에 예상 비용을 무료로 확인하세요", isAi: true },
-  { label: "AI 상담", href: "/ai-chat", description: "24시간 AI 인테리어 상담사와 대화하세요", isAi: true },
-  { label: "AI 스타일", href: "/ai-style", description: "맞춤 인테리어 스타일을 추천받으세요", isAi: true },
+  { label: "AI 견적", href: "/estimator", description: "30초 만에 예상 비용을 무료로 확인하세요", aiService: "estimator" },
+  { label: "AI 상담", href: "/ai-chat", description: "24시간 AI 인테리어 상담사와 대화하세요", aiService: "chat" },
+  { label: "AI 스타일", href: "/ai-style", description: "맞춤 인테리어 스타일을 추천받으세요", aiService: "style" },
   { label: "프로젝트", href: "/portfolio", description: "35년간 2,800건 이상의 완료 프로젝트를 확인하세요" },
   { label: "솔루션", href: "/solutions", description: "설계부터 시공까지 원스톱 솔루션" },
   { label: "FAQ", href: "/faq", description: "자주 묻는 질문과 답변을 확인하세요" },
@@ -26,8 +27,13 @@ const ALL_PAGES: RelatedPage[] = [
   { label: "자료실", href: "/resources", description: "인테리어 가이드와 체크리스트를 다운로드하세요" },
 ];
 
-// AI 관련 href 목록
-const AI_HREFS = new Set(["/estimator", "/ai-chat", "/ai-style", "/ai-redesign"]);
+// AI 관련 href → 서비스 매핑
+const AI_HREF_SERVICE: Record<string, "estimator" | "chat" | "style" | "redesign"> = {
+  "/estimator": "estimator",
+  "/ai-chat": "chat",
+  "/ai-style": "style",
+  "/ai-redesign": "redesign",
+};
 
 // 페이지별 관련 페이지 매핑
 const RELATED_MAP: Record<string, string[]> = {
@@ -43,15 +49,8 @@ const RELATED_MAP: Record<string, string[]> = {
   "/contact": ["/estimator", "/ai-chat", "/faq"],
 };
 
-// AI OFF 시 대체 매핑
-const FALLBACK_MAP: Record<string, string[]> = {
-  "/solutions": ["/portfolio", "/contact", "/faq"],
-  "/portfolio": ["/solutions", "/contact", "/faq"],
-  "/insights": ["/resources", "/faq", "/contact"],
-  "/resources": ["/faq", "/portfolio", "/contact"],
-  "/faq": ["/portfolio", "/contact", "/solutions"],
-  "/contact": ["/portfolio", "/faq", "/solutions"],
-};
+// 비 AI 대체 페이지 풀
+const NON_AI_FALLBACKS = ["/portfolio", "/solutions", "/contact", "/faq", "/resources"];
 
 export default function RelatedPages() {
   const [location] = useLocation();
@@ -60,24 +59,40 @@ export default function RelatedPages() {
     refetchOnWindowFocus: false,
   });
   const aiEnabled = aiSetting?.enabled ?? true;
+  const serviceFlags: Record<string, boolean> = {
+    estimator: aiEnabled && (aiSetting?.estimator ?? true),
+    chat: aiEnabled && (aiSetting?.chat ?? true),
+    style: aiEnabled && (aiSetting?.style ?? true),
+    redesign: aiEnabled && (aiSetting?.redesign ?? true),
+  };
 
-  // AI OFF 시 AI 관련 href 제거
+  // 해당 href가 현재 활성화된 서비스인지 확인
+  const isHrefAvailable = (href: string): boolean => {
+    const service = AI_HREF_SERVICE[href];
+    if (!service) return true; // 비 AI 페이지는 항상 사용 가능
+    return serviceFlags[service];
+  };
+
+  // 관련 페이지 후보 결정
   let relatedHrefs = RELATED_MAP[location] || ["/estimator", "/ai-chat", "/contact"];
-  
-  if (!aiEnabled) {
-    relatedHrefs = relatedHrefs.filter((href) => !AI_HREFS.has(href));
-    // 3개 미만이면 대체 매핑에서 보충
-    if (relatedHrefs.length < 3) {
-      const fallback = FALLBACK_MAP[location] || ["/portfolio", "/contact", "/faq"];
-      for (const href of fallback) {
-        if (!relatedHrefs.includes(href) && relatedHrefs.length < 3) {
-          relatedHrefs.push(href);
-        }
+
+  // 비활성화된 AI 서비스 페이지 제거
+  relatedHrefs = relatedHrefs.filter(isHrefAvailable);
+
+  // 3개 미만이면 비 AI 페이지에서 보충
+  if (relatedHrefs.length < 3) {
+    for (const href of NON_AI_FALLBACKS) {
+      if (!relatedHrefs.includes(href) && href !== location && relatedHrefs.length < 3) {
+        relatedHrefs.push(href);
       }
     }
   }
 
-  const availablePages = aiEnabled ? ALL_PAGES : ALL_PAGES.filter((p) => !p.isAi);
+  // 사용 가능한 페이지만 필터링
+  const availablePages = ALL_PAGES.filter((p) => {
+    if (!p.aiService) return true;
+    return serviceFlags[p.aiService];
+  });
   const related = relatedHrefs
     .map((href) => availablePages.find((p) => p.href === href))
     .filter(Boolean) as RelatedPage[];

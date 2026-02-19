@@ -189,6 +189,11 @@ export default function Home() {
     refetchOnWindowFocus: false,
   });
   const aiEnabled = aiSetting?.enabled ?? true;
+  const aiChat = aiSetting?.chat ?? true;
+  const aiStyle = aiSetting?.style ?? true;
+  const aiEstimator = aiSetting?.estimator ?? true;
+  const aiRedesign = aiSetting?.redesign ?? true;
+  const anyAiEnabled = aiEnabled && (aiChat || aiStyle || aiEstimator || aiRedesign);
 
   return (
     <>
@@ -629,7 +634,7 @@ export default function Home() {
       </section>
 
       {/* ==================== AI FEATURES (conditionally rendered) ==================== */}
-      {aiEnabled && <section className="py-20 lg:py-28 bg-ink text-white relative overflow-hidden">
+      {anyAiEnabled && <section className="py-20 lg:py-28 bg-ink text-white relative overflow-hidden">
         <div className="absolute top-8 right-8 lg:right-16 opacity-[0.04] select-none pointer-events-none">
           <span className="font-heading text-[10rem] lg:text-[16rem] font-extrabold leading-none">
             05
@@ -650,7 +655,7 @@ export default function Home() {
           </FadeUp>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            <FadeUp delay={0}>
+            {aiChat && <FadeUp delay={0}>
               <Link href="/ai-chat">
                 <div className="group p-8 lg:p-10 border border-white/10 hover:border-gold/30 transition-all duration-500 h-full">
                   <div className="w-12 h-12 flex items-center justify-center bg-gold text-ink mb-6 group-hover:scale-110 transition-transform duration-500">
@@ -667,8 +672,8 @@ export default function Home() {
                   </span>
                 </div>
               </Link>
-            </FadeUp>
-            <FadeUp delay={0.1}>
+            </FadeUp>}
+            {aiStyle && <FadeUp delay={0.1}>
               <Link href="/ai-style">
                 <div className="group p-8 lg:p-10 border border-white/10 hover:border-gold/30 transition-all duration-500 h-full">
                   <div className="w-12 h-12 flex items-center justify-center bg-gold text-ink mb-6 group-hover:scale-110 transition-transform duration-500">
@@ -685,8 +690,8 @@ export default function Home() {
                   </span>
                 </div>
               </Link>
-            </FadeUp>
-            <FadeUp delay={0.2}>
+            </FadeUp>}
+            {aiEstimator && <FadeUp delay={0.2}>
               <Link href="/estimator">
                 <div className="group p-8 lg:p-10 border border-white/10 hover:border-gold/30 transition-all duration-500 h-full">
                   <div className="w-12 h-12 flex items-center justify-center bg-gold text-ink mb-6 group-hover:scale-110 transition-transform duration-500">
@@ -703,7 +708,7 @@ export default function Home() {
                   </span>
                 </div>
               </Link>
-            </FadeUp>
+            </FadeUp>}
           </div>
         </div>
       </section>}
@@ -721,10 +726,10 @@ export default function Home() {
               시작할 준비가 되셨나요?
             </h2>
             <p className="text-muted-foreground mb-10 max-w-lg mx-auto">
-              {aiEnabled ? "AI 견적으로 예상 비용을 먼저 확인하거나, 전문 컨설턴트와 무료 상담을 시작하세요." : "전문 컨설턴트와 무료 상담을 시작하세요."}
+              {aiEstimator ? "AI 견적으로 예상 비용을 먼저 확인하거나, 전문 컨설턴트와 무료 상담을 시작하세요." : "전문 컨설턴트와 무료 상담을 시작하세요."}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              {aiEnabled && (
+              {aiEstimator && (
                 <Link href="/estimator">
                   <span className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
                     AI 예상 견적 받기
