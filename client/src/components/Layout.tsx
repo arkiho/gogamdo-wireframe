@@ -376,7 +376,7 @@ function MobileLoginButtons() {
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: (NAV_ITEMS.length + 1) * 0.05 }}
+        transition={{ delay: (BASE_NAV_ITEMS.length + 1) * 0.05 }}
         className="mt-4 pt-4 border-t border-border/30"
       >
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
@@ -421,7 +421,7 @@ function MobileLoginButtons() {
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: (NAV_ITEMS.length + 1) * 0.05 }}
+      transition={{ delay: (BASE_NAV_ITEMS.length + 1) * 0.05 }}
       className="mt-4 pt-4 border-t border-border/30"
     >
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
