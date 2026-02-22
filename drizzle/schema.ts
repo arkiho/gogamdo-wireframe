@@ -1915,3 +1915,801 @@ export const activityLogs = mysqlTable("activity_logs", {
 });
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type InsertActivityLog = typeof activityLogs.$inferInsert;
+
+
+// ============================================================
+// E2E 비즈니스 프로세스 시스템
+// Phase 1~3: 상담→설문→회원가입 유도 자동화
+// Phase 4~5: 도면→이사/레노베이션→부동산 매칭
+// Phase 8~9: 시공 일일보고 + 납품사 견적 AI 학습
+// Phase 10: 사후관리 + OpsX Insight 구독
+// 직원 포털: KPI/OKR
+// ============================================================
+
+/**
+ * 설문 템플릿(Survey Templates)
+ * 1차 담당자 설문, 전사 설문 등 다양한 설문 유형의 템플릿
+ */
+export const surveyTemplates = mysqlTable("survey_templates", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 300 }).notNull(),
+  type: mysqlEnum("type", [
+    "initial_manager",     // 1차 담당자 설문
+    "company_wide",        // 전사 설문
+    "post_occupancy",      // 입주 후 만족도
+    "custom",              // 커스텀
+  ]).notNull(),
+  description: text("description"),
+  isDefault: tinyint("isDefault").default(0),
+  isActive: tinyint("isActive").default(1).notNull(),
+  createdBy: int("createdBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SurveyTemplate = typeof surveyTemplates.$inferSelect;
+export type InsertSurveyTemplate = typeof surveyTemplates.$inferInsert;
+
+/**
+ * 설문 질문(Survey Questions)
+ * 각 템플릿에 속하는 질문 목록
+ */
+export const surveyQuestions = mysqlTable("survey_questions", {
+  id: int("id").autoincrement().primaryKey(),
+  templateId: int("templateId").notNull(),
+  sectionTitle: varchar("sectionTitle", { length: 200 }), // 섹션 제목 (예: "업무 환경", "공간 요구")
+  questionText: text("questionText").notNull(),
+  questionType: mysqlEnum("questionType", [
+    "single_choice",    // 단일 선택
+    "multiple_choice",  // 다중 선택
+    "scale",            // 1~5 척도
+    "text",             // 자유 텍스트
+    "number",           // 숫자 입력
+    "matrix",           // 매트릭스형
+  ]).notNull(),
+  isRequired: tinyint("isRequired").default(1).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  metadata: json("metadata").$type<{
+    scaleMin?: number;
+    scaleMax?: number;
+    scaleLabels?: string[];
+    placeholder?: string;
+    matrixRows?: string[];
+    matrixColumns?: string[];
+  }>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SurveyQuestion = typeof surveyQuestions.$inferSelect;
+export type InsertSurveyQuestion = typeof surveyQuestions.$inferInsert;
+
+/**
+ * 설문 질문 선택지(Survey Question Options)
+ * single_choice, multiple_choice 유형의 선택지
+ */
+export const surveyQuestionOptions = mysqlTable("survey_question_options", {
+  id: int("id").autoincrement().primaryKey(),
+  questionId: int("questionId").notNull(),
+  optionText: varchar("optionText", { length: 500 }).notNull(),
+  optionValue: varchar("optionValue", { length: 200 }), // 분석용 값
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SurveyQuestionOption = typeof surveyQuestionOptions.$inferSelect;
+export type InsertSurveyQuestionOption = typeof surveyQuestionOptions.$inferInsert;
+
+/**
+ * 설문 인스턴스(Survey Instances)
+ * 특정 프로젝트에 대해 발송된 설문 인스턴스 (토큰 기반 접근)
+ */
+export const surveyInstances = mysqlTable("survey_instances", {
+  id: int("id").autoincrement().primaryKey(),
+  templateId: int("templateId").notNull(),
+  clientProjectId: int("clientProjectId"), // client_projects.id
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  type: mysqlEnum("type", [
+    "initial_manager",     // 1차 담당자 설문
+    "company_wide",        // 전사 설문
+    "post_occupancy",      // 입주 후 만족도
+  ]).notNull(),
+  recipientEmail: varchar("recipientEmail", { length: 320 }),
+  recipientName: varchar("recipientName", { length: 200 }),
+  status: mysqlEnum("status", [
+    "pending",       // 발송 대기
+    "sent",          // 이메일 발송됨
+    "opened",        // 열람됨
+    "in_progress",   // 응답 중
+    "completed",     // 완료
+    "expired",       // 만료
+  ]).default("pending").notNull(),
+  customQuestions: json("customQuestions").$type<Array<{
+    id: number;
+    questionText: string;
+    questionType: string;
+    options?: string[];
+    isRequired: boolean;
+    sortOrder: number;
+    sectionTitle?: string;
+  }>>(), // 담당자가 수정한 질문 (null이면 템플릿 원본 사용)
+  responseCount: int("responseCount").default(0),
+  sentAt: timestamp("sentAt"),
+  completedAt: timestamp("completedAt"),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SurveyInstance = typeof surveyInstances.$inferSelect;
+export type InsertSurveyInstance = typeof surveyInstances.$inferInsert;
+
+/**
+ * 설문 응답(Survey Responses)
+ * 개별 응답자의 전체 응답 세트
+ */
+export const surveyResponses = mysqlTable("survey_responses", {
+  id: int("id").autoincrement().primaryKey(),
+  instanceId: int("instanceId").notNull(),
+  respondentName: varchar("respondentName", { length: 200 }),
+  respondentEmail: varchar("respondentEmail", { length: 320 }),
+  respondentDepartment: varchar("respondentDepartment", { length: 200 }),
+  respondentRole: varchar("respondentRole", { length: 200 }),
+  answers: json("answers").$type<Array<{
+    questionId: number;
+    questionText: string;
+    answer: string | string[] | number;
+  }>>().notNull(),
+  completedAt: timestamp("completedAt"),
+  ipAddress: varchar("ipAddress", { length: 50 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SurveyResponse = typeof surveyResponses.$inferSelect;
+export type InsertSurveyResponse = typeof surveyResponses.$inferInsert;
+
+/**
+ * 설문 분석 리포트(Survey Analysis Reports)
+ * AI가 설문 결과를 분석하여 생성한 리포트
+ */
+export const surveyAnalysisReports = mysqlTable("survey_analysis_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  instanceId: int("instanceId").notNull(),
+  clientProjectId: int("clientProjectId"),
+  reportType: mysqlEnum("reportType", [
+    "initial_analysis",    // 1차 담당자 설문 분석
+    "company_analysis",    // 전사 설문 종합 분석
+    "space_requirement",   // 공간 요구사항 분석
+    "optimization",        // 최적화 제안
+  ]).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  summary: text("summary"), // 요약
+  content: longtext("content").notNull(), // 전체 리포트 (마크다운)
+  insights: json("insights").$type<Array<{
+    category: string;
+    finding: string;
+    recommendation: string;
+    priority: "high" | "medium" | "low";
+  }>>(),
+  spaceRequirements: json("spaceRequirements").$type<{
+    totalAreaNeeded: number; // ㎡
+    breakdown: Array<{
+      spaceType: string;
+      areaNeeded: number;
+      headcount: number;
+      notes: string;
+    }>;
+  }>(),
+  isBlurred: tinyint("isBlurred").default(1).notNull(), // 비회원에게 블러 처리
+  viewCount: int("viewCount").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SurveyAnalysisReport = typeof surveyAnalysisReports.$inferSelect;
+export type InsertSurveyAnalysisReport = typeof surveyAnalysisReports.$inferInsert;
+
+/**
+ * 자동 이메일 발송 로그(Auto Email Logs)
+ * 설문 발송, 리포트 공유, 리마인더 등 자동 이메일 추적
+ */
+export const autoEmailLogs = mysqlTable("auto_email_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  clientProjectId: int("clientProjectId"),
+  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
+  recipientName: varchar("recipientName", { length: 200 }),
+  emailType: mysqlEnum("emailType", [
+    "initial_survey",       // 1차 설문 발송
+    "survey_reminder",      // 설문 리마인더
+    "analysis_report",      // 분석 리포트 공유
+    "company_survey_link",  // 전사 설문 링크
+    "company_survey_updated", // 수정된 전사 설문 링크
+    "realestate_matches",   // 부동산 매물 매칭 결과
+    "proposal",             // 제안서 발송
+    "post_occupancy",       // 입주 후 만족도 설문
+    "optimization_report",  // 3개월 최적화 리포트
+  ]).notNull(),
+  subject: varchar("subject", { length: 500 }).notNull(),
+  status: mysqlEnum("status", ["queued", "sent", "delivered", "failed", "bounced"]).default("queued").notNull(),
+  metadata: json("metadata").$type<Record<string, unknown>>(), // 추가 정보 (설문 토큰, 리포트 ID 등)
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AutoEmailLog = typeof autoEmailLogs.$inferSelect;
+export type InsertAutoEmailLog = typeof autoEmailLogs.$inferInsert;
+
+// ============================================================
+// Phase 4~5: 부동산 매물 매칭 + 프로그램 다이어그램
+// ============================================================
+
+/**
+ * 부동산 검색 조건(Real Estate Search Criteria)
+ * 이사 시 고객의 부동산 매물 검색 조건
+ */
+export const realestateSearchCriteria = mysqlTable("realestate_search_criteria", {
+  id: int("id").autoincrement().primaryKey(),
+  clientProjectId: int("clientProjectId").notNull(),
+  projectType: mysqlEnum("projectType", ["relocation", "renovation"]).notNull(),
+  desiredArea: decimal("desiredArea", { precision: 10, scale: 2 }), // 희망 면적 (㎡)
+  minArea: decimal("minArea", { precision: 10, scale: 2 }),
+  maxArea: decimal("maxArea", { precision: 10, scale: 2 }),
+  desiredLocation: text("desiredLocation"), // 희망 지역
+  budgetMin: decimal("budgetMin", { precision: 15, scale: 0 }),
+  budgetMax: decimal("budgetMax", { precision: 15, scale: 0 }),
+  moveInDate: varchar("moveInDate", { length: 20 }),
+  floorPreference: varchar("floorPreference", { length: 100 }), // 층수 선호
+  buildingType: varchar("buildingType", { length: 100 }), // 건물 유형
+  parkingNeeded: int("parkingNeeded"), // 필요 주차 대수
+  additionalRequirements: text("additionalRequirements"),
+  status: mysqlEnum("status", ["searching", "matched", "viewing", "selected", "closed"]).default("searching").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type RealestateSearchCriteria = typeof realestateSearchCriteria.$inferSelect;
+export type InsertRealestateSearchCriteria = typeof realestateSearchCriteria.$inferInsert;
+
+/**
+ * 부동산 매물 매칭(Real Estate Matches)
+ * OpsX 부동산 DB에서 매칭된 매물 목록
+ */
+export const realestateMatches = mysqlTable("realestate_matches", {
+  id: int("id").autoincrement().primaryKey(),
+  searchCriteriaId: int("searchCriteriaId").notNull(),
+  clientProjectId: int("clientProjectId").notNull(),
+  propertyName: varchar("propertyName", { length: 300 }).notNull(),
+  address: text("address").notNull(),
+  totalArea: decimal("totalArea", { precision: 10, scale: 2 }), // ㎡
+  usableArea: decimal("usableArea", { precision: 10, scale: 2 }),
+  floor: varchar("floor", { length: 50 }),
+  buildingName: varchar("buildingName", { length: 200 }),
+  monthlyRent: decimal("monthlyRent", { precision: 15, scale: 0 }),
+  deposit: decimal("deposit", { precision: 15, scale: 0 }),
+  managementFee: decimal("managementFee", { precision: 15, scale: 0 }),
+  floorPlanUrl: text("floorPlanUrl"), // 기본 평면도
+  photoUrls: json("photoUrls").$type<string[]>(),
+  matchScore: int("matchScore"), // 매칭 점수 (0~100)
+  matchReasons: json("matchReasons").$type<string[]>(), // 매칭 이유
+  status: mysqlEnum("status", ["matched", "shortlisted", "viewing_scheduled", "viewed", "selected", "rejected"]).default("matched").notNull(),
+  clientNotes: text("clientNotes"),
+  viewingDate: varchar("viewingDate", { length: 20 }),
+  externalSource: varchar("externalSource", { length: 100 }), // OpsX, 직방, 다방 등
+  externalId: varchar("externalId", { length: 200 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type RealestateMatch = typeof realestateMatches.$inferSelect;
+export type InsertRealestateMatch = typeof realestateMatches.$inferInsert;
+
+/**
+ * 프로그램 다이어그램(Program Diagrams)
+ * 매물 평면도 위에 공간 프로그램 배치
+ */
+export const programDiagrams = mysqlTable("program_diagrams", {
+  id: int("id").autoincrement().primaryKey(),
+  clientProjectId: int("clientProjectId").notNull(),
+  realestateMatchId: int("realestateMatchId"), // 특정 매물에 대한 다이어그램
+  floorPlanId: int("floorPlanId"), // 기존 도면에 대한 다이어그램
+  title: varchar("title", { length: 300 }).notNull(),
+  diagramData: json("diagramData").$type<{
+    zones: Array<{
+      id: string;
+      name: string;
+      type: string; // "open_office" | "private_office" | "meeting" | "lounge" | "reception" | "utility" | "storage"
+      area: number;
+      headcount: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      color: string;
+    }>;
+    adjacencyMatrix?: Record<string, Record<string, number>>;
+    totalArea: number;
+    utilizationRate: number;
+  }>().notNull(),
+  aiAnalysis: text("aiAnalysis"), // AI 분석 코멘트
+  version: int("version").default(1),
+  isSelected: tinyint("isSelected").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ProgramDiagram = typeof programDiagrams.$inferSelect;
+export type InsertProgramDiagram = typeof programDiagrams.$inferInsert;
+
+// ============================================================
+// Phase 8~9: 일일 보고서 + 납품사 견적 AI 학습
+// ============================================================
+
+/**
+ * 일일 현장 보고서(Daily Site Reports)
+ * 직원이 매일 작성하는 현장 보고서 (기존 opsWorkReports와 별도 — 표준화된 일일 양식)
+ */
+export const dailySiteReports = mysqlTable("daily_site_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(), // ops_projects.id
+  authorId: int("authorId").notNull(), // users.id
+  reportDate: varchar("reportDate", { length: 20 }).notNull(), // YYYY-MM-DD
+  // 날씨/기온
+  weather: varchar("weather", { length: 50 }),
+  temperature: varchar("temperature", { length: 20 }),
+  // 인력 투입
+  workersInternal: int("workersInternal").default(0), // 자사 인원
+  workersExternal: int("workersExternal").default(0), // 외주 인원
+  workerDetails: json("workerDetails").$type<Array<{
+    company: string;
+    trade: string;
+    count: number;
+  }>>(),
+  // 작업 내용
+  workCompleted: text("workCompleted").notNull(), // 금일 작업 내용
+  workPlanned: text("workPlanned"), // 내일 작업 예정
+  // 자재 입고
+  materialsReceived: json("materialsReceived").$type<Array<{
+    name: string;
+    quantity: number;
+    unit: string;
+    supplier: string;
+  }>>(),
+  // 안전/품질
+  safetyChecklist: json("safetyChecklist").$type<Array<{
+    item: string;
+    checked: boolean;
+    note?: string;
+  }>>(),
+  qualityIssues: text("qualityIssues"),
+  // 특이사항
+  specialNotes: text("specialNotes"),
+  clientRequests: text("clientRequests"), // 고객 요청사항
+  // 사진
+  photoUrls: json("photoUrls").$type<string[]>(),
+  // 공정 진행률
+  overallProgress: int("overallProgress"), // 0~100
+  scheduleStatus: mysqlEnum("scheduleStatus", ["on_track", "ahead", "delayed"]).default("on_track"),
+  // 상태
+  status: mysqlEnum("status", ["draft", "submitted", "reviewed", "approved"]).default("draft").notNull(),
+  reviewedBy: int("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewNotes: text("reviewNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type DailySiteReport = typeof dailySiteReports.$inferSelect;
+export type InsertDailySiteReport = typeof dailySiteReports.$inferInsert;
+
+/**
+ * 납품사 견적(Vendor Quotes)
+ * 납품사가 제출한 견적서 메타데이터
+ */
+export const vendorQuotes = mysqlTable("vendor_quotes", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(), // ops_projects.id
+  subcontractorId: int("subcontractorId"), // ops_subcontractors.id
+  vendorName: varchar("vendorName", { length: 200 }).notNull(),
+  vendorContact: varchar("vendorContact", { length: 200 }),
+  vendorEmail: varchar("vendorEmail", { length: 320 }),
+  vendorPhone: varchar("vendorPhone", { length: 30 }),
+  quoteNumber: varchar("quoteNumber", { length: 100 }),
+  quoteDate: varchar("quoteDate", { length: 20 }),
+  validUntil: varchar("validUntil", { length: 20 }),
+  // 파일
+  fileUrl: text("fileUrl"), // 업로드된 견적서 파일 (PDF/Excel)
+  fileKey: varchar("fileKey", { length: 500 }),
+  fileName: varchar("fileName", { length: 300 }),
+  fileType: varchar("fileType", { length: 50 }),
+  // 금액
+  totalAmount: decimal("totalAmount", { precision: 15, scale: 0 }),
+  vatAmount: decimal("vatAmount", { precision: 15, scale: 0 }),
+  // AI 파싱 결과
+  aiParsed: tinyint("aiParsed").default(0), // AI가 파싱했는지
+  aiParsedData: json("aiParsedData").$type<{
+    items: Array<{
+      name: string;
+      specification: string;
+      unit: string;
+      quantity: number;
+      unitPrice: number;
+      amount: number;
+      category: string;
+    }>;
+    summary: string;
+    confidence: number; // 0~1
+  }>(),
+  // 상태
+  status: mysqlEnum("status", ["submitted", "reviewing", "accepted", "rejected", "revised"]).default("submitted").notNull(),
+  reviewNotes: text("reviewNotes"),
+  category: varchar("category", { length: 100 }), // 공종 (전기, 설비, 목공 등)
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type VendorQuote = typeof vendorQuotes.$inferSelect;
+export type InsertVendorQuote = typeof vendorQuotes.$inferInsert;
+
+/**
+ * 납품사 견적 항목(Vendor Quote Items)
+ * 견적서에서 파싱된 개별 항목 (수동 입력 또는 AI 파싱)
+ */
+export const vendorQuoteItems = mysqlTable("vendor_quote_items", {
+  id: int("id").autoincrement().primaryKey(),
+  quoteId: int("quoteId").notNull(), // vendor_quotes.id
+  itemName: varchar("itemName", { length: 300 }).notNull(),
+  specification: text("specification"),
+  unit: varchar("unit", { length: 50 }),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }),
+  unitPrice: decimal("unitPrice", { precision: 15, scale: 0 }),
+  amount: decimal("amount", { precision: 15, scale: 0 }),
+  category: varchar("category", { length: 100 }), // 자재 카테고리
+  materialCode: varchar("materialCode", { length: 100 }), // 자재 코드 (표준화)
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type VendorQuoteItem = typeof vendorQuoteItems.$inferSelect;
+export type InsertVendorQuoteItem = typeof vendorQuoteItems.$inferInsert;
+
+/**
+ * 자재 단가 이력(Material Price History)
+ * 납품사 견적에서 추출된 자재별 단가 변동 추적
+ */
+export const materialPriceHistory = mysqlTable("material_price_history", {
+  id: int("id").autoincrement().primaryKey(),
+  materialCode: varchar("materialCode", { length: 100 }).notNull(),
+  materialName: varchar("materialName", { length: 300 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  specification: text("specification"),
+  unit: varchar("unit", { length: 50 }),
+  unitPrice: decimal("unitPrice", { precision: 15, scale: 0 }).notNull(),
+  vendorName: varchar("vendorName", { length: 200 }),
+  vendorQuoteId: int("vendorQuoteId"), // vendor_quotes.id
+  projectId: int("projectId"),
+  priceDate: varchar("priceDate", { length: 20 }).notNull(), // YYYY-MM-DD
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type MaterialPriceHistory = typeof materialPriceHistory.$inferSelect;
+export type InsertMaterialPriceHistory = typeof materialPriceHistory.$inferInsert;
+
+/**
+ * 자재 단가 분석(Material Price Analytics)
+ * AI가 분석한 자재별 단가 트렌드 및 이상치
+ */
+export const materialPriceAnalytics = mysqlTable("material_price_analytics", {
+  id: int("id").autoincrement().primaryKey(),
+  materialCode: varchar("materialCode", { length: 100 }).notNull(),
+  materialName: varchar("materialName", { length: 300 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  // 통계
+  avgPrice: decimal("avgPrice", { precision: 15, scale: 0 }),
+  minPrice: decimal("minPrice", { precision: 15, scale: 0 }),
+  maxPrice: decimal("maxPrice", { precision: 15, scale: 0 }),
+  priceChangeRate: decimal("priceChangeRate", { precision: 5, scale: 2 }), // 변동률 (%)
+  sampleCount: int("sampleCount").default(0),
+  // AI 분석
+  trendDirection: mysqlEnum("trendDirection", ["rising", "stable", "falling"]).default("stable"),
+  aiInsight: text("aiInsight"), // AI 분석 코멘트
+  alertLevel: mysqlEnum("alertLevel", ["normal", "watch", "alert"]).default("normal"),
+  // 기간
+  periodStart: varchar("periodStart", { length: 20 }),
+  periodEnd: varchar("periodEnd", { length: 20 }),
+  lastUpdated: timestamp("lastUpdated").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type MaterialPriceAnalytic = typeof materialPriceAnalytics.$inferSelect;
+export type InsertMaterialPriceAnalytic = typeof materialPriceAnalytics.$inferInsert;
+
+// ============================================================
+// Phase 10: 사후관리 + OpsX Insight 구독
+// ============================================================
+
+/**
+ * 입주 후 만족도 설문(Post-Occupancy Surveys)
+ * 입주 1주 후 자동 발송되는 만족도 설문
+ */
+export const postOccupancySurveys = mysqlTable("post_occupancy_surveys", {
+  id: int("id").autoincrement().primaryKey(),
+  clientProjectId: int("clientProjectId").notNull(),
+  opsProjectId: int("opsProjectId"), // ops_projects.id
+  surveyInstanceId: int("surveyInstanceId"), // survey_instances.id
+  overallSatisfaction: int("overallSatisfaction"), // 1~5
+  designSatisfaction: int("designSatisfaction"),
+  constructionSatisfaction: int("constructionSatisfaction"),
+  communicationSatisfaction: int("communicationSatisfaction"),
+  timelineSatisfaction: int("timelineSatisfaction"),
+  issuesReported: json("issuesReported").$type<Array<{
+    area: string;
+    description: string;
+    severity: "minor" | "moderate" | "major";
+    photoUrl?: string;
+  }>>(),
+  positiveComments: text("positiveComments"),
+  improvementSuggestions: text("improvementSuggestions"),
+  wouldRecommend: tinyint("wouldRecommend"), // NPS
+  status: mysqlEnum("status", ["pending", "sent", "completed", "follow_up_needed"]).default("pending").notNull(),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PostOccupancySurvey = typeof postOccupancySurveys.$inferSelect;
+export type InsertPostOccupancySurvey = typeof postOccupancySurveys.$inferInsert;
+
+/**
+ * 유지보수 방문(Maintenance Visits)
+ * 입주 후 미세 조정 방문 예약 및 기록
+ */
+export const maintenanceVisits = mysqlTable("maintenance_visits", {
+  id: int("id").autoincrement().primaryKey(),
+  clientProjectId: int("clientProjectId").notNull(),
+  opsProjectId: int("opsProjectId"),
+  visitType: mysqlEnum("visitType", [
+    "fine_tuning",     // 미세 조정
+    "warranty",        // 하자보수
+    "optimization",    // 공간 최적화
+    "inspection",      // 정기 점검
+  ]).notNull(),
+  scheduledDate: varchar("scheduledDate", { length: 20 }).notNull(),
+  scheduledTime: varchar("scheduledTime", { length: 10 }),
+  technicianId: int("technicianId"), // 담당 기사 (users.id)
+  technicianName: varchar("technicianName", { length: 200 }),
+  description: text("description"),
+  workPerformed: text("workPerformed"),
+  issuesFound: json("issuesFound").$type<Array<{
+    area: string;
+    issue: string;
+    resolution: string;
+    status: "resolved" | "pending" | "escalated";
+  }>>(),
+  photoUrls: json("photoUrls").$type<string[]>(),
+  clientSignature: text("clientSignature"), // 고객 서명 (base64)
+  status: mysqlEnum("status", ["scheduled", "confirmed", "in_progress", "completed", "cancelled", "rescheduled"]).default("scheduled").notNull(),
+  completedAt: timestamp("completedAt"),
+  clientFeedback: text("clientFeedback"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type MaintenanceVisit = typeof maintenanceVisits.$inferSelect;
+export type InsertMaintenanceVisit = typeof maintenanceVisits.$inferInsert;
+
+/**
+ * OpsX Insight 구독(Insight Subscriptions)
+ * 공간 데이터 수집 및 최적화 리포트 구독
+ */
+export const insightSubscriptions = mysqlTable("insight_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  clientProjectId: int("clientProjectId").notNull(),
+  opsProjectId: int("opsProjectId"),
+  clientUserId: int("clientUserId"), // 구독 고객 (users.id)
+  plan: mysqlEnum("plan", ["basic", "standard", "premium"]).default("basic").notNull(),
+  // basic: 분기별 리포트 / standard: 월별 리포트 + 실시간 대시보드 / premium: 주별 + AI 최적화 제안
+  status: mysqlEnum("status", ["active", "paused", "cancelled", "expired"]).default("active").notNull(),
+  startDate: varchar("startDate", { length: 20 }).notNull(),
+  endDate: varchar("endDate", { length: 20 }),
+  nextReportDate: varchar("nextReportDate", { length: 20 }),
+  monthlyFee: decimal("monthlyFee", { precision: 10, scale: 0 }),
+  // 센서 연동
+  sensorProjectId: int("sensorProjectId"), // space_projects.id (DDIA)
+  sensorsInstalled: json("sensorsInstalled").$type<Array<{
+    type: string;
+    location: string;
+    sensorId: number;
+  }>>(),
+  // 리포트 이력
+  lastReportId: int("lastReportId"),
+  totalReports: int("totalReports").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type InsightSubscription = typeof insightSubscriptions.$inferSelect;
+export type InsertInsightSubscription = typeof insightSubscriptions.$inferInsert;
+
+/**
+ * 공간 최적화 리포트(Space Optimization Reports)
+ * 3개월 주기 자동 생성되는 최적화 제안 리포트
+ */
+export const spaceOptimizationReports = mysqlTable("space_optimization_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  subscriptionId: int("subscriptionId").notNull(), // insight_subscriptions.id
+  clientProjectId: int("clientProjectId").notNull(),
+  reportPeriod: varchar("reportPeriod", { length: 50 }).notNull(), // "2026-Q1" 등
+  // 데이터 분석 결과
+  occupancyAnalysis: json("occupancyAnalysis").$type<{
+    avgOccupancy: number;
+    peakOccupancy: number;
+    underutilizedZones: Array<{ zone: string; utilization: number }>;
+    overutilizedZones: Array<{ zone: string; utilization: number }>;
+  }>(),
+  environmentAnalysis: json("environmentAnalysis").$type<{
+    avgTemperature: number;
+    avgHumidity: number;
+    avgAirQuality: number;
+    avgLightLevel: number;
+    problemAreas: Array<{ zone: string; issue: string; severity: string }>;
+  }>(),
+  trafficAnalysis: json("trafficAnalysis").$type<{
+    hotspots: Array<{ zone: string; trafficCount: number }>;
+    bottlenecks: Array<{ zone: string; description: string }>;
+  }>(),
+  // AI 최적화 제안
+  optimizationSuggestions: json("optimizationSuggestions").$type<Array<{
+    type: "wall_change" | "furniture" | "lighting" | "hvac" | "layout";
+    zone: string;
+    currentState: string;
+    proposedChange: string;
+    expectedImprovement: string;
+    estimatedCost: number;
+    priority: "high" | "medium" | "low";
+    rewallCompatible: boolean; // Re:Wall로 가능한지
+  }>>(),
+  // 리포트 내용
+  summary: text("summary"),
+  fullReport: longtext("fullReport"), // 마크다운
+  // 상태
+  status: mysqlEnum("status", ["generating", "ready", "sent", "reviewed"]).default("generating").notNull(),
+  sentAt: timestamp("sentAt"),
+  viewedAt: timestamp("viewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SpaceOptimizationReport = typeof spaceOptimizationReports.$inferSelect;
+export type InsertSpaceOptimizationReport = typeof spaceOptimizationReports.$inferInsert;
+
+// ============================================================
+// 직원 포털: KPI/OKR
+// ============================================================
+
+/**
+ * KPI 정의(KPI Definitions)
+ * 부서별/역할별 KPI 항목 정의
+ */
+export const kpiDefinitions = mysqlTable("kpi_definitions", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 300 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }), // "project", "sales", "quality", "efficiency"
+  department: varchar("department", { length: 100 }), // 대상 부서 (null이면 전사)
+  measureUnit: varchar("measureUnit", { length: 50 }), // %, 건, 원, 점
+  targetValue: decimal("targetValue", { precision: 15, scale: 2 }),
+  weight: int("weight").default(100), // 가중치 (%)
+  frequency: mysqlEnum("frequency", ["daily", "weekly", "monthly", "quarterly", "yearly"]).default("monthly").notNull(),
+  calculationMethod: mysqlEnum("calculationMethod", [
+    "manual",       // 수동 입력
+    "auto_count",   // 자동 카운트 (DB 쿼리)
+    "auto_sum",     // 자동 합계
+    "auto_avg",     // 자동 평균
+    "formula",      // 수식 기반
+  ]).default("manual").notNull(),
+  autoQuery: text("autoQuery"), // 자동 집계 시 사용할 쿼리 힌트
+  isActive: tinyint("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type KpiDefinition = typeof kpiDefinitions.$inferSelect;
+export type InsertKpiDefinition = typeof kpiDefinitions.$inferInsert;
+
+/**
+ * KPI 기록(KPI Records)
+ * 직원별 KPI 실적 기록
+ */
+export const kpiRecords = mysqlTable("kpi_records", {
+  id: int("id").autoincrement().primaryKey(),
+  kpiId: int("kpiId").notNull(), // kpi_definitions.id
+  userId: int("userId").notNull(), // users.id
+  period: varchar("period", { length: 20 }).notNull(), // "2026-01", "2026-Q1" 등
+  targetValue: decimal("targetValue", { precision: 15, scale: 2 }),
+  actualValue: decimal("actualValue", { precision: 15, scale: 2 }),
+  achievementRate: decimal("achievementRate", { precision: 5, scale: 2 }), // 달성률 (%)
+  notes: text("notes"),
+  evidence: json("evidence").$type<Array<{
+    type: string;
+    description: string;
+    url?: string;
+  }>>(),
+  status: mysqlEnum("status", ["pending", "submitted", "approved", "rejected"]).default("pending").notNull(),
+  approvedBy: int("approvedBy"),
+  approvedAt: timestamp("approvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type KpiRecord = typeof kpiRecords.$inferSelect;
+export type InsertKpiRecord = typeof kpiRecords.$inferInsert;
+
+/**
+ * OKR 목표(OKR Objectives)
+ * 분기별 OKR 목표
+ */
+export const okrObjectives = mysqlTable("okr_objectives", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // users.id
+  parentId: int("parentId"), // 상위 목표 (회사 → 부서 → 개인)
+  level: mysqlEnum("level", ["company", "department", "team", "individual"]).default("individual").notNull(),
+  title: varchar("title", { length: 500 }).notNull(),
+  description: text("description"),
+  period: varchar("period", { length: 20 }).notNull(), // "2026-Q1"
+  progress: int("progress").default(0), // 0~100
+  status: mysqlEnum("status", ["draft", "active", "completed", "cancelled"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type OkrObjective = typeof okrObjectives.$inferSelect;
+export type InsertOkrObjective = typeof okrObjectives.$inferInsert;
+
+/**
+ * OKR 핵심 결과(OKR Key Results)
+ * 각 목표에 대한 측정 가능한 핵심 결과
+ */
+export const okrKeyResults = mysqlTable("okr_key_results", {
+  id: int("id").autoincrement().primaryKey(),
+  objectiveId: int("objectiveId").notNull(), // okr_objectives.id
+  title: varchar("title", { length: 500 }).notNull(),
+  measureType: mysqlEnum("measureType", ["number", "percentage", "currency", "boolean"]).default("number").notNull(),
+  startValue: decimal("startValue", { precision: 15, scale: 2 }).default("0"),
+  targetValue: decimal("targetValue", { precision: 15, scale: 2 }).notNull(),
+  currentValue: decimal("currentValue", { precision: 15, scale: 2 }).default("0"),
+  progress: int("progress").default(0), // 0~100
+  confidence: mysqlEnum("confidence", ["on_track", "at_risk", "off_track"]).default("on_track"),
+  notes: text("notes"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type OkrKeyResult = typeof okrKeyResults.$inferSelect;
+export type InsertOkrKeyResult = typeof okrKeyResults.$inferInsert;
+
+// ============================================================
+// Re:Wall 확장 포인트 (예약 — 법인 설립 후 활성화)
+// ============================================================
+
+/**
+ * Re:Wall 제품 카탈로그 (예약)
+ */
+export const rewallProducts = mysqlTable("rewall_products", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 300 }).notNull(),
+  sku: varchar("sku", { length: 100 }),
+  category: varchar("category", { length: 100 }), // "wall_panel", "partition", "door", "accessory"
+  description: text("description"),
+  specifications: json("specifications").$type<Record<string, string>>(),
+  pricePerUnit: decimal("pricePerUnit", { precision: 15, scale: 0 }),
+  unit: varchar("unit", { length: 50 }), // "㎡", "개", "m"
+  imageUrls: json("imageUrls").$type<string[]>(),
+  isActive: tinyint("isActive").default(0).notNull(), // 법인 설립 전 비활성
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type RewallProduct = typeof rewallProducts.$inferSelect;
+export type InsertRewallProduct = typeof rewallProducts.$inferInsert;
+
+/**
+ * Re:Wall 구독 계약 (예약)
+ */
+export const rewallSubscriptions = mysqlTable("rewall_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  clientProjectId: int("clientProjectId"),
+  clientUserId: int("clientUserId"),
+  plan: mysqlEnum("plan", ["purchase", "lease", "rental"]).default("rental").notNull(),
+  monthlyFee: decimal("monthlyFee", { precision: 15, scale: 0 }),
+  contractMonths: int("contractMonths"),
+  totalValue: decimal("totalValue", { precision: 15, scale: 0 }),
+  status: mysqlEnum("status", ["draft", "active", "paused", "cancelled", "expired"]).default("draft").notNull(),
+  startDate: varchar("startDate", { length: 20 }),
+  endDate: varchar("endDate", { length: 20 }),
+  items: json("items").$type<Array<{
+    productId: number;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+  }>>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type RewallSubscription = typeof rewallSubscriptions.$inferSelect;
+export type InsertRewallSubscription = typeof rewallSubscriptions.$inferInsert;

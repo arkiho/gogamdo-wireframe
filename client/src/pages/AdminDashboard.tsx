@@ -19,6 +19,7 @@ import {
   Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
   HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2, Shield, FileText,
+  ClipboardList, Package, HeartHandshake,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
@@ -415,6 +416,81 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="font-heading font-bold text-ink">사이트 설정 & 직원 관리</h3>
                     <p className="text-xs text-muted-foreground">AI 서비스 ON/OFF, 직원 권한 관리, 사이트 구성 설정</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+            {/* 설문 자동화 바로가기 */}
+            <Card className="border-teal-300/30 bg-gradient-to-r from-teal-50/50 to-transparent cursor-pointer hover:border-teal-400/50 transition-colors" onClick={() => navigate("/admin/survey")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center">
+                    <ClipboardList className="w-6 h-6 text-teal-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">설문 자동화</h3>
+                    <p className="text-xs text-muted-foreground">1차 설문 → 전사 설문 → AI 분석 리포트 자동 생성</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+            {/* 부동산 매칭 바로가기 */}
+            <Card className="border-cyan-300/30 bg-gradient-to-r from-cyan-50/50 to-transparent cursor-pointer hover:border-cyan-400/50 transition-colors" onClick={() => navigate("/admin/realestate")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-cyan-100 flex items-center justify-center">
+                    <Building2 className="w-6 h-6 text-cyan-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">부동산 매칭</h3>
+                    <p className="text-xs text-muted-foreground">이사 고객 매물 탐색 + 프로그램 다이어그램 자동 생성</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+            {/* 납품사 관리 바로가기 */}
+            <Card className="border-indigo-300/30 bg-gradient-to-r from-indigo-50/50 to-transparent cursor-pointer hover:border-indigo-400/50 transition-colors" onClick={() => navigate("/admin/vendor")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center">
+                    <Package className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">납품사 견적 관리</h3>
+                    <p className="text-xs text-muted-foreground">견적 등록 → AI 파싱 → 원가 변동률 추적</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+            {/* 사후관리 바로가기 */}
+            <Card className="border-rose-300/30 bg-gradient-to-r from-rose-50/50 to-transparent cursor-pointer hover:border-rose-400/50 transition-colors" onClick={() => navigate("/admin/aftercare")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-rose-100 flex items-center justify-center">
+                    <HeartHandshake className="w-6 h-6 text-rose-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">사후관리 & OpsX Insight</h3>
+                    <p className="text-xs text-muted-foreground">만족도 조사 → 정기 방문 → 공간 최적화 구독</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+            {/* 직원 대시보드 바로가기 */}
+            <Card className="border-sky-300/30 bg-gradient-to-r from-sky-50/50 to-transparent cursor-pointer hover:border-sky-400/50 transition-colors" onClick={() => navigate("/admin/employee")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-sky-100 flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-sky-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">직원 대시보드</h3>
+                    <p className="text-xs text-muted-foreground">일일보고서, KPI/OKR 관리, 공정률 추적</p>
                   </div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-muted-foreground" />

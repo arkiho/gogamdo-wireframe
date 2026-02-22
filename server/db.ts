@@ -2181,3 +2181,597 @@ export async function resetAllUserRoles() {
   await db.update(users).set({ role: "user" }).where(ne(users.role, "master"));
   return { success: true };
 }
+
+
+// ============================================================
+// E2E 비즈니스 프로세스 시스템 DB 헬퍼
+// ============================================================
+
+import {
+  surveyTemplates, surveyQuestions, surveyQuestionOptions,
+  surveyInstances, surveyResponses, surveyAnalysisReports,
+  autoEmailLogs, realestateSearchCriteria, realestateMatches,
+  programDiagrams, dailySiteReports, vendorQuotes, vendorQuoteItems,
+  materialPriceHistory, materialPriceAnalytics,
+  postOccupancySurveys, maintenanceVisits, insightSubscriptions,
+  spaceOptimizationReports, kpiDefinitions, kpiRecords,
+  okrObjectives, okrKeyResults, rewallProducts, rewallSubscriptions,
+  type InsertSurveyTemplate, type InsertSurveyQuestion,
+  type InsertSurveyQuestionOption, type InsertSurveyInstance,
+  type InsertSurveyResponse, type InsertSurveyAnalysisReport,
+  type InsertAutoEmailLog, type InsertRealestateSearchCriteria,
+  type InsertRealestateMatch, type InsertProgramDiagram,
+  type InsertDailySiteReport, type InsertVendorQuote,
+  type InsertVendorQuoteItem, type InsertMaterialPriceHistory,
+  type InsertMaterialPriceAnalytic, type InsertPostOccupancySurvey,
+  type InsertMaintenanceVisit, type InsertInsightSubscription,
+  type InsertSpaceOptimizationReport, type InsertKpiDefinition,
+  type InsertKpiRecord, type InsertOkrObjective, type InsertOkrKeyResult,
+} from "../drizzle/schema";
+
+// ===== 설문 템플릿 =====
+
+export async function createSurveyTemplate(data: InsertSurveyTemplate) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(surveyTemplates).values(data).$returningId();
+  return result;
+}
+
+export async function getSurveyTemplates() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(surveyTemplates).where(eq(surveyTemplates.isActive, 1)).orderBy(surveyTemplates.createdAt);
+}
+
+export async function getSurveyTemplateById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select().from(surveyTemplates).where(eq(surveyTemplates.id, id));
+  return result ?? null;
+}
+
+// ===== 설문 질문 =====
+
+export async function createSurveyQuestion(data: InsertSurveyQuestion) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(surveyQuestions).values(data).$returningId();
+  return result;
+}
+
+export async function getQuestionsByTemplate(templateId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(surveyQuestions)
+    .where(eq(surveyQuestions.templateId, templateId))
+    .orderBy(surveyQuestions.sortOrder);
+}
+
+export async function updateSurveyQuestion(id: number, data: Partial<InsertSurveyQuestion>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(surveyQuestions).set(data).where(eq(surveyQuestions.id, id));
+}
+
+export async function deleteSurveyQuestion(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(surveyQuestionOptions).where(eq(surveyQuestionOptions.questionId, id));
+  await db.delete(surveyQuestions).where(eq(surveyQuestions.id, id));
+}
+
+// ===== 설문 질문 선택지 =====
+
+export async function createQuestionOptions(options: InsertSurveyQuestionOption[]) {
+  const db = await getDb();
+  if (!db) return;
+  if (options.length > 0) await db.insert(surveyQuestionOptions).values(options);
+}
+
+export async function getOptionsByQuestion(questionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(surveyQuestionOptions)
+    .where(eq(surveyQuestionOptions.questionId, questionId))
+    .orderBy(surveyQuestionOptions.sortOrder);
+}
+
+// ===== 설문 인스턴스 =====
+
+export async function createSurveyInstance(data: InsertSurveyInstance) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(surveyInstances).values(data).$returningId();
+  return result;
+}
+
+export async function getSurveyInstanceByToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select().from(surveyInstances).where(eq(surveyInstances.token, token));
+  return result ?? null;
+}
+
+export async function getSurveyInstancesByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(surveyInstances)
+    .where(eq(surveyInstances.clientProjectId, projectId))
+    .orderBy(desc(surveyInstances.createdAt));
+}
+
+export async function updateSurveyInstance(id: number, data: Partial<InsertSurveyInstance>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(surveyInstances).set(data).where(eq(surveyInstances.id, id));
+}
+
+// ===== 설문 응답 =====
+
+export async function createSurveyResponse(data: InsertSurveyResponse) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(surveyResponses).values(data).$returningId();
+  // 응답 수 증가
+  await db.update(surveyInstances)
+    .set({ responseCount: sql`${surveyInstances.responseCount} + 1` })
+    .where(eq(surveyInstances.id, data.instanceId));
+  return result;
+}
+
+export async function getResponsesByInstance(instanceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(surveyResponses)
+    .where(eq(surveyResponses.instanceId, instanceId))
+    .orderBy(surveyResponses.createdAt);
+}
+
+// ===== 설문 분석 리포트 =====
+
+export async function createSurveyAnalysisReport(data: InsertSurveyAnalysisReport) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(surveyAnalysisReports).values(data).$returningId();
+  return result;
+}
+
+export async function getAnalysisReportsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(surveyAnalysisReports)
+    .where(eq(surveyAnalysisReports.clientProjectId, projectId))
+    .orderBy(desc(surveyAnalysisReports.createdAt));
+}
+
+export async function getAnalysisReportById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select().from(surveyAnalysisReports).where(eq(surveyAnalysisReports.id, id));
+  return result ?? null;
+}
+
+// ===== 자동 이메일 로그 =====
+
+export async function createAutoEmailLog(data: InsertAutoEmailLog) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(autoEmailLogs).values(data).$returningId();
+  return result;
+}
+
+export async function getEmailLogsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(autoEmailLogs)
+    .where(eq(autoEmailLogs.clientProjectId, projectId))
+    .orderBy(desc(autoEmailLogs.createdAt));
+}
+
+// ===== 부동산 검색 조건 =====
+
+export async function createRealestateSearch(data: InsertRealestateSearchCriteria) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(realestateSearchCriteria).values(data).$returningId();
+  return result;
+}
+
+export async function getRealestateSearchByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select().from(realestateSearchCriteria)
+    .where(eq(realestateSearchCriteria.clientProjectId, projectId));
+  return result ?? null;
+}
+
+export async function updateRealestateSearch(id: number, data: Partial<InsertRealestateSearchCriteria>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(realestateSearchCriteria).set(data).where(eq(realestateSearchCriteria.id, id));
+}
+
+// ===== 부동산 매물 매칭 =====
+
+export async function createRealestateMatch(data: InsertRealestateMatch) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(realestateMatches).values(data).$returningId();
+  return result;
+}
+
+export async function getRealestateMatchesByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(realestateMatches)
+    .where(eq(realestateMatches.clientProjectId, projectId))
+    .orderBy(desc(realestateMatches.matchScore));
+}
+
+export async function updateRealestateMatch(id: number, data: Partial<InsertRealestateMatch>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(realestateMatches).set(data).where(eq(realestateMatches.id, id));
+}
+
+// ===== 프로그램 다이어그램 =====
+
+export async function createProgramDiagram(data: InsertProgramDiagram) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(programDiagrams).values(data).$returningId();
+  return result;
+}
+
+export async function getDiagramsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(programDiagrams)
+    .where(eq(programDiagrams.clientProjectId, projectId))
+    .orderBy(desc(programDiagrams.createdAt));
+}
+
+// ===== 일일 현장 보고서 =====
+
+export async function createDailySiteReport(data: InsertDailySiteReport) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(dailySiteReports).values(data).$returningId();
+  return result;
+}
+
+export async function getDailySiteReportsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(dailySiteReports)
+    .where(eq(dailySiteReports.projectId, projectId))
+    .orderBy(desc(dailySiteReports.reportDate));
+}
+
+export async function getDailySiteReportById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select().from(dailySiteReports).where(eq(dailySiteReports.id, id));
+  return result ?? null;
+}
+
+export async function updateDailySiteReport(id: number, data: Partial<InsertDailySiteReport>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(dailySiteReports).set(data).where(eq(dailySiteReports.id, id));
+}
+
+// ===== 납품사 견적 =====
+
+export async function createVendorQuote(data: InsertVendorQuote) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(vendorQuotes).values(data).$returningId();
+  return result;
+}
+
+export async function getVendorQuotesByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(vendorQuotes)
+    .where(eq(vendorQuotes.projectId, projectId))
+    .orderBy(desc(vendorQuotes.createdAt));
+}
+
+export async function getVendorQuoteById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select().from(vendorQuotes).where(eq(vendorQuotes.id, id));
+  return result ?? null;
+}
+
+export async function updateVendorQuote(id: number, data: Partial<InsertVendorQuote>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(vendorQuotes).set(data).where(eq(vendorQuotes.id, id));
+}
+
+// ===== 납품사 견적 항목 =====
+
+export async function createVendorQuoteItems(items: InsertVendorQuoteItem[]) {
+  const db = await getDb();
+  if (!db) return;
+  if (items.length > 0) await db.insert(vendorQuoteItems).values(items);
+}
+
+export async function getQuoteItemsByQuote(quoteId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(vendorQuoteItems)
+    .where(eq(vendorQuoteItems.quoteId, quoteId))
+    .orderBy(vendorQuoteItems.sortOrder);
+}
+
+// ===== 자재 단가 이력 =====
+
+export async function createMaterialPriceRecord(data: InsertMaterialPriceHistory) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(materialPriceHistory).values(data).$returningId();
+  return result;
+}
+
+export async function getMaterialPriceHistoryByCode(materialCode: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(materialPriceHistory)
+    .where(eq(materialPriceHistory.materialCode, materialCode))
+    .orderBy(desc(materialPriceHistory.priceDate));
+}
+
+// ===== 자재 단가 분석 =====
+
+export async function upsertMaterialPriceAnalytic(data: InsertMaterialPriceAnalytic) {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await db.select().from(materialPriceAnalytics)
+    .where(eq(materialPriceAnalytics.materialCode, data.materialCode));
+  if (existing.length > 0) {
+    await db.update(materialPriceAnalytics).set(data)
+      .where(eq(materialPriceAnalytics.materialCode, data.materialCode));
+    return existing[0];
+  }
+  const [result] = await db.insert(materialPriceAnalytics).values(data).$returningId();
+  return result;
+}
+
+export async function getMaterialPriceAnalytics() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(materialPriceAnalytics).orderBy(materialPriceAnalytics.category);
+}
+
+// ===== 입주 후 만족도 =====
+
+export async function createPostOccupancySurvey(data: InsertPostOccupancySurvey) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(postOccupancySurveys).values(data).$returningId();
+  return result;
+}
+
+export async function getPostOccupancyByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select().from(postOccupancySurveys)
+    .where(eq(postOccupancySurveys.clientProjectId, projectId));
+  return result ?? null;
+}
+
+// ===== 유지보수 방문 =====
+
+export async function createMaintenanceVisit(data: InsertMaintenanceVisit) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(maintenanceVisits).values(data).$returningId();
+  return result;
+}
+
+export async function getMaintenanceVisitsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(maintenanceVisits)
+    .where(eq(maintenanceVisits.clientProjectId, projectId))
+    .orderBy(desc(maintenanceVisits.scheduledDate));
+}
+
+export async function updateMaintenanceVisit(id: number, data: Partial<InsertMaintenanceVisit>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(maintenanceVisits).set(data).where(eq(maintenanceVisits.id, id));
+}
+
+// ===== OpsX Insight 구독 =====
+
+export async function createInsightSubscription(data: InsertInsightSubscription) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(insightSubscriptions).values(data).$returningId();
+  return result;
+}
+
+export async function getInsightSubscriptionByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select().from(insightSubscriptions)
+    .where(eq(insightSubscriptions.clientProjectId, projectId));
+  return result ?? null;
+}
+
+export async function updateInsightSubscription(id: number, data: Partial<InsertInsightSubscription>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(insightSubscriptions).set(data).where(eq(insightSubscriptions.id, id));
+}
+
+// ===== 공간 최적화 리포트 =====
+
+export async function createSpaceOptimizationReport(data: InsertSpaceOptimizationReport) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(spaceOptimizationReports).values(data).$returningId();
+  return result;
+}
+
+export async function getOptimizationReportsBySubscription(subscriptionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(spaceOptimizationReports)
+    .where(eq(spaceOptimizationReports.subscriptionId, subscriptionId))
+    .orderBy(desc(spaceOptimizationReports.createdAt));
+}
+
+// ===== KPI 정의 =====
+
+export async function createKpiDefinition(data: InsertKpiDefinition) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(kpiDefinitions).values(data).$returningId();
+  return result;
+}
+
+export async function getKpiDefinitions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(kpiDefinitions)
+    .where(eq(kpiDefinitions.isActive, 1))
+    .orderBy(kpiDefinitions.category);
+}
+
+export async function updateKpiDefinition(id: number, data: Partial<InsertKpiDefinition>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(kpiDefinitions).set(data).where(eq(kpiDefinitions.id, id));
+}
+
+// ===== KPI 기록 =====
+
+export async function createKpiRecord(data: InsertKpiRecord) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(kpiRecords).values(data).$returningId();
+  return result;
+}
+
+export async function getKpiRecordsByUser(userId: number, period?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(kpiRecords.userId, userId)];
+  if (period) conditions.push(eq(kpiRecords.period, period));
+  return db.select().from(kpiRecords).where(and(...conditions)).orderBy(kpiRecords.period);
+}
+
+export async function updateKpiRecord(id: number, data: Partial<InsertKpiRecord>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(kpiRecords).set(data).where(eq(kpiRecords.id, id));
+}
+
+// ===== OKR 목표 =====
+
+export async function createOkrObjective(data: InsertOkrObjective) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(okrObjectives).values(data).$returningId();
+  return result;
+}
+
+export async function getOkrObjectivesByUser(userId: number, period?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(okrObjectives.userId, userId)];
+  if (period) conditions.push(eq(okrObjectives.period, period));
+  return db.select().from(okrObjectives).where(and(...conditions)).orderBy(okrObjectives.createdAt);
+}
+
+export async function updateOkrObjective(id: number, data: Partial<InsertOkrObjective>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(okrObjectives).set(data).where(eq(okrObjectives.id, id));
+}
+
+// ===== OKR 핵심 결과 =====
+
+export async function createOkrKeyResult(data: InsertOkrKeyResult) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(okrKeyResults).values(data).$returningId();
+  return result;
+}
+
+export async function getKeyResultsByObjective(objectiveId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(okrKeyResults)
+    .where(eq(okrKeyResults.objectiveId, objectiveId))
+    .orderBy(okrKeyResults.createdAt);
+}
+
+export async function updateOkrKeyResult(id: number, data: Partial<InsertOkrKeyResult>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(okrKeyResults).set(data).where(eq(okrKeyResults.id, id));
+}
+
+// ============ 누락된 DB 헬퍼 함수 추가 ============
+
+export async function getKpiDefinitionsByDepartment(department: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(kpiDefinitions)
+    .where(eq(kpiDefinitions.department, department))
+    .orderBy(kpiDefinitions.category);
+}
+
+export async function getKpiRecordsByDefinition(kpiDefinitionId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(kpiRecords)
+    .where(eq(kpiRecords.kpiDefinitionId, kpiDefinitionId))
+    .orderBy(desc(kpiRecords.createdAt));
+}
+
+export async function getOkrObjectivesByPeriod(period: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(okrObjectives)
+    .where(eq(okrObjectives.period, period))
+    .orderBy(okrObjectives.level, okrObjectives.createdAt);
+}
+
+export async function getDailyReportsByUser(userId: number, limit: number = 30, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(dailySiteReports)
+    .where(eq(dailySiteReports.userId, userId))
+    .orderBy(desc(dailySiteReports.reportDate))
+    .limit(limit).offset(offset);
+}
+
+export async function getDailyReportsByProject(projectId: number, limit: number = 30, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(dailySiteReports)
+    .where(eq(dailySiteReports.projectId, projectId))
+    .orderBy(desc(dailySiteReports.reportDate))
+    .limit(limit).offset(offset);
+}
+
+export async function getDailyReportById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(dailySiteReports).where(eq(dailySiteReports.id, id));
+  return rows[0] ?? null;
+}
+
+export async function updateDailyReport(id: number, data: Partial<InsertDailySiteReport> & { reviewedBy?: number; reviewedAt?: number }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(dailySiteReports).set(data).where(eq(dailySiteReports.id, id));
+}

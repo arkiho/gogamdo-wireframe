@@ -57,6 +57,11 @@ import { opsRouter } from "./routers/ops";
 import { ipProtectionRouter } from "./routers/ipProtection";
 import { aiRedesignRouter } from "./routers/aiRedesign";
 import { sendReviewRequestEmail } from "./email";
+import { surveyAutomationRouter } from "./routers/surveyAutomation";
+import { realestateMatchingRouter } from "./routers/realestateMatching";
+import { vendorPortalRouter } from "./routers/vendorPortal";
+import { postOccupancyRouter } from "./routers/postOccupancy";
+import { employeePortalRouter } from "./routers/employeePortal";
 import { hash, compare } from "bcryptjs";
 import { randomBytes } from "crypto";
 
@@ -1862,6 +1867,21 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
 
   // ===== 직원용 프로젝트 관리 대시보드 (OpsX) =====
   ops: opsRouter,
+
+  // ===== E2E 설문 자동화 시스템 =====
+  surveyAuto: surveyAutomationRouter,
+
+  // ===== 부동산 매칭 + 프로그램 다이어그램 =====
+  realestate: realestateMatchingRouter,
+
+  // ===== 납품사 포털 + 원가 학습 =====
+  vendor: vendorPortalRouter,
+
+  // ===== 사후관리 + OpsX Insight 구독 =====
+  postOccupancy: postOccupancyRouter,
+
+  // ===== 직원 포털 (일일보고/KPI/OKR) =====
+  employee: employeePortalRouter,
 
   // ===== 팝업 알림 관리 (Popups) =====
   popup: router({

@@ -626,3 +626,77 @@
 - [x] 설계자동화 AI 투어 영상 생성: 백엔드 API (createTourVideo + listTourVideos + updateTourVideo)
 - [x] 설계자동화 AI 투어 영상 생성: TourVideoTab UI (렌더링 선택 → AI 내레이션 → 슬라이드쇼 + Matterport 임베드)
 - [x] 설계자동화 AI 투어 영상 생성: STAGES에 투어 영상 단계 추가 + AdminDesignAuto 통합
+
+## E2E 비즈니스 프로세스 시스템 구축
+
+### Phase 1~3: 상담→설문→회원가입 유도 자동화
+- [ ] 설문 시스템 DB 스키마 추가 (survey_templates, survey_questions, survey_question_options, survey_instances, survey_analysis_reports)
+- [ ] 상담 요청 → 1차 설문 이메일 자동 발송 파이프라인
+- [ ] 1차 담당자 설문 페이지 (/survey/initial/:token)
+- [ ] AI 설문 분석 리포트 생성 로직
+- [ ] 설문 분석 리포트 미리보기 페이지 (/survey/report/:token) - 블러 처리 + 회원가입 유도
+- [ ] 회원가입 완료 → 전사 설문 링크 자동 생성
+- [ ] 전사 설문 질문 관리 페이지 (/my/project/:id/survey-manage) - 질문 수정/추가/삭제
+- [ ] 질문 수정 시 AI 재구성 + 새 링크 생성 + 이메일 발송
+- [ ] 전사 설문 응답 수집 페이지
+- [ ] 전사 설문 응답 대시보드 (/my/project/:id/survey-dashboard)
+
+### Phase 4~5: 도면 업로드→이사/레노베이션 분기→부동산 매칭
+- [ ] 도면 업로드 + AI 분석 페이지 (/my/project/:id/floorplan)
+- [ ] 이사/레노베이션 분기 로직
+- [ ] 전사 설문 기반 필요 면적 자동 계산 (/my/project/:id/space-calc)
+- [ ] 부동산 매물 검색 조건 DB (realestate_search_criteria, realestate_matches, realestate_program_diagrams)
+- [ ] OpsX 부동산 DB 매물 매칭 로직
+- [ ] 부동산 매물 매칭 페이지 (/my/project/:id/realestate)
+- [ ] 프로그램 다이어그램 생성 (/my/project/:id/program-diagram)
+
+### Phase 6~7: 레이아웃→3D→제안서→킥오프 계약
+- [ ] 레이아웃 옵션 비교 페이지 (/my/project/:id/layouts)
+- [ ] 3D 렌더링 갤러리 페이지 (/my/project/:id/renderings)
+- [ ] AI 제안서 자동 생성 (/my/project/:id/proposal)
+- [ ] 계약 체결 → OpsX 프로젝트 자동 생성 파이프라인
+
+### Phase 8~9: 시공 관리 + 납품사 시스템
+- [ ] 일일 보고서 DB (daily_reports) + 작성 페이지 (/ops/daily-report)
+- [ ] 일일 보고서 목록/관리 페이지 (/ops/daily-report/list, /admin/daily-reports)
+- [ ] 구글 드라이브 도면 자동 동기화
+- [ ] 실행원가예산 지속 업데이트 로직
+- [ ] 납품사 견적 DB (vendor_quotes, vendor_quote_items, material_price_history, material_price_analytics)
+- [ ] 납품사 견적 입력/업로드 페이지 (/ops/sub-portal/:subId/quotes)
+- [ ] 견적 파일 AI 파싱 + 단가 이력 기록 + 원가 변동률 분석
+- [ ] 관리자 납품사 원가 분석 페이지 (/admin/vendor-analytics)
+
+### Phase 10: 입주→사후관리→OpsX Insight 구독
+- [ ] 사후관리 DB (post_occupancy_surveys, maintenance_visits)
+- [ ] 입주 1주 후 만족도 설문 자동 발송
+- [ ] 입주 후 만족도 페이지 (/my/project/:id/post-occupancy)
+- [ ] 미세 조정 방문 예약 시스템
+- [ ] OpsX Insight 구독 연동
+
+### 직원 포털: KPI/OKR/연차/보상
+- [ ] KPI/OKR DB (kpi_definitions, kpi_records, okr_objectives, okr_key_results)
+- [ ] 내 KPI 페이지 (/ops/my-kpi)
+- [ ] 내 OKR 페이지 (/ops/my-okr)
+- [ ] 관리자 KPI/OKR 관리 (/admin/kpi, /admin/okr)
+- [ ] KPI 자동 집계 파이프라인
+- [ ] 보상 시스템 연동
+
+### 데이터 기반 레이아웃 최적화 엔진
+- [ ] 시나리오 A: 이사 - Insight 데이터 반영 레이아웃
+- [ ] 시나리오 B: 레노베이션 - 현재 공간 최적화
+- [ ] 시나리오 C: 3개월 주기 자동 최적화 리포트
+
+### Re:Wall 확장 포인트 (예약)
+- [ ] Re:Wall DB 테이블 6개 (예약 - 법인 설립 후 활성화)
+- [ ] Re:Wall API 인터페이스 정의
+- [ ] 일반 시공 vs Re:Wall 비용 자동 비교 로직
+
+## Phase 3 후속 - 프론트엔드 페이지 & 라우터 등록 (2026-02-23)
+- [x] AdminPostOccupancy 페이지 작성 (사후관리 & OpsX Insight 구독 관리)
+- [x] App.tsx에 신규 라우트 등록 (admin/survey, admin/realestate, admin/vendor, admin/aftercare, admin/employee, survey-response/:token)
+- [x] AdminDashboard에 신규 관리 페이지 바로가기 카드 5개 추가
+- [x] EmployeeDashboard tRPC 프로시저 이름 수정 (실제 라우터에 맞게)
+- [x] AdminRealestateMatching tRPC 프로시저 이름 수정
+- [x] AdminVendorPortal tRPC 프로시저 이름 수정
+- [x] SurveyResponse tRPC 프로시저 이름 수정
+- [x] createDailyReport import 에러 해결 (서버 재시작으로 캐시 문제 해결)

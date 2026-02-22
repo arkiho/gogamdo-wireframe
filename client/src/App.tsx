@@ -48,6 +48,12 @@ import ClientVerifyEmail from "./pages/ClientVerifyEmail";
 import SensorApiDocs from "./pages/SensorApiDocs";
 import ClientSpaceDashboard from "./pages/ClientSpaceDashboard";
 import Layout from "./components/Layout";
+import AdminSurveyAutomation from "./pages/AdminSurveyAutomation";
+import AdminRealestateMatching from "./pages/AdminRealestateMatching";
+import AdminVendorPortal from "./pages/AdminVendorPortal";
+import AdminPostOccupancy from "./pages/AdminPostOccupancy";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
+import SurveyResponse from "./pages/SurveyResponse";
 
 function PublicRouter() {
   return (
@@ -87,6 +93,7 @@ function Router() {
     <Switch>
       {/* 전사 서베이 - Layout 없이 독립 페이지 */}
       <Route path="/survey/:token" component={CompanySurvey} />
+      <Route path="/survey-response/:token" component={SurveyResponse} />
       {/* 하도급 업체 포털 - Layout 없이 독립 페이지 */}
       <Route path="/ops/sub-portal/:subId" component={SubPortal} />
       {/* 고객 인증 및 공간 활용 대시보드 */}
@@ -113,6 +120,11 @@ function Router() {
       <Route path="/admin/client-pipeline" component={AdminClientPipeline} />
       <Route path="/admin/download-logs" component={AdminDownloadLogs} />
       <Route path="/admin/settings" component={AdminSettings} />
+      <Route path="/admin/survey" component={AdminSurveyAutomation} />
+      <Route path="/admin/realestate" component={AdminRealestateMatching} />
+      <Route path="/admin/vendor" component={AdminVendorPortal} />
+      <Route path="/admin/aftercare" component={AdminPostOccupancy} />
+      <Route path="/admin/employee" component={EmployeeDashboard} />
       <Route component={PublicRouter} />
     </Switch>
   );
