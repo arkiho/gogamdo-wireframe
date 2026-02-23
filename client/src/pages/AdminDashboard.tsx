@@ -19,7 +19,7 @@ import {
   Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
   HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2, Shield, FileText,
-  ClipboardList, Package, HeartHandshake,
+  ClipboardList, Package, HeartHandshake, HardHat,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
@@ -491,6 +491,22 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="font-heading font-bold text-ink">직원 대시보드</h3>
                     <p className="text-xs text-muted-foreground">일일보고서, KPI/OKR 관리, 공정률 추적</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            {/* OpsX 직원 포털 바로가기 (관리자도 접근 가능) */}
+            <Card className="border-teal-300/30 bg-gradient-to-r from-teal-50/50 to-transparent cursor-pointer hover:border-teal-400/50 transition-colors" onClick={() => navigate("/ops")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center">
+                    <HardHat className="w-6 h-6 text-teal-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">OpsX 직원 포털</h3>
+                    <p className="text-xs text-muted-foreground">프로젝트 관리, 공정표, 작업일보, 카메라 모니터링</p>
                   </div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-muted-foreground" />

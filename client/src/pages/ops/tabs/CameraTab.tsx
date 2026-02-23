@@ -11,13 +11,22 @@ import { Plus, Camera, Video, Wifi, WifiOff, Maximize2, RefreshCw } from "lucide
 import { toast } from "sonner";
 
 export default function CameraTab({ projectId }: { projectId: string }) {
+  const numericProjectId = Number(projectId);
   const [open, setOpen] = useState(false);
-  const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
+  const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
   const [form, setForm] = useState({
     name: "", location: "", streamUrl: "", cameraType: "ip",
   });
 
-  const cameras = trpc.ops.camera.list.useQuery({ projectId });
+  const cameras = trpc.ops.camera.list.useQuery({ projectId: numericProjectId });
+  const deleteCamera = trpc.ops.camera.delete.useMutation({
+    onSuccess: () => {
+      cameras.refetch();
+      setSelectedCamera(null);
+      toast.success("카메라가 삭제되었습니다.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
   const createCamera = trpc.ops.camera.create.useMutation({
     onSuccess: () => {
       cameras.refetch();
@@ -34,15 +43,15 @@ export default function CameraTab({ projectId }: { projectId: string }) {
       return;
     }
     createCamera.mutate({
-      projectId,
+      projectId: numericProjectId,
       name: form.name,
       location: form.location || undefined,
       streamUrl: form.streamUrl,
-      cameraType: form.cameraType,
     });
   };
 
   const activeCam = cameras.data?.find(c => c.id === selectedCamera);
+  const streamUrl = activeCam?.streamUrl ?? "";
 
   return (
     <div className="space-y-4">

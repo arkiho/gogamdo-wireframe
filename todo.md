@@ -710,3 +710,17 @@
 - [x] 포트폴리오 관리 전용 라우트 (/admin/portfolios) 추가
 - [x] uploadImage tRPC 프로시저 추가 (base64 → S3 업로드)
 - [x] 포트폴리오 테스트 27개 전체 통과
+
+## 카메라 모듈 + 4가지 기능 추가 (2026-02-23)
+- [x] 카메라 모듈 구축 가이드 문서 작성 (CCTV/IP카메라 + 가상투어)
+- [x] CameraTab projectId 타입 버그 수정 (string → number)
+- [x] 지결 승인 시 회계 담당자 알림 기능 구현
+- [x] 직원 포털 프로젝트 추가/수정 기능 구현
+- [x] OpsProjectDetail에 프로젝트 정보 수정 다이얼로그 추가
+- [x] 프로젝트 생성 권한 adminProcedure → staffProcedure 변경
+- [x] CameraTab inline 플레이스홀더 → 실제 CameraTab.tsx 컴포넌트로 교체
+- [x] 관리자 사용자 관리 (고객/직원 목록 조회 및 역할 변경) 페이지 구현
+- [x] AdminSettings에 부서/직책 변경 드롭다운 추가 (updateDepartment mutation 연동)
+- [x] 관리자 직원 포털 접근 권한 설정
+- [x] staffProcedure/deptProcedure에 master 역할 접근 권한 추가
+- [x] AdminDashboard에 OpsX 직원 포털 바로가기 카드 추가

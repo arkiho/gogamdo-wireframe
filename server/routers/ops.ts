@@ -29,7 +29,7 @@ import {
   createCamera, listCameras, updateCamera, deleteCamera,
   getOpsStats,
   createNotification, listNotifications, getUnreadNotificationCount,
-  markNotificationRead, markAllNotificationsRead, notifyAdminsAndPMs,
+  markNotificationRead, markAllNotificationsRead, notifyAdminsAndPMs, notifyAccountants,
   getMonthlyExpenseTrend, getProjectStatusDistribution,
   getProjectCostExecution, getProjectScheduleProgress, getExpenseCategoryDistribution,
   createSubEvaluation, listSubEvaluations, listSubEvaluationsBySubcontractor,
@@ -49,8 +49,8 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 // Staff or admin check - department 배정된 직원 또는 admin
 const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
   const u = ctx.user as any;
-  // admin은 항상 접근 가능
-  if (u.role === "admin") return next({ ctx });
+  // admin/master는 항상 접근 가능
+  if (u.role === "admin" || u.role === "master") return next({ ctx });
   // department가 배정된 직원만 접근 (none은 미배정)
   if (u.department && u.department !== "none") return next({ ctx });
   throw new TRPCError({ code: "FORBIDDEN", message: "부서 배정이 필요합니다. 관리자에게 문의하세요." });
@@ -60,7 +60,7 @@ const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
 function deptProcedure(allowedDepts: string[]) {
   return staffProcedure.use(({ ctx, next }) => {
     const u = ctx.user as any;
-    if (u.role === "admin") return next({ ctx });
+    if (u.role === "admin" || u.role === "master") return next({ ctx });
     if (allowedDepts.includes(u.department)) return next({ ctx });
     throw new TRPCError({ code: "FORBIDDEN", message: `이 기능은 ${allowedDepts.join(", ")} 부서만 접근 가능합니다.` });
   });
@@ -115,7 +115,7 @@ export const opsRouter = router({
         return p;
       }),
 
-    create: adminProcedure
+    create: staffProcedure
       .input(z.object({
         name: z.string().min(1),
         code: z.string().min(1),
@@ -700,6 +700,16 @@ export const opsRouter = router({
             type: "expense_approved",
             title: "지출결의서 승인",
             message: `지출결의서 "${expense.title}"이 승인되었습니다.`,
+            link: `/ops/project/${expense.projectId}?tab=expenses`,
+            projectId: expense.projectId,
+          });
+        }
+        // 회계 담당자에게 승인 알림 발송 (경리부/경리 담당 직원에게)
+        if (expense) {
+          await notifyAccountants({
+            type: "expense_approved",
+            title: "[회계처리] 지출결의서 승인 완료",
+            message: `지출결의서 "${expense.title}" (${expense.amount ? Number(expense.amount).toLocaleString() + '원' : '금액 미입력'})이 승인되었습니다. 회계 처리를 진행해 주세요.`,
             link: `/ops/project/${expense.projectId}?tab=expenses`,
             projectId: expense.projectId,
           });

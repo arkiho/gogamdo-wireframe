@@ -579,6 +579,27 @@ export async function notifyAdminsAndPMs(data: Omit<InsertOpsNotification, "reci
   await createBulkNotifications(notifications);
 }
 
+// ============ NOTIFY ACCOUNTANTS ============
+export async function notifyAccountants(data: Omit<InsertOpsNotification, "recipientId">) {
+  const db = await getDb();
+  if (!db) return;
+  const accountants = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      or(
+        eq(users.department, "accounting"),
+        eq(users.opsRole, "accountant")
+      )
+    );
+  if (accountants.length === 0) return;
+  const notifs = accountants.map(a => ({
+    ...data,
+    recipientId: a.id,
+  }));
+  await createBulkNotifications(notifs);
+}
+
 // ============ STATS ============
 export async function getOpsStats() {
   const db = await getDb();

@@ -111,6 +111,13 @@ export default function AdminSettings() {
     },
     onError: (err) => toast.error(err.message || "역할 변경에 실패했습니다."),
   });
+  const updateDepartment = trpc.staff.updateDepartment.useMutation({
+    onSuccess: () => {
+      staffList.refetch();
+      toast.success("부서/직책이 변경되었습니다.");
+    },
+    onError: () => toast.error("부서/직책 변경에 실패했습니다."),
+  });
   const deleteStaff = trpc.staff.delete.useMutation({
     onSuccess: () => {
       staffList.refetch();
@@ -457,13 +464,48 @@ export default function AdminSettings() {
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {staff.email || "이메일 없음"}
-                              {staff.department && ` · ${staff.department}`}
-                              {staff.opsRole && ` · ${staff.opsRole}`}
+                              {staff.phone && ` · ${staff.phone}`}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Select
+                            value={staff.department || "none"}
+                            onValueChange={(value: string) => {
+                              updateDepartment.mutate({ userId: staff.id, department: value, opsRole: staff.opsRole || "staff" });
+                            }}
+                          >
+                            <SelectTrigger className="w-[100px] h-8 text-xs">
+                              <SelectValue placeholder="부서" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">미배정</SelectItem>
+                              <SelectItem value="design">설계팀</SelectItem>
+                              <SelectItem value="construction">시공팀</SelectItem>
+                              <SelectItem value="accounting">경리부</SelectItem>
+                              <SelectItem value="management">경영지원</SelectItem>
+                              <SelectItem value="sales">영업팀</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={staff.opsRole || "staff"}
+                            onValueChange={(value: string) => {
+                              updateDepartment.mutate({ userId: staff.id, department: staff.department || "none", opsRole: value });
+                            }}
+                          >
+                            <SelectTrigger className="w-[110px] h-8 text-xs">
+                              <SelectValue placeholder="직책" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="staff">일반 직원</SelectItem>
+                              <SelectItem value="pm">PM</SelectItem>
+                              <SelectItem value="designer">설계 담당</SelectItem>
+                              <SelectItem value="site_manager">현장 소장</SelectItem>
+                              <SelectItem value="accountant">경리 담당</SelectItem>
+                              <SelectItem value="director">이사/임원</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <Select
                             value={staff.role || "user"}
                             onValueChange={(value: string) => {

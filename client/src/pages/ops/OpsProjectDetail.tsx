@@ -11,6 +11,9 @@ import {
   FileSignature, Calculator, Camera, Link2, Star, Download, CheckCircle2, Sparkles,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { generateProjectReportPdf, type ProjectReportData } from "@/lib/projectReportPdf";
 import { IPConsentModal } from "@/components/IPConsentModal";
@@ -25,6 +28,7 @@ import EstimateTab from "./tabs/EstimateTab";
 import ContractTab from "./tabs/ContractTab";
 import CostTab from "./tabs/CostTab";
 import EvaluationTab from "./tabs/EvaluationTab";
+import CameraTabComponent from "./tabs/CameraTab";
 import { CostExecutionChart, ScheduleProgressChart, ExpenseCategoryChart } from "@/components/OpsCharts";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -45,6 +49,8 @@ export default function OpsProjectDetail() {
   const [reportConsentOpen, setReportConsentOpen] = useState(false);
   const [reportData, setReportData] = useState<ProjectReportData | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [showEditProject, setShowEditProject] = useState(false);
+  const [editForm, setEditForm] = useState<any>(null);
   const logDownload = trpc.ipProtection.logDownload.useMutation();
   const utils = trpc.useUtils();
 
@@ -137,6 +143,24 @@ export default function OpsProjectDetail() {
           {p.description && <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">{p.description}</p>}
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="flex-1 sm:flex-initial h-9" onClick={() => {
+            setEditForm({
+              id: Number(id),
+              name: p.name,
+              code: p.code,
+              clientName: p.clientName,
+              clientContact: (p as any).clientContact || "",
+              clientEmail: (p as any).clientEmail || "",
+              clientPhone: (p as any).clientPhone || "",
+              siteAddress: p.siteAddress || "",
+              totalArea: p.totalArea || "",
+              contractAmount: (p as any).contractAmount || "",
+              description: p.description || "",
+            });
+            setShowEditProject(true);
+          }}>
+            <Sparkles className="w-4 h-4 mr-1" />프로젝트 수정
+          </Button>
           <Button variant="outline" size="sm" className="flex-1 sm:flex-initial h-9" onClick={() => handleCopyInviteLink("client")}>
             <Link2 className="w-4 h-4 mr-1" />고객사 초대
           </Button>
@@ -290,9 +314,73 @@ export default function OpsProjectDetail() {
           <EvaluationTab projectId={id!} />
         </TabsContent>
         <TabsContent value="camera" className="mt-4">
-          <CameraTab projectId={id!} />
+          <CameraTabComponent projectId={id!} />
         </TabsContent>
       </Tabs>
+
+      {/* 프로젝트 정보 수정 다이얼로그 */}
+      <Dialog open={showEditProject} onOpenChange={setShowEditProject}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>프로젝트 정보 수정</DialogTitle></DialogHeader>
+          {editForm && (
+            <div className="space-y-3 pt-2 max-h-[60vh] overflow-y-auto">
+              <div>
+                <label className="text-xs text-muted-foreground">프로젝트명</label>
+                <Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">프로젝트 코드</label>
+                  <Input value={editForm.code} onChange={e => setEditForm({...editForm, code: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">고객사</label>
+                  <Input value={editForm.clientName} onChange={e => setEditForm({...editForm, clientName: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">고객 담당자</label>
+                  <Input value={editForm.clientContact} onChange={e => setEditForm({...editForm, clientContact: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">고객 이메일</label>
+                  <Input value={editForm.clientEmail} onChange={e => setEditForm({...editForm, clientEmail: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">고객 전화번호</label>
+                <Input value={editForm.clientPhone} onChange={e => setEditForm({...editForm, clientPhone: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">현장 주소</label>
+                <Input value={editForm.siteAddress} onChange={e => setEditForm({...editForm, siteAddress: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">면적 (㎡)</label>
+                  <Input value={editForm.totalArea} onChange={e => setEditForm({...editForm, totalArea: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">계약금액 (원)</label>
+                  <Input value={editForm.contractAmount} onChange={e => setEditForm({...editForm, contractAmount: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">설명</label>
+                <Textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} rows={3} />
+              </div>
+              <Button className="w-full" onClick={() => {
+                updateProject.mutate(editForm, {
+                  onSuccess: () => { setShowEditProject(false); toast.success("프로젝트 정보가 수정되었습니다."); }
+                });
+              }} disabled={updateProject.isPending}>
+                {updateProject.isPending ? "수정 중..." : "수정 완료"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* IP 보호 동의 모달 - 프로젝트 보고서 PDF */}
       <IPConsentModal
@@ -466,25 +554,4 @@ function OverviewTab({ projectId }: { projectId: string }) {
   );
 }
 
-// Camera Tab - placeholder for real-time camera integration
-function CameraTab({ projectId }: { projectId: string }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-          <Camera className="w-5 h-5" />현장 실시간 카메라
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-center py-10 sm:py-16 border-2 border-dashed rounded-lg">
-          <Camera className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-muted-foreground/20 mb-3 sm:mb-4" />
-          <h3 className="text-base sm:text-lg font-semibold mb-2">현장 카메라 연동 준비 중</h3>
-          <p className="text-muted-foreground text-xs sm:text-sm max-w-md mx-auto px-4">
-            실시간 현장 카메라가 설치되면 이 페이지에서 바로 확인할 수 있습니다.
-            카메라 스트림 URL을 등록하면 실시간 모니터링이 가능합니다.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+// CameraTab is now imported from ./tabs/CameraTab.tsx
