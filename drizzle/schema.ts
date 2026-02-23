@@ -2713,3 +2713,248 @@ export const rewallSubscriptions = mysqlTable("rewall_subscriptions", {
 });
 export type RewallSubscription = typeof rewallSubscriptions.$inferSelect;
 export type InsertRewallSubscription = typeof rewallSubscriptions.$inferInsert;
+
+
+// ============================================================
+// 하도급 업체 등록 승인 + 공종별 계약서 + 발주서/견적요청 시스템
+// ============================================================
+
+/**
+ * 공종 카테고리(Trade Categories)
+ * 하도급 업체의 전문 공종 분류 (전기, 설비, 목공, 도장 등)
+ */
+export const tradeCategories = mysqlTable("trade_categories", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(), // 공종명 (전기공사, 설비공사, 목공사 등)
+  code: varchar("code", { length: 20 }).notNull().unique(), // 코드 (ELEC, PLUM, WOOD 등)
+  description: text("description"),
+  parentId: int("parentId"), // 상위 카테고리 (대분류→중분류)
+  sortOrder: int("sortOrder").default(0),
+  isActive: tinyint("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type TradeCategory = typeof tradeCategories.$inferSelect;
+export type InsertTradeCategory = typeof tradeCategories.$inferInsert;
+
+/**
+ * 업체-공종 매핑(Subcontractor Trade Mappings)
+ * 하도급 업체가 수행 가능한 공종 목록
+ */
+export const subcontractorTrades = mysqlTable("subcontractor_trades", {
+  id: int("id").autoincrement().primaryKey(),
+  subcontractorId: int("subcontractorId").notNull(),
+  tradeCategoryId: int("tradeCategoryId").notNull(),
+  isPrimary: tinyint("isPrimary").default(0).notNull(), // 주력 공종 여부
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SubcontractorTrade = typeof subcontractorTrades.$inferSelect;
+export type InsertSubcontractorTrade = typeof subcontractorTrades.$inferInsert;
+
+/**
+ * 업체 등록 요청(Subcontractor Registration Requests)
+ * 직원이 업체를 등록 요청 → 담당자 1차 승인 → 관리자 최종 승인
+ */
+export const subRegistrationRequests = mysqlTable("sub_registration_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  // 업체 기본 정보
+  companyName: varchar("companyName", { length: 200 }).notNull(),
+  businessNumber: varchar("businessNumber", { length: 20 }),
+  representativeName: varchar("representativeName", { length: 100 }),
+  contactName: varchar("contactName", { length: 100 }),
+  contactPhone: varchar("contactPhone", { length: 30 }),
+  contactEmail: varchar("contactEmail", { length: 320 }),
+  address: text("address"),
+  // 공종 정보 (JSON으로 여러 공종 저장)
+  tradeIds: json("tradeIds").$type<number[]>(), // trade_categories.id 배열
+  specialty: varchar("specialty", { length: 500 }), // 상세 전문 분야 텍스트
+  // 계좌 정보
+  bankName: varchar("bankName", { length: 100 }),
+  bankAccount: varchar("bankAccount", { length: 50 }),
+  bankHolder: varchar("bankHolder", { length: 100 }),
+  // 첨부 서류
+  businessLicenseUrl: text("businessLicenseUrl"), // 사업자등록증 S3 URL
+  businessLicenseKey: varchar("businessLicenseKey", { length: 500 }),
+  // 등록 요청 상태
+  status: mysqlEnum("status", [
+    "pending",           // 등록 요청 대기
+    "staff_approved",    // 담당자 1차 승인
+    "approved",          // 관리자 최종 승인
+    "rejected",          // 반려
+  ]).default("pending").notNull(),
+  // 요청자
+  requestedBy: int("requestedBy").notNull(), // 등록 요청한 직원 users.id
+  requestedByName: varchar("requestedByName", { length: 100 }),
+  // 1차 승인 (담당자)
+  staffApprovedBy: int("staffApprovedBy"),
+  staffApprovedByName: varchar("staffApprovedByName", { length: 100 }),
+  staffApprovedAt: timestamp("staffApprovedAt"),
+  staffComment: text("staffComment"),
+  // 최종 승인 (관리자)
+  adminApprovedBy: int("adminApprovedBy"),
+  adminApprovedByName: varchar("adminApprovedByName", { length: 100 }),
+  adminApprovedAt: timestamp("adminApprovedAt"),
+  adminComment: text("adminComment"),
+  // 반려 정보
+  rejectedBy: int("rejectedBy"),
+  rejectedByName: varchar("rejectedByName", { length: 100 }),
+  rejectedAt: timestamp("rejectedAt"),
+  rejectionReason: text("rejectionReason"),
+  // 승인 후 생성된 subcontractor ID
+  subcontractorId: int("subcontractorId"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SubRegistrationRequest = typeof subRegistrationRequests.$inferSelect;
+export type InsertSubRegistrationRequest = typeof subRegistrationRequests.$inferInsert;
+
+/**
+ * 공종별 계약서 템플릿(Trade Contract Templates)
+ * 공종별로 다른 계약서 양식을 관리
+ */
+export const tradeContractTemplates = mysqlTable("trade_contract_templates", {
+  id: int("id").autoincrement().primaryKey(),
+  tradeCategoryId: int("tradeCategoryId").notNull(),
+  name: varchar("name", { length: 300 }).notNull(), // 계약서 템플릿 명
+  content: longtext("content").notNull(), // 계약서 본문 (마크다운/HTML)
+  validityMonths: int("validityMonths").default(12).notNull(), // 유효 기간 (기본 12개월)
+  version: int("version").default(1),
+  isActive: tinyint("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type TradeContractTemplate = typeof tradeContractTemplates.$inferSelect;
+export type InsertTradeContractTemplate = typeof tradeContractTemplates.$inferInsert;
+
+/**
+ * 하도급 계약(Subcontractor Contracts)
+ * 승인된 업체와 공종별로 체결하는 1년 유효 계약
+ */
+export const subContracts = mysqlTable("sub_contracts", {
+  id: int("id").autoincrement().primaryKey(),
+  subcontractorId: int("subcontractorId").notNull(),
+  tradeCategoryId: int("tradeCategoryId").notNull(),
+  templateId: int("templateId"), // 사용된 템플릿
+  contractNumber: varchar("contractNumber", { length: 50 }).notNull(), // 계약번호
+  title: varchar("title", { length: 300 }).notNull(),
+  content: longtext("content").notNull(), // 실제 계약서 내용
+  // 계약 당사자
+  partyA: varchar("partyA", { length: 200 }).notNull().default("주식회사 고감도"), // 갑
+  partyB: varchar("partyB", { length: 200 }).notNull(), // 을 (협력사)
+  // 유효 기간
+  startDate: varchar("startDate", { length: 20 }).notNull(),
+  endDate: varchar("endDate", { length: 20 }).notNull(),
+  // 서명/도장
+  partyASignatureUrl: text("partyASignatureUrl"), // 고감도 서명/도장 S3 URL
+  partyASignatureKey: varchar("partyASignatureKey", { length: 500 }),
+  partyBSignatureUrl: text("partyBSignatureUrl"), // 협력사 서명/도장 S3 URL
+  partyBSignatureKey: varchar("partyBSignatureKey", { length: 500 }),
+  partyASignedAt: timestamp("partyASignedAt"),
+  partyBSignedAt: timestamp("partyBSignedAt"),
+  partyASignedBy: int("partyASignedBy"), // 고감도 측 서명자
+  partyBSignerName: varchar("partyBSignerName", { length: 100 }), // 협력사 측 서명자 이름
+  // 계약서 PDF
+  pdfUrl: text("pdfUrl"),
+  pdfKey: varchar("pdfKey", { length: 500 }),
+  // 상태
+  status: mysqlEnum("status", [
+    "draft",         // 초안
+    "pending_b",     // 협력사 서명 대기
+    "pending_a",     // 고감도 서명 대기
+    "active",        // 체결 완료 (양측 서명)
+    "expired",       // 만료
+    "terminated",    // 해지
+  ]).default("draft").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SubContract = typeof subContracts.$inferSelect;
+export type InsertSubContract = typeof subContracts.$inferInsert;
+
+/**
+ * 발주서(Purchase Orders)
+ * 내부 직원이 생성하는 발주서 (자재/공사 발주)
+ */
+export const purchaseOrders = mysqlTable("purchase_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(), // ops_projects.id
+  poNumber: varchar("poNumber", { length: 50 }).notNull(), // 발주번호 (PO-2026-0001)
+  title: varchar("title", { length: 300 }).notNull(),
+  // 발주 항목
+  items: json("items").$type<Array<{
+    id: number;
+    tradeCategoryId: number;      // 공종 카테고리 ID
+    tradeCategoryName: string;    // 공종명
+    description: string;          // 품목 설명
+    specification: string;        // 규격
+    unit: string;                 // 단위
+    quantity: number;             // 수량
+    estimatedUnitPrice: number;   // 예상 단가
+    estimatedAmount: number;      // 예상 금액
+    remarks?: string;
+  }>>(),
+  estimatedTotal: decimal("estimatedTotal", { precision: 15, scale: 0 }),
+  // 발주 정보
+  requiredDate: varchar("requiredDate", { length: 20 }), // 납품 요청일
+  deliveryAddress: text("deliveryAddress"),
+  // 작성자
+  authorId: int("authorId").notNull(),
+  authorName: varchar("authorName", { length: 100 }),
+  // 상태
+  status: mysqlEnum("status", [
+    "draft",              // 초안
+    "rfq_sent",           // 견적요청 발송됨
+    "quotes_received",    // 견적 수신 중
+    "quote_selected",     // 견적 선정 완료
+    "ordered",            // 발주 완료
+    "delivered",          // 납품 완료
+    "cancelled",          // 취소
+  ]).default("draft").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+export type InsertPurchaseOrder = typeof purchaseOrders.$inferInsert;
+
+/**
+ * 견적요청(RFQ - Request for Quotation)
+ * 발주서 항목에 대해 협력사에게 보내는 견적 요청
+ */
+export const rfqRequests = mysqlTable("rfq_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  purchaseOrderId: int("purchaseOrderId").notNull(),
+  subcontractorId: int("subcontractorId").notNull(),
+  // 요청 항목 (발주서 항목 중 해당 업체에 해당하는 것만)
+  itemIds: json("itemIds").$type<number[]>(), // purchaseOrders.items[].id 배열
+  // 상태
+  status: mysqlEnum("status", [
+    "sent",         // 발송됨
+    "viewed",       // 열람됨
+    "quoted",       // 견적 제출됨
+    "selected",     // 선정됨
+    "not_selected", // 미선정
+    "expired",      // 만료
+  ]).default("sent").notNull(),
+  // 견적 응답
+  quotedItems: json("quotedItems").$type<Array<{
+    itemId: number;
+    unitPrice: number;
+    amount: number;
+    leadTime: string;   // 납기
+    remarks?: string;
+  }>>(),
+  quotedTotal: decimal("quotedTotal", { precision: 15, scale: 0 }),
+  quotedAt: timestamp("quotedAt"),
+  // 토큰 (협력사 접근용)
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt"),
+  sentAt: timestamp("sentAt"),
+  viewedAt: timestamp("viewedAt"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type RfqRequest = typeof rfqRequests.$inferSelect;
+export type InsertRfqRequest = typeof rfqRequests.$inferInsert;

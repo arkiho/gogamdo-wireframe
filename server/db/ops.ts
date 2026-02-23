@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, or } from "drizzle-orm";
+import { eq, desc, and, sql, or, inArray } from "drizzle-orm";
 import { getDb } from "../db";
 import {
   opsProjects, opsScheduleItems, opsWorkReports, opsMeetingNotes,
@@ -790,4 +790,341 @@ export async function getSubEvaluationSummary(subcontractorId: number) {
 export async function deleteSubEvaluation(id: number) {
   const db = await getDb();
   return db.delete(opsSubEvaluations).where(eq(opsSubEvaluations.id, id));
+}
+
+
+// ============ TRADE CATEGORIES ============
+import {
+  tradeCategories, type InsertTradeCategory,
+  subcontractorTrades, type InsertSubcontractorTrade,
+  subRegistrationRequests, type InsertSubRegistrationRequest,
+  tradeContractTemplates, type InsertTradeContractTemplate,
+  subContracts, type InsertSubContract,
+  purchaseOrders, type InsertPurchaseOrder,
+  rfqRequests, type InsertRfqRequest,
+} from "../../drizzle/schema";
+
+export async function createTradeCategory(data: InsertTradeCategory) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(tradeCategories).values(data).$returningId();
+  return result;
+}
+
+export async function listTradeCategories() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(tradeCategories).where(eq(tradeCategories.isActive, 1)).orderBy(tradeCategories.sortOrder);
+}
+
+export async function getTradeCategory(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(tradeCategories).where(eq(tradeCategories.id, id));
+  return row ?? null;
+}
+
+export async function updateTradeCategory(id: number, data: Partial<InsertTradeCategory>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(tradeCategories).set(data).where(eq(tradeCategories.id, id));
+}
+
+export async function deleteTradeCategory(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(tradeCategories).set({ isActive: 0 }).where(eq(tradeCategories.id, id));
+}
+
+// ============ SUBCONTRACTOR TRADES ============
+export async function setSubcontractorTrades(subcontractorId: number, tradeIds: number[], primaryTradeId?: number) {
+  const db = await getDb();
+  if (!db) return;
+  // 기존 매핑 삭제
+  await db.delete(subcontractorTrades).where(eq(subcontractorTrades.subcontractorId, subcontractorId));
+  // 새 매핑 삽입
+  if (tradeIds.length > 0) {
+    await db.insert(subcontractorTrades).values(
+      tradeIds.map(tid => ({
+        subcontractorId,
+        tradeCategoryId: tid,
+        isPrimary: tid === primaryTradeId ? 1 : 0,
+      }))
+    );
+  }
+}
+
+export async function getSubcontractorTrades(subcontractorId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: subcontractorTrades.id,
+    tradeCategoryId: subcontractorTrades.tradeCategoryId,
+    isPrimary: subcontractorTrades.isPrimary,
+    tradeName: tradeCategories.name,
+    tradeCode: tradeCategories.code,
+  }).from(subcontractorTrades)
+    .leftJoin(tradeCategories, eq(subcontractorTrades.tradeCategoryId, tradeCategories.id))
+    .where(eq(subcontractorTrades.subcontractorId, subcontractorId));
+}
+
+/** 특정 공종에 해당하는 승인된 활성 업체 목록 (계약 유효한 업체 우선) */
+export async function getSubcontractorsByTrade(tradeCategoryId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    subcontractorId: subcontractorTrades.subcontractorId,
+    isPrimary: subcontractorTrades.isPrimary,
+    companyName: opsSubcontractors.companyName,
+    contactName: opsSubcontractors.contactName,
+    contactEmail: opsSubcontractors.contactEmail,
+    contactPhone: opsSubcontractors.contactPhone,
+    specialty: opsSubcontractors.specialty,
+    rating: opsSubcontractors.rating,
+  }).from(subcontractorTrades)
+    .innerJoin(opsSubcontractors, eq(subcontractorTrades.subcontractorId, opsSubcontractors.id))
+    .where(
+      and(
+        eq(subcontractorTrades.tradeCategoryId, tradeCategoryId),
+        eq(opsSubcontractors.isActive, 1)
+      )
+    )
+    .orderBy(desc(subcontractorTrades.isPrimary), desc(opsSubcontractors.rating));
+  return rows;
+}
+
+/** 여러 공종 ID에 대해 매칭되는 업체 목록 반환 */
+export async function getSubcontractorsByTradeIds(tradeCategoryIds: number[]) {
+  const db = await getDb();
+  if (!db || tradeCategoryIds.length === 0) return [];
+  const rows = await db.select({
+    tradeCategoryId: subcontractorTrades.tradeCategoryId,
+    tradeName: tradeCategories.name,
+    subcontractorId: subcontractorTrades.subcontractorId,
+    isPrimary: subcontractorTrades.isPrimary,
+    companyName: opsSubcontractors.companyName,
+    contactName: opsSubcontractors.contactName,
+    contactEmail: opsSubcontractors.contactEmail,
+    contactPhone: opsSubcontractors.contactPhone,
+    rating: opsSubcontractors.rating,
+  }).from(subcontractorTrades)
+    .innerJoin(opsSubcontractors, eq(subcontractorTrades.subcontractorId, opsSubcontractors.id))
+    .innerJoin(tradeCategories, eq(subcontractorTrades.tradeCategoryId, tradeCategories.id))
+    .where(
+      and(
+        inArray(subcontractorTrades.tradeCategoryId, tradeCategoryIds),
+        eq(opsSubcontractors.isActive, 1)
+      )
+    )
+    .orderBy(desc(subcontractorTrades.isPrimary), desc(opsSubcontractors.rating));
+  return rows;
+}
+
+// ============ SUB REGISTRATION REQUESTS ============
+export async function createSubRegistration(data: InsertSubRegistrationRequest) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(subRegistrationRequests).values(data).$returningId();
+  return result;
+}
+
+export async function listSubRegistrations(statusFilter?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const q = db.select().from(subRegistrationRequests).orderBy(desc(subRegistrationRequests.createdAt));
+  if (statusFilter) {
+    return q.where(eq(subRegistrationRequests.status, statusFilter as any));
+  }
+  return q;
+}
+
+export async function getSubRegistration(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(subRegistrationRequests).where(eq(subRegistrationRequests.id, id));
+  return row ?? null;
+}
+
+export async function updateSubRegistration(id: number, data: Partial<InsertSubRegistrationRequest>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(subRegistrationRequests).set(data).where(eq(subRegistrationRequests.id, id));
+}
+
+// ============ TRADE CONTRACT TEMPLATES ============
+export async function createTradeContractTemplate(data: InsertTradeContractTemplate) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(tradeContractTemplates).values(data).$returningId();
+  return result;
+}
+
+export async function listTradeContractTemplates(tradeCategoryId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  if (tradeCategoryId) {
+    return db.select().from(tradeContractTemplates)
+      .where(and(eq(tradeContractTemplates.tradeCategoryId, tradeCategoryId), eq(tradeContractTemplates.isActive, 1)))
+      .orderBy(desc(tradeContractTemplates.version));
+  }
+  return db.select().from(tradeContractTemplates)
+    .where(eq(tradeContractTemplates.isActive, 1))
+    .orderBy(tradeContractTemplates.tradeCategoryId, desc(tradeContractTemplates.version));
+}
+
+export async function getTradeContractTemplate(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(tradeContractTemplates).where(eq(tradeContractTemplates.id, id));
+  return row ?? null;
+}
+
+export async function updateTradeContractTemplate(id: number, data: Partial<InsertTradeContractTemplate>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(tradeContractTemplates).set(data).where(eq(tradeContractTemplates.id, id));
+}
+
+// ============ SUB CONTRACTS ============
+export async function createSubContract(data: InsertSubContract) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(subContracts).values(data).$returningId();
+  return result;
+}
+
+export async function listSubContracts(subcontractorId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  if (subcontractorId) {
+    return db.select().from(subContracts)
+      .where(eq(subContracts.subcontractorId, subcontractorId))
+      .orderBy(desc(subContracts.createdAt));
+  }
+  return db.select().from(subContracts).orderBy(desc(subContracts.createdAt));
+}
+
+export async function getSubContract(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(subContracts).where(eq(subContracts.id, id));
+  return row ?? null;
+}
+
+export async function updateSubContract(id: number, data: Partial<InsertSubContract>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(subContracts).set(data).where(eq(subContracts.id, id));
+}
+
+/** 특정 업체의 유효한(active) 계약 목록 */
+export async function getActiveSubContracts(subcontractorId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(subContracts)
+    .where(
+      and(
+        eq(subContracts.subcontractorId, subcontractorId),
+        eq(subContracts.status, "active")
+      )
+    );
+}
+
+// ============ PURCHASE ORDERS ============
+export async function createPurchaseOrder(data: InsertPurchaseOrder) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(purchaseOrders).values(data).$returningId();
+  return result;
+}
+
+export async function listPurchaseOrders(projectId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  if (projectId) {
+    return db.select().from(purchaseOrders)
+      .where(eq(purchaseOrders.projectId, projectId))
+      .orderBy(desc(purchaseOrders.createdAt));
+  }
+  return db.select().from(purchaseOrders).orderBy(desc(purchaseOrders.createdAt));
+}
+
+export async function getPurchaseOrder(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id));
+  return row ?? null;
+}
+
+export async function updatePurchaseOrder(id: number, data: Partial<InsertPurchaseOrder>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(purchaseOrders).set(data).where(eq(purchaseOrders.id, id));
+}
+
+export async function deletePurchaseOrder(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(purchaseOrders).where(eq(purchaseOrders.id, id));
+}
+
+// ============ RFQ REQUESTS ============
+export async function createRfqRequest(data: InsertRfqRequest) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(rfqRequests).values(data).$returningId();
+  return result;
+}
+
+export async function listRfqRequests(purchaseOrderId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    rfq: rfqRequests,
+    companyName: opsSubcontractors.companyName,
+    contactName: opsSubcontractors.contactName,
+    contactEmail: opsSubcontractors.contactEmail,
+  }).from(rfqRequests)
+    .leftJoin(opsSubcontractors, eq(rfqRequests.subcontractorId, opsSubcontractors.id))
+    .where(eq(rfqRequests.purchaseOrderId, purchaseOrderId))
+    .orderBy(rfqRequests.createdAt);
+}
+
+export async function getRfqRequest(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(rfqRequests).where(eq(rfqRequests.id, id));
+  return row ?? null;
+}
+
+export async function getRfqByToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(rfqRequests).where(eq(rfqRequests.token, token));
+  return row ?? null;
+}
+
+export async function updateRfqRequest(id: number, data: Partial<InsertRfqRequest>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(rfqRequests).set(data).where(eq(rfqRequests.id, id));
+}
+
+/** 업체명 또는 공종으로 업체 검색 */
+export async function searchSubcontractors(query: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(opsSubcontractors)
+    .where(
+      and(
+        eq(opsSubcontractors.isActive, 1),
+        or(
+          sql`${opsSubcontractors.companyName} LIKE ${`%${query}%`}`,
+          sql`${opsSubcontractors.specialty} LIKE ${`%${query}%`}`,
+          sql`${opsSubcontractors.contactName} LIKE ${`%${query}%`}`
+        )
+      )
+    )
+    .orderBy(desc(opsSubcontractors.rating))
+    .limit(20);
 }

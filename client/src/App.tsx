@@ -42,6 +42,7 @@ import OpsProjectDetail from "./pages/ops/OpsProjectDetail";
 import SubPortal from "./pages/ops/SubPortal";
 import OpsStaffManagement from "./pages/ops/OpsStaffManagement";
 import OpsCalendar from "./pages/ops/OpsCalendar";
+import OpsPartners from "./pages/ops/OpsPartners";
 import ClientRegister from "./pages/ClientRegister";
 import ClientLogin from "./pages/ClientLogin";
 import ClientVerifyEmail from "./pages/ClientVerifyEmail";
@@ -109,6 +110,8 @@ function Router() {
       <Route path="/ops/project/:id" component={OpsProjectDetail} />
       <Route path="/ops/staff" component={OpsStaffManagement} />
       <Route path="/ops/calendar" component={OpsCalendar} />
+      <Route path="/ops/partners" component={OpsPartners} />
+      <Route path="/ops/partners/:tab" component={OpsPartners} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/portfolios" component={AdminPortfolios} />

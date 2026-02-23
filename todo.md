@@ -724,3 +724,32 @@
 - [x] 관리자 직원 포털 접근 권한 설정
 - [x] staffProcedure/deptProcedure에 master 역할 접근 권한 추가
 - [x] AdminDashboard에 OpsX 직원 포털 바로가기 카드 추가
+
+## 하도급 협력업체 관리 시스템 (2026-02-24)
+- [x] 공종(Trade Category) DB 스키마 설계 (tradeCategories 테이블)
+- [x] 업체 등록 요청 DB 스키마 설계 (subRegistrations 테이블 - 2단계 승인 플로우)
+- [x] 공종별 계약서 템플릿 DB 스키마 설계 (contractTemplates 테이블)
+- [x] 하도급 계약서 DB 스키마 설계 (subContracts 테이블 - 1년 유효, 서명/도장 저장)
+- [x] 발주서 DB 스키마 설계 (purchaseOrders, purchaseOrderItems 테이블)
+- [x] 견적요청(RFQ) DB 스키마 설계 (rfqs, rfqRecipients 테이블)
+- [x] DB 마이그레이션 실행
+- [x] 공종 CRUD DB 헬퍼 함수 구현
+- [x] 업체 등록/승인/반려 DB 헬퍼 함수 구현
+- [x] 계약서 템플릿 CRUD DB 헬퍼 함수 구현
+- [x] 하도급 계약서 CRUD + 서명 DB 헬퍼 함수 구현
+- [x] 발주서 CRUD + 자동매칭 DB 헬퍼 함수 구현
+- [x] 견적요청(RFQ) 발송/수신 DB 헬퍼 함수 구현
+- [x] tRPC 라우터: 공종 관리 (create/list/update)
+- [x] tRPC 라우터: 업체 등록 요청 (create/list/get/staffApprove/adminApprove/reject)
+- [x] tRPC 라우터: 계약서 템플릿 (create/list/get)
+- [x] tRPC 라우터: 하도급 계약서 (create/get/list/signPartyA/signPartyB)
+- [x] tRPC 라우터: 발주서 (create/get/list/autoMatch)
+- [x] tRPC 라우터: 견적요청 (sendRfq/listByPo)
+- [x] 프론트엔드: OpsPartners 협력업체 관리 페이지 (5탭: 등록/승인/계약/발주/견적요청)
+- [x] 프론트엔드: 업체 등록 요청 폼 (공종 선택, 사업자등록증 업로드)
+- [x] 프론트엔드: 2단계 승인 플로우 UI (담당자 1차 → 관리자 최종)
+- [x] 프론트엔드: 공종별 계약서 생성 + 서명/도장 캔버스 UI
+- [x] 프론트엔드: 발주서 생성 + 견적요청 자동매칭 UI (공종별 업체 추천 + 검색)
+- [x] OpsHome에 협력업체 네비게이션 버튼 추가
+- [x] App.tsx에 /ops/partners 라우트 등록
+- [x] Vitest 테스트 21개 전체 통과 (공종/등록/승인/계약/발주 테스트)

@@ -34,6 +34,15 @@ import {
   getProjectCostExecution, getProjectScheduleProgress, getExpenseCategoryDistribution,
   createSubEvaluation, listSubEvaluations, listSubEvaluationsBySubcontractor,
   getSubEvaluationSummary, deleteSubEvaluation,
+  // 하도급 업체 등록/승인/계약/발주/견적요청
+  createTradeCategory, listTradeCategories, getTradeCategory, updateTradeCategory, deleteTradeCategory,
+  setSubcontractorTrades, getSubcontractorTrades, getSubcontractorsByTrade, getSubcontractorsByTradeIds,
+  createSubRegistration, listSubRegistrations, getSubRegistration, updateSubRegistration,
+  createTradeContractTemplate, listTradeContractTemplates, getTradeContractTemplate, updateTradeContractTemplate,
+  createSubContract, listSubContracts, getSubContract, updateSubContract, getActiveSubContracts,
+  createPurchaseOrder, listPurchaseOrders, getPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder,
+  createRfqRequest, listRfqRequests, getRfqRequest, getRfqByToken, updateRfqRequest,
+  searchSubcontractors,
 } from "../db/ops";
 
 function generateToken() {
@@ -1577,6 +1586,586 @@ export const opsRouter = router({
       }))
       .query(async ({ input }) => {
         return getCalendarEvents(input.startDate, input.endDate);
+      }),
+  }),
+
+  // ============ TRADE CATEGORIES (공종 분류) ============
+  trade: router({
+    list: staffProcedure.query(async () => {
+      return listTradeCategories();
+    }),
+    get: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const t = await getTradeCategory(input.id);
+        if (!t) throw new TRPCError({ code: "NOT_FOUND" });
+        return t;
+      }),
+    create: adminProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        code: z.string().min(1),
+        description: z.string().optional(),
+        parentId: z.number().optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await createTradeCategory(input as any);
+        if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        return { id: result.id };
+      }),
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        code: z.string().optional(),
+        description: z.string().optional(),
+        parentId: z.number().optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateTradeCategory(id, data as any);
+        return { success: true };
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteTradeCategory(input.id);
+        return { success: true };
+      }),
+    // 특정 공종에 해당하는 업체 목록
+    subcontractors: staffProcedure
+      .input(z.object({ tradeCategoryId: z.number() }))
+      .query(async ({ input }) => {
+        return getSubcontractorsByTrade(input.tradeCategoryId);
+      }),
+  }),
+
+  // ============ SUBCONTRACTOR TRADES (업체-공종 매핑) ============
+  subTrade: router({
+    get: staffProcedure
+      .input(z.object({ subcontractorId: z.number() }))
+      .query(async ({ input }) => {
+        return getSubcontractorTrades(input.subcontractorId);
+      }),
+    set: staffProcedure
+      .input(z.object({
+        subcontractorId: z.number(),
+        tradeIds: z.array(z.number()),
+        primaryTradeId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await setSubcontractorTrades(input.subcontractorId, input.tradeIds, input.primaryTradeId);
+        return { success: true };
+      }),
+  }),
+
+  // ============ SUB REGISTRATION (업체 등록 요청/승인) ============
+  subRegistration: router({
+    list: staffProcedure
+      .input(z.object({ status: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        return listSubRegistrations(input?.status);
+      }),
+    get: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const r = await getSubRegistration(input.id);
+        if (!r) throw new TRPCError({ code: "NOT_FOUND" });
+        return r;
+      }),
+    // 업체 등록 요청 (직원 누구나)
+    create: staffProcedure
+      .input(z.object({
+        companyName: z.string().min(1),
+        businessNumber: z.string().optional(),
+        representativeName: z.string().optional(),
+        contactName: z.string().optional(),
+        contactPhone: z.string().optional(),
+        contactEmail: z.string().optional(),
+        address: z.string().optional(),
+        tradeIds: z.array(z.number()).optional(),
+        specialty: z.string().optional(),
+        bankName: z.string().optional(),
+        bankAccount: z.string().optional(),
+        bankHolder: z.string().optional(),
+        businessLicenseUrl: z.string().optional(),
+        businessLicenseKey: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await createSubRegistration({
+          ...input,
+          requestedBy: ctx.user.id,
+          requestedByName: ctx.user.name ?? undefined,
+        } as any);
+        if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        // 관리자에게 알림
+        await notifyAdminsAndPMs({
+          type: "general",
+          title: "협력업체 등록 요청",
+          message: `${input.companyName} 업체 등록 요청이 접수되었습니다. 승인이 필요합니다.`,
+          link: "/ops/partners/registrations",
+        });
+        return { id: result.id };
+      }),
+    // 1차 승인 (담당자)
+    staffApprove: staffProcedure
+      .input(z.object({
+        id: z.number(),
+        comment: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const reg = await getSubRegistration(input.id);
+        if (!reg) throw new TRPCError({ code: "NOT_FOUND" });
+        if (reg.status !== "pending") throw new TRPCError({ code: "BAD_REQUEST", message: "대기 상태의 요청만 승인할 수 있습니다." });
+        await updateSubRegistration(input.id, {
+          status: "staff_approved",
+          staffApprovedBy: ctx.user.id,
+          staffApprovedByName: ctx.user.name ?? undefined,
+          staffApprovedAt: new Date(),
+          staffComment: input.comment,
+        } as any);
+        // 관리자에게 최종 승인 요청 알림
+        await notifyAdminsAndPMs({
+          type: "approval_pending",
+          title: "협력업체 최종 승인 대기",
+          message: `${reg.companyName} 업체가 담당자 1차 승인되었습니다. 관리자 최종 승인이 필요합니다.`,
+          link: "/ops/partners/registrations",
+        });
+        return { success: true };
+      }),
+    // 최종 승인 (관리자) → 승인 시 업체 자동 등록
+    adminApprove: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        comment: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const reg = await getSubRegistration(input.id);
+        if (!reg) throw new TRPCError({ code: "NOT_FOUND" });
+        if (reg.status !== "staff_approved") throw new TRPCError({ code: "BAD_REQUEST", message: "담당자 1차 승인된 요청만 최종 승인할 수 있습니다." });
+        // 업체 자동 등록
+        const sub = await createSubcontractor({
+          companyName: reg.companyName,
+          businessNumber: reg.businessNumber,
+          representativeName: reg.representativeName,
+          contactName: reg.contactName,
+          contactPhone: reg.contactPhone,
+          contactEmail: reg.contactEmail,
+          specialty: reg.specialty,
+          bankName: reg.bankName,
+          bankAccount: reg.bankAccount,
+          bankHolder: reg.bankHolder,
+        } as any);
+        if (!sub) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        // 공종 매핑
+        if (reg.tradeIds && reg.tradeIds.length > 0) {
+          await setSubcontractorTrades(sub.id, reg.tradeIds, reg.tradeIds[0]);
+        }
+        // 등록 요청 상태 업데이트
+        await updateSubRegistration(input.id, {
+          status: "approved",
+          adminApprovedBy: ctx.user.id,
+          adminApprovedByName: ctx.user.name ?? undefined,
+          adminApprovedAt: new Date(),
+          adminComment: input.comment,
+          subcontractorId: sub.id,
+        } as any);
+        await notifyOwner({ title: "협력업체 등록 완료", content: `${reg.companyName} 업체가 승인되어 협력업체로 등록되었습니다.` });
+        return { success: true, subcontractorId: sub.id };
+      }),
+    // 반려
+    reject: staffProcedure
+      .input(z.object({
+        id: z.number(),
+        reason: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const reg = await getSubRegistration(input.id);
+        if (!reg) throw new TRPCError({ code: "NOT_FOUND" });
+        await updateSubRegistration(input.id, {
+          status: "rejected",
+          rejectedBy: ctx.user.id,
+          rejectedByName: ctx.user.name ?? undefined,
+          rejectedAt: new Date(),
+          rejectionReason: input.reason,
+        } as any);
+        return { success: true };
+      }),
+  }),
+
+  // ============ TRADE CONTRACT TEMPLATES (공종별 계약서 템플릿) ============
+  contractTemplate: router({
+    list: staffProcedure
+      .input(z.object({ tradeCategoryId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        return listTradeContractTemplates(input?.tradeCategoryId);
+      }),
+    get: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const t = await getTradeContractTemplate(input.id);
+        if (!t) throw new TRPCError({ code: "NOT_FOUND" });
+        return t;
+      }),
+    create: adminProcedure
+      .input(z.object({
+        tradeCategoryId: z.number(),
+        name: z.string().min(1),
+        content: z.string().min(1),
+        validityMonths: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await createTradeContractTemplate(input as any);
+        if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        return { id: result.id };
+      }),
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        content: z.string().optional(),
+        validityMonths: z.number().optional(),
+        isActive: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateTradeContractTemplate(id, data as any);
+        return { success: true };
+      }),
+  }),
+
+  // ============ SUB CONTRACTS (협력업체 계약) ============
+  subContract: router({
+    list: staffProcedure
+      .input(z.object({ subcontractorId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        return listSubContracts(input?.subcontractorId);
+      }),
+    get: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const c = await getSubContract(input.id);
+        if (!c) throw new TRPCError({ code: "NOT_FOUND" });
+        return c;
+      }),
+    // 계약서 생성 (템플릿 기반)
+    create: staffProcedure
+      .input(z.object({
+        subcontractorId: z.number(),
+        tradeCategoryId: z.number(),
+        templateId: z.number().optional(),
+        title: z.string().min(1),
+        content: z.string().min(1),
+        partyB: z.string().min(1),
+        startDate: z.string(),
+        endDate: z.string(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const now = new Date();
+        const contractNumber = `SC-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getTime()).slice(-4)}`;
+        const result = await createSubContract({
+          ...input,
+          contractNumber,
+        } as any);
+        if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        return { id: result.id, contractNumber };
+      }),
+    // 서명/도장 업로드 (갑 측)
+    signPartyA: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        signatureUrl: z.string(),
+        signatureKey: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const contract = await getSubContract(input.id);
+        if (!contract) throw new TRPCError({ code: "NOT_FOUND" });
+        const updateData: any = {
+          partyASignatureUrl: input.signatureUrl,
+          partyASignatureKey: input.signatureKey,
+          partyASignedAt: new Date(),
+          partyASignedBy: ctx.user.id,
+        };
+        // 을 측도 서명했으면 active로
+        if (contract.partyBSignatureUrl) {
+          updateData.status = "active";
+        } else {
+          updateData.status = "pending_b";
+        }
+        await updateSubContract(input.id, updateData);
+        return { success: true };
+      }),
+    // 서명/도장 업로드 (을 측 - 협력업체)
+    signPartyB: publicProcedure
+      .input(z.object({
+        id: z.number(),
+        signerName: z.string().min(1),
+        signatureUrl: z.string(),
+        signatureKey: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const contract = await getSubContract(input.id);
+        if (!contract) throw new TRPCError({ code: "NOT_FOUND" });
+        const updateData: any = {
+          partyBSignatureUrl: input.signatureUrl,
+          partyBSignatureKey: input.signatureKey,
+          partyBSignedAt: new Date(),
+          partyBSignerName: input.signerName,
+        };
+        // 갑 측도 서명했으면 active로
+        if (contract.partyASignatureUrl) {
+          updateData.status = "active";
+        } else {
+          updateData.status = "pending_a";
+        }
+        await updateSubContract(input.id, updateData);
+        // 양측 서명 완료 시 알림
+        if (updateData.status === "active") {
+          await notifyAdminsAndPMs({
+            type: "general",
+            title: "협력업체 계약 체결 완료",
+            message: `${contract.partyB}와의 계약(${contract.contractNumber})이 체결되었습니다.`,
+            link: "/ops/partners/contracts",
+          });
+        }
+        return { success: true };
+      }),
+    update: staffProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["draft", "pending_b", "pending_a", "active", "expired", "terminated"]).optional(),
+        notes: z.string().optional(),
+        pdfUrl: z.string().optional(),
+        pdfKey: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateSubContract(id, data as any);
+        return { success: true };
+      }),
+    // 특정 업체의 유효 계약 목록
+    active: staffProcedure
+      .input(z.object({ subcontractorId: z.number() }))
+      .query(async ({ input }) => {
+        return getActiveSubContracts(input.subcontractorId);
+      }),
+  }),
+
+  // ============ PURCHASE ORDERS (발주서) ============
+  purchaseOrder: router({
+    list: staffProcedure
+      .input(z.object({ projectId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        return listPurchaseOrders(input?.projectId);
+      }),
+    get: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const po = await getPurchaseOrder(input.id);
+        if (!po) throw new TRPCError({ code: "NOT_FOUND" });
+        return po;
+      }),
+    create: staffProcedure
+      .input(z.object({
+        projectId: z.number(),
+        title: z.string().min(1),
+        items: z.array(z.object({
+          id: z.number(),
+          tradeCategoryId: z.number(),
+          tradeCategoryName: z.string(),
+          description: z.string(),
+          specification: z.string(),
+          unit: z.string(),
+          quantity: z.number(),
+          estimatedUnitPrice: z.number(),
+          estimatedAmount: z.number(),
+          remarks: z.string().optional(),
+        })),
+        estimatedTotal: z.string().optional(),
+        requiredDate: z.string().optional(),
+        deliveryAddress: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const now = new Date();
+        const poNumber = `PO-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getTime()).slice(-4)}`;
+        const result = await createPurchaseOrder({
+          ...input,
+          poNumber,
+          authorId: ctx.user.id,
+          authorName: ctx.user.name ?? undefined,
+        } as any);
+        if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        return { id: result.id, poNumber };
+      }),
+    update: staffProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        items: z.array(z.object({
+          id: z.number(),
+          tradeCategoryId: z.number(),
+          tradeCategoryName: z.string(),
+          description: z.string(),
+          specification: z.string(),
+          unit: z.string(),
+          quantity: z.number(),
+          estimatedUnitPrice: z.number(),
+          estimatedAmount: z.number(),
+          remarks: z.string().optional(),
+        })).optional(),
+        estimatedTotal: z.string().optional(),
+        requiredDate: z.string().optional(),
+        deliveryAddress: z.string().optional(),
+        notes: z.string().optional(),
+        status: z.enum(["draft", "rfq_sent", "quotes_received", "quote_selected", "ordered", "delivered", "cancelled"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updatePurchaseOrder(id, data as any);
+        return { success: true };
+      }),
+    delete: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deletePurchaseOrder(input.id);
+        return { success: true };
+      }),
+    // 발주서 항목별 자동 매칭 업체 조회
+    autoMatch: staffProcedure
+      .input(z.object({ tradeCategoryIds: z.array(z.number()) }))
+      .query(async ({ input }) => {
+        return getSubcontractorsByTradeIds(input.tradeCategoryIds);
+      }),
+    // 업체 검색 (카테고리/업체명)
+    searchSubs: staffProcedure
+      .input(z.object({ query: z.string().min(1) }))
+      .query(async ({ input }) => {
+        return searchSubcontractors(input.query);
+      }),
+  }),
+
+  // ============ RFQ (견적요청) ============
+  rfq: router({
+    list: staffProcedure
+      .input(z.object({ purchaseOrderId: z.number() }))
+      .query(async ({ input }) => {
+        return listRfqRequests(input.purchaseOrderId);
+      }),
+    get: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const r = await getRfqRequest(input.id);
+        if (!r) throw new TRPCError({ code: "NOT_FOUND" });
+        return r;
+      }),
+    // 견적요청 발송 (발주서 항목별 업체에게)
+    send: staffProcedure
+      .input(z.object({
+        purchaseOrderId: z.number(),
+        subcontractorIds: z.array(z.number()),
+        itemIds: z.array(z.number()),
+        expiresInDays: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const po = await getPurchaseOrder(input.purchaseOrderId);
+        if (!po) throw new TRPCError({ code: "NOT_FOUND", message: "발주서를 찾을 수 없습니다." });
+        const results: { subcontractorId: number; token: string }[] = [];
+        for (const subId of input.subcontractorIds) {
+          const token = generateToken();
+          const expiresAt = new Date(Date.now() + (input.expiresInDays ?? 14) * 24 * 60 * 60 * 1000);
+          const result = await createRfqRequest({
+            purchaseOrderId: input.purchaseOrderId,
+            subcontractorId: subId,
+            itemIds: input.itemIds,
+            token,
+            expiresAt,
+            sentAt: new Date(),
+          } as any);
+          if (result) results.push({ subcontractorId: subId, token });
+        }
+        // 발주서 상태 업데이트
+        await updatePurchaseOrder(input.purchaseOrderId, { status: "rfq_sent" } as any);
+        await notifyOwner({ title: "견적요청 발송", content: `발주서 ${po.poNumber}에 대해 ${results.length}개 업체에 견적요청을 발송했습니다.` });
+        return { sent: results.length, tokens: results };
+      }),
+    // 견적 선정
+    select: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await updateRfqRequest(input.id, { status: "selected" } as any);
+        return { success: true };
+      }),
+  }),
+
+  // ============ RFQ PORTAL (협력업체 견적 제출 포털) ============
+  rfqPortal: router({
+    // 토큰으로 견적요청 조회
+    validate: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const rfq = await getRfqByToken(input.token);
+        if (!rfq) throw new TRPCError({ code: "NOT_FOUND", message: "유효하지 않은 견적요청입니다." });
+        if (rfq.expiresAt && new Date(rfq.expiresAt) < new Date()) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "견적요청이 만료되었습니다." });
+        }
+        // 열람 처리
+        if (rfq.status === "sent") {
+          await updateRfqRequest(rfq.id, { status: "viewed", viewedAt: new Date() } as any);
+        }
+        const po = await getPurchaseOrder(rfq.purchaseOrderId);
+        const sub = await getSubcontractor(rfq.subcontractorId);
+        // 해당 항목만 필터
+        const allItems = po?.items ?? [];
+        const relevantItems = rfq.itemIds
+          ? allItems.filter((item: any) => rfq.itemIds!.includes(item.id))
+          : allItems;
+        return {
+          rfq,
+          purchaseOrder: po ? { ...po, items: relevantItems } : null,
+          subcontractor: sub,
+        };
+      }),
+    // 견적 제출
+    submitQuote: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        quotedItems: z.array(z.object({
+          itemId: z.number(),
+          unitPrice: z.number(),
+          amount: z.number(),
+          leadTime: z.string(),
+          remarks: z.string().optional(),
+        })),
+        quotedTotal: z.string(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const rfq = await getRfqByToken(input.token);
+        if (!rfq) throw new TRPCError({ code: "NOT_FOUND" });
+        if (rfq.expiresAt && new Date(rfq.expiresAt) < new Date()) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "견적요청이 만료되었습니다." });
+        }
+        await updateRfqRequest(rfq.id, {
+          status: "quoted",
+          quotedItems: input.quotedItems,
+          quotedTotal: input.quotedTotal,
+          quotedAt: new Date(),
+          notes: input.notes,
+        } as any);
+        // 발주서 상태 업데이트
+        await updatePurchaseOrder(rfq.purchaseOrderId, { status: "quotes_received" } as any);
+        await notifyAdminsAndPMs({
+          type: "sub_quote_submitted",
+          title: "견적 제출",
+          message: `발주서에 대한 견적이 제출되었습니다.`,
+          link: "/ops/partners/purchase-orders",
+        });
+        return { success: true };
       }),
   }),
 });
