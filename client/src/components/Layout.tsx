@@ -41,7 +41,7 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 const BASE_NAV_ITEMS: NavEntry[] = [
   { label: "회사소개", href: "/about" },
   { label: "솔루션", href: "/solutions" },
-  { label: "프로젝트", href: "/portfolio" },
+  // { label: "프로젝트", href: "/portfolio" }, // 임시 숨김
   { label: "인사이트", href: "/insights" },
 ];
 
@@ -754,7 +754,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <ul className="space-y-2.5">
                 {[
                   { label: "회사소개", href: "/about" },
-                  { label: "프로젝트", href: "/portfolio" },
+                  // { label: "프로젝트", href: "/portfolio" }, // 임시 숨김
                   ...(aiSetting?.chat ? [{ label: "AI 상담", href: "/ai-chat" }] : []),
                   ...(aiSetting?.redesign ? [{ label: "AI 리디자인", href: "/ai-redesign" }] : []),
                   { label: "FAQ", href: "/faq" },

@@ -53,6 +53,7 @@ import AdminRealestateMatching from "./pages/AdminRealestateMatching";
 import AdminVendorPortal from "./pages/AdminVendorPortal";
 import AdminPostOccupancy from "./pages/AdminPostOccupancy";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
+import AdminPortfolios from "./pages/AdminPortfolios";
 import SurveyResponse from "./pages/SurveyResponse";
 
 function PublicRouter() {
@@ -110,6 +111,7 @@ function Router() {
       <Route path="/ops/calendar" component={OpsCalendar} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/portfolios" component={AdminPortfolios} />
       <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />
       <Route path="/admin/ddia" component={AdminDDIA} />
       <Route path="/admin/crm" component={AdminCRM} />

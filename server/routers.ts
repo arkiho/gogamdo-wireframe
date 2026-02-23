@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { storagePut } from "./storage";
 import { notifyOwner } from "./_core/notification";
 import {
   createInquiry, listInquiries, updateInquiryStatus,
@@ -830,6 +831,29 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       }))
       .mutation(async ({ input }) => {
         return addDraftImage(input);
+      }),
+    // 관리자: base64 이미지 업로드 (S3 업로드 후 DB 저장)
+    uploadImage: adminProcedure
+      .input(z.object({
+        draftId: z.number(),
+        fileName: z.string(),
+        fileBase64: z.string(),
+        fileType: z.string(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const buffer = Buffer.from(input.fileBase64, "base64");
+        const suffix = Math.random().toString(36).substring(2, 10);
+        const ext = input.fileName.split(".").pop() || "jpg";
+        const fileKey = `portfolio/${input.draftId}/${suffix}.${ext}`;
+        const { url } = await storagePut(fileKey, buffer, input.fileType);
+        const image = await addDraftImage({
+          draftId: input.draftId,
+          originalUrl: url,
+          filename: input.fileName,
+          sortOrder: input.sortOrder ?? 0,
+        });
+        return { id: image?.id, url };
       }),
     listImages: adminProcedure
       .input(z.object({ draftId: z.number() }))

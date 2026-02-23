@@ -20,7 +20,7 @@ const ALL_PAGES: RelatedPage[] = [
   { label: "AI 견적", href: "/estimator", description: "30초 만에 예상 비용을 무료로 확인하세요", aiService: "estimator" },
   { label: "AI 상담", href: "/ai-chat", description: "24시간 AI 인테리어 상담사와 대화하세요", aiService: "chat" },
   { label: "AI 스타일", href: "/ai-style", description: "맞춤 인테리어 스타일을 추천받으세요", aiService: "style" },
-  { label: "프로젝트", href: "/portfolio", description: "35년간 2,800건 이상의 완료 프로젝트를 확인하세요" },
+  // { label: "프로젝트", href: "/portfolio", description: "35년간 2,800건 이상의 완료 프로젝트를 확인하세요" }, // 임시 숨김
   { label: "솔루션", href: "/solutions", description: "설계부터 시공까지 원스톱 솔루션" },
   { label: "FAQ", href: "/faq", description: "자주 묻는 질문과 답변을 확인하세요" },
   { label: "무료 상담", href: "/contact", description: "전문 컨설턴트와 무료 상담을 시작하세요" },
@@ -37,20 +37,20 @@ const AI_HREF_SERVICE: Record<string, "estimator" | "chat" | "style" | "redesign
 
 // 페이지별 관련 페이지 매핑
 const RELATED_MAP: Record<string, string[]> = {
-  "/about": ["/portfolio", "/solutions", "/contact"],
-  "/solutions": ["/estimator", "/portfolio", "/contact"],
-  "/portfolio": ["/estimator", "/solutions", "/contact"],
+  "/about": ["/solutions", "/contact", "/faq"],
+  "/solutions": ["/estimator", "/contact", "/faq"],
+  // "/portfolio": ["/estimator", "/solutions", "/contact"], // 임시 숨김
   "/estimator": ["/ai-chat", "/ai-style", "/contact"],
   "/insights": ["/resources", "/faq", "/ai-chat"],
   "/resources": ["/estimator", "/insights", "/faq"],
   "/ai-chat": ["/estimator", "/ai-style", "/faq"],
-  "/ai-style": ["/ai-chat", "/estimator", "/portfolio"],
+  "/ai-style": ["/ai-chat", "/estimator", "/solutions"],
   "/faq": ["/ai-chat", "/estimator", "/contact"],
   "/contact": ["/estimator", "/ai-chat", "/faq"],
 };
 
 // 비 AI 대체 페이지 풀
-const NON_AI_FALLBACKS = ["/portfolio", "/solutions", "/contact", "/faq", "/resources"];
+const NON_AI_FALLBACKS = ["/solutions", "/contact", "/faq", "/resources"]; // /portfolio 임시 제거
 
 export default function RelatedPages() {
   const [location] = useLocation();

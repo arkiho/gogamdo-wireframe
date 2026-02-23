@@ -271,9 +271,9 @@ export default function Home() {
                   </span>
                 </Link>
               )}
-              <Link href="/portfolio" onClick={() => analytics.ctaClick("포트폴리오", "hero")}>
+              <Link href="/solutions" onClick={() => analytics.ctaClick("솔루션", "hero")}>
                 <span className="inline-flex items-center gap-2 px-7 py-3.5 border border-white/30 text-white font-medium text-sm tracking-wide hover:bg-white/10 transition-all duration-300">
-                  프로젝트 보기
+                  솔루션 보기
                   <ArrowRight className="w-4 h-4" />
                 </span>
               </Link>
@@ -569,7 +569,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ==================== FEATURED PROJECTS ==================== */}
+      {/* ==================== FEATURED PROJECTS (임시 숨김) ====================
       <section className="py-20 lg:py-28 bg-paper-warm relative overflow-hidden">
         <div className="absolute top-8 left-8 lg:left-16 opacity-[0.04] select-none pointer-events-none">
           <span className="font-heading text-[10rem] lg:text-[16rem] font-extrabold text-ink leading-none">
@@ -632,6 +632,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      ==================== */}
 
       {/* ==================== AI FEATURES (conditionally rendered) ==================== */}
       {anyAiEnabled && <section className="py-20 lg:py-28 bg-ink text-white relative overflow-hidden">

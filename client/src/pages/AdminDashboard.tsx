@@ -124,7 +124,7 @@ export default function AdminDashboard() {
     );
   }
 
-  const tabs: { id: TabType; label: string; icon: React.ReactNode; count?: number }[] = [
+  const tabs: { id: TabType; label: string; icon: React.ReactNode; count?: number; href?: string }[] = [
     { id: "overview", label: "개요", icon: <Calculator className="w-4 h-4" /> },
     { id: "inquiries", label: "문의", icon: <MessageSquare className="w-4 h-4" />, count: stats.data?.newInquiries },
     { id: "subscribers", label: "구독자", icon: <Users className="w-4 h-4" />, count: stats.data?.subscribers },
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
     { id: "announcements", label: "공지관리", icon: <Megaphone className="w-4 h-4" />, count: announcementsList.data?.length },
     { id: "popups", label: "팝업관리", icon: <Eye className="w-4 h-4" /> },
     { id: "notifications", label: "알림센터", icon: <Bell className="w-4 h-4" /> },
-    { id: "portfolio", label: "포트폴리오", icon: <Image className="w-4 h-4" />, count: portfolioDrafts.data?.length },
+    { id: "portfolio", label: "포트폴리오", icon: <Image className="w-4 h-4" />, count: portfolioDrafts.data?.length, href: "/admin/portfolios" },
     { id: "drive-sync", label: "드라이브 동기화", icon: <HardDrive className="w-4 h-4" /> },
   ];
 
@@ -173,7 +173,7 @@ export default function AdminDashboard() {
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => tab.href ? navigate(tab.href) : setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 activeTab === tab.id
                   ? "bg-ink text-white"

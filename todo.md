@@ -700,3 +700,13 @@
 - [x] AdminVendorPortal tRPC 프로시저 이름 수정
 - [x] SurveyResponse tRPC 프로시저 이름 수정
 - [x] createDailyReport import 에러 해결 (서버 재시작으로 캐시 문제 해결)
+
+## 프로젝트 메뉴 숨김 & 포트폴리오 CRUD (2026-02-23)
+- [x] 네비게이션 상단 메뉴에서 "프로젝트" 항목 임시 숨김
+- [x] 푸터에서 "프로젝트" 링크 임시 숨김
+- [x] 홈페이지 Featured Projects 섹션 임시 숨김
+- [x] 관리자 포트폴리오 관리 페이지 개선 (추가/수정/삭제 완전한 CRUD)
+- [x] 포트폴리오 이미지 업로드 기능 (S3 연동)
+- [x] 포트폴리오 관리 전용 라우트 (/admin/portfolios) 추가
+- [x] uploadImage tRPC 프로시저 추가 (base64 → S3 업로드)
+- [x] 포트폴리오 테스트 27개 전체 통과

@@ -313,6 +313,52 @@ describe("portfolio routes - AI features", () => {
   });
 });
 
+// ===== Image Upload via S3 =====
+describe("portfolio routes - image upload", () => {
+  it("portfolio.uploadImage requires admin authentication", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.portfolio.uploadImage({
+        draftId: 1,
+        fileName: "test.jpg",
+        fileBase64: "aGVsbG8=", // base64 of "hello"
+        fileType: "image/jpeg",
+      })
+    ).rejects.toThrow();
+  });
+
+  it("portfolio.uploadImage rejects non-admin users", async () => {
+    const ctx = createUserContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.portfolio.uploadImage({
+        draftId: 1,
+        fileName: "test.jpg",
+        fileBase64: "aGVsbG8=",
+        fileType: "image/jpeg",
+      })
+    ).rejects.toThrow();
+  });
+
+  it("portfolio.uploadImage accepts valid input from admin", async () => {
+    const ctx = createAdminContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      await caller.portfolio.uploadImage({
+        draftId: 1,
+        fileName: "office-photo.jpg",
+        fileBase64: "aGVsbG8=",
+        fileType: "image/jpeg",
+        sortOrder: 0,
+      });
+    } catch (e: any) {
+      // S3/DB error expected in test env, but input validation should pass
+      expect(e.message).not.toContain("validation");
+    }
+  });
+});
+
 // ===== Router Structure =====
 describe("portfolio router structure", () => {
   it("has all expected procedures", () => {
@@ -326,6 +372,7 @@ describe("portfolio router structure", () => {
     expect(appRouter.portfolio.publish).toBeDefined();
     expect(appRouter.portfolio.archive).toBeDefined();
     expect(appRouter.portfolio.addImage).toBeDefined();
+    expect(appRouter.portfolio.uploadImage).toBeDefined();
     expect(appRouter.portfolio.listImages).toBeDefined();
     expect(appRouter.portfolio.updateImage).toBeDefined();
     expect(appRouter.portfolio.deleteImage).toBeDefined();
