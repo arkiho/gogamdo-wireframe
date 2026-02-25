@@ -20,6 +20,7 @@ import {
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
   HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2, Shield, FileText,
   ClipboardList, Package, HeartHandshake, HardHat,
+  Briefcase, UserCheck, Handshake, FileSignature, Star, AlertTriangle, TrendingUp,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
@@ -61,6 +62,11 @@ export default function AdminDashboard() {
   const styleRecs = trpc.aiStyle.list.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
   const announcementsList = trpc.announcement.list.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
   const portfolioDrafts = trpc.portfolio.list.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
+
+  // 통합 대시보드 통계
+  const clientStats = trpc.ops.adminDashboard.clientStats.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
+  const staffStats = trpc.ops.adminDashboard.staffStats.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
+  const partnerStats = trpc.ops.adminDashboard.partnerStats.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
 
   // Announcement mutations
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
@@ -239,6 +245,225 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="text-3xl font-heading font-bold text-gold">{formatNumber(stats.data?.newInquiries)}</div>
                   <p className="text-xs text-muted-foreground mt-1">미처리 문의</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* ==================== 통합 현황 대시보드 ==================== */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* 고객사 현황 */}
+              <Card className="border-blue-200/60 bg-gradient-to-br from-blue-50/30 to-transparent">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-heading flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <Briefcase className="w-4 h-4 text-blue-600" />
+                    </div>
+                    고객사 현황
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {clientStats.isLoading ? (
+                    <div className="text-sm text-muted-foreground py-4 text-center">로딩 중...</div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 rounded-lg bg-white border border-blue-100">
+                          <p className="text-2xl font-heading font-bold text-ink">{clientStats.data?.totalClients ?? 0}</p>
+                          <p className="text-xs text-muted-foreground">CRM 고객</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white border border-blue-100">
+                          <p className="text-2xl font-heading font-bold text-blue-600">{clientStats.data?.activeDeals ?? 0}</p>
+                          <p className="text-xs text-muted-foreground">진행 중 딜</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white border border-blue-100">
+                          <p className="text-2xl font-heading font-bold text-emerald-600">{clientStats.data?.wonDeals ?? 0}</p>
+                          <p className="text-xs text-muted-foreground">수주 완료</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white border border-blue-100">
+                          <p className="text-2xl font-heading font-bold text-ink">{clientStats.data?.portalActive ?? 0}<span className="text-sm text-muted-foreground font-normal">/{clientStats.data?.portalTotal ?? 0}</span></p>
+                          <p className="text-xs text-muted-foreground">포털 고객</p>
+                        </div>
+                      </div>
+                      {/* 최근 고객 */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">최근 등록 고객</p>
+                        {(clientStats.data?.recentClients ?? []).length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-2">등록된 고객이 없습니다.</p>
+                        ) : (
+                          clientStats.data?.recentClients.slice(0, 3).map((c: any) => (
+                            <div key={c.id} className="flex items-center justify-between p-2 rounded bg-white border border-blue-50">
+                              <div>
+                                <p className="text-sm font-medium text-ink">{c.companyName}</p>
+                                <p className="text-xs text-muted-foreground">{c.contactName}</p>
+                              </div>
+                              <Badge variant="outline" className="text-xs">{c.source || 'website'}</Badge>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <Button variant="ghost" size="sm" className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => navigate("/admin/crm")}>
+                        CRM 관리 →
+                      </Button>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* 직원 현황 */}
+              <Card className="border-sky-200/60 bg-gradient-to-br from-sky-50/30 to-transparent">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-heading flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center">
+                      <UserCheck className="w-4 h-4 text-sky-600" />
+                    </div>
+                    직원 현황
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {staffStats.isLoading ? (
+                    <div className="text-sm text-muted-foreground py-4 text-center">로딩 중...</div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 rounded-lg bg-white border border-sky-100">
+                          <p className="text-2xl font-heading font-bold text-ink">{staffStats.data?.totalStaff ?? 0}</p>
+                          <p className="text-xs text-muted-foreground">전체 인원</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white border border-sky-100">
+                          <p className="text-2xl font-heading font-bold text-sky-600">{staffStats.data?.activeStaff ?? 0}</p>
+                          <p className="text-xs text-muted-foreground">배정 직원</p>
+                        </div>
+                      </div>
+                      {/* 부서별 분포 */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">부서별 인원</p>
+                        <div className="space-y-1.5">
+                          {(staffStats.data?.byDepartment ?? []).filter((d: any) => d.department !== 'none').map((d: any) => (
+                            <div key={d.department} className="flex items-center justify-between">
+                              <span className="text-sm text-ink">{d.label}</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 h-1.5 bg-sky-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-sky-500 rounded-full" style={{ width: `${Math.min(100, (d.count / (staffStats.data?.totalStaff || 1)) * 100)}%` }} />
+                                </div>
+                                <span className="text-xs font-medium text-muted-foreground w-6 text-right">{d.count}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {(staffStats.data?.byDepartment ?? []).filter((d: any) => d.department === 'none').map((d: any) => (
+                            <div key={d.department} className="flex items-center justify-between opacity-50">
+                              <span className="text-sm text-ink">{d.label}</span>
+                              <span className="text-xs font-medium text-muted-foreground">{d.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* 역할별 분포 */}
+                      <div className="flex gap-2 flex-wrap">
+                        {(staffStats.data?.byRole ?? []).map((r: any) => (
+                          <Badge key={r.role} variant={r.role === 'admin' || r.role === 'master' ? 'default' : 'outline'} className="text-xs">
+                            {r.label} {r.count}
+                          </Badge>
+                        ))}
+                      </div>
+                      <Button variant="ghost" size="sm" className="w-full text-sky-600 hover:text-sky-700 hover:bg-sky-50" onClick={() => navigate("/admin/settings")}>
+                        직원 관리 →
+                      </Button>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* 협력사 현황 */}
+              <Card className="border-teal-200/60 bg-gradient-to-br from-teal-50/30 to-transparent">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-heading flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                      <Handshake className="w-4 h-4 text-teal-600" />
+                    </div>
+                    협력사 현황
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {partnerStats.isLoading ? (
+                    <div className="text-sm text-muted-foreground py-4 text-center">로딩 중...</div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 rounded-lg bg-white border border-teal-100">
+                          <p className="text-2xl font-heading font-bold text-ink">{partnerStats.data?.activePartners ?? 0}<span className="text-sm text-muted-foreground font-normal">/{partnerStats.data?.totalPartners ?? 0}</span></p>
+                          <p className="text-xs text-muted-foreground">활성 업체</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white border border-teal-100">
+                          <p className="text-2xl font-heading font-bold text-teal-600">{partnerStats.data?.activeContracts ?? 0}</p>
+                          <p className="text-xs text-muted-foreground">활성 계약</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white border border-teal-100">
+                          <p className="text-2xl font-heading font-bold text-ink">{partnerStats.data?.totalPurchaseOrders ?? 0}</p>
+                          <p className="text-xs text-muted-foreground">총 발주서</p>
+                        </div>
+                        {(partnerStats.data?.pendingRegistrations ?? 0) > 0 ? (
+                          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                            <p className="text-2xl font-heading font-bold text-amber-600">{partnerStats.data?.pendingRegistrations}</p>
+                            <p className="text-xs text-amber-700">승인 대기</p>
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-lg bg-white border border-teal-100">
+                            <p className="text-2xl font-heading font-bold text-emerald-600">0</p>
+                            <p className="text-xs text-muted-foreground">승인 대기</p>
+                          </div>
+                        )}
+                      </div>
+                      {/* 만료 임박 경고 */}
+                      {(partnerStats.data?.expiringContracts ?? 0) > 0 && (
+                        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                          <p className="text-xs text-amber-700 font-medium">
+                            {partnerStats.data?.expiringContracts}건의 계약이 30일 이내 만료 예정입니다.
+                          </p>
+                        </div>
+                      )}
+                      {/* 최근 등록 업체 */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">최근 등록 업체</p>
+                        {(partnerStats.data?.recentPartners ?? []).length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-2">등록된 협력사가 없습니다.</p>
+                        ) : (
+                          partnerStats.data?.recentPartners.slice(0, 3).map((p: any) => (
+                            <div key={p.id} className="flex items-center justify-between p-2 rounded bg-white border border-teal-50">
+                              <div>
+                                <p className="text-sm font-medium text-ink">{p.companyName}</p>
+                                <p className="text-xs text-muted-foreground">{p.specialty || '공종 미지정'}</p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {p.rating && <><Star className="w-3 h-3 text-gold fill-gold" /><span className="text-xs font-medium">{p.rating}</span></>}
+                                <Badge variant={p.isActive ? 'default' : 'secondary'} className="text-xs ml-1">{p.isActive ? '활성' : '비활성'}</Badge>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      {/* 대기 중 승인 요청 */}
+                      {(partnerStats.data?.pendingRegs ?? []).length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">승인 대기 중</p>
+                          {partnerStats.data?.pendingRegs.map((r: any) => (
+                            <div key={r.id} className="flex items-center justify-between p-2 rounded bg-amber-50 border border-amber-100">
+                              <div>
+                                <p className="text-sm font-medium text-ink">{r.companyName}</p>
+                                <p className="text-xs text-muted-foreground">{r.contactName}</p>
+                              </div>
+                              <Badge variant={r.status === 'staff_approved' ? 'default' : 'outline'} className="text-xs">
+                                {r.status === 'staff_approved' ? '관리자 승인 대기' : '담당자 승인 대기'}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <Button variant="ghost" size="sm" className="w-full text-teal-600 hover:text-teal-700 hover:bg-teal-50" onClick={() => navigate("/ops/partners")}>
+                        협력사 관리 →
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
