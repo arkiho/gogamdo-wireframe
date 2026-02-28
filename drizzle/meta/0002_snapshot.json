@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "dc0a12a8-49bb-4d5b-aee3-c82c64b864dc",
-  "prevId": "5e8b960c-2a7b-4b6e-90db-709dac930095",
+  "id": "0ac2c7f1-17d0-4a2c-bfcb-a3165fec42ac",
+  "prevId": "dc0a12a8-49bb-4d5b-aee3-c82c64b864dc",
   "tables": {
     "activity_logs": {
       "name": "activity_logs",
@@ -1809,6 +1809,102 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
+    "deletion_logs": {
+      "name": "deletion_logs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "tableName": {
+          "name": "tableName",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recordId": {
+          "name": "recordId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recordData": {
+          "name": "recordData",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "deletedByUserId": {
+          "name": "deletedByUserId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "deletedByUserName": {
+          "name": "deletedByUserName",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "restored": {
+          "name": "restored",
+          "type": "enum('yes','no')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'no'"
+        },
+        "restoredByUserId": {
+          "name": "restoredByUserId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "restoredAt": {
+          "name": "restoredAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "deletion_logs_id": {
+          "name": "deletion_logs_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
     "design_projects": {
       "name": "design_projects",
       "columns": {
@@ -2785,7 +2881,7 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
-          "default": "'\uace0\uac10\ub3c4 \ud3b8\uc9d1\ud300'"
+          "default": "'고감도 편집팀'"
         },
         "readTimeMinutes": {
           "name": "readTimeMinutes",
@@ -9697,7 +9793,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'\uc8fc\uc2dd\ud68c\uc0ac \uace0\uac10\ub3c4'"
+          "default": "'주식회사 고감도'"
         },
         "partyB": {
           "name": "partyB",

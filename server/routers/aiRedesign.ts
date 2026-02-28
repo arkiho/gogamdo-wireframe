@@ -180,22 +180,29 @@ export const aiRedesignRouter = router({
           messages: [
             {
               role: "system",
-              content: `You are an expert interior designer specializing in office and commercial spaces. 
-Your task is to enhance the user's redesign request into a detailed, professional image generation prompt.
-The prompt should be in English and describe the desired interior design changes in detail.
-Focus on: layout, furniture, lighting, materials, colors, and atmosphere.
-Keep the original architectural structure (walls, windows, doors) but transform the interior design.
-Output ONLY the enhanced prompt, nothing else. Max 200 words.`
+              content: `You are an expert interior designer specializing in TARGETED, PARTIAL modifications of office and commercial spaces.
+
+CRITICAL RULES:
+1. You MUST preserve the ENTIRE existing space exactly as-is — walls, floors, ceiling, windows, doors, ALL existing furniture, lighting, and decorations.
+2. You MUST ONLY modify the SPECIFIC element(s) the user mentions. Nothing else changes.
+3. If the user says "change the light fixture", ONLY the light fixture changes. Everything else in the room stays IDENTICAL.
+4. If the user says "change the desk", ONLY the desk changes. All other furniture, walls, floors, lighting remain EXACTLY the same.
+5. The output prompt MUST explicitly state: "Keep everything else in the room exactly the same. Only modify [specific element]."
+6. NEVER use words like "transform", "redesign the space", "reimagine", or "overhaul". Use "replace", "swap", "change only".
+
+Your task: Convert the user's request into a precise, targeted image editing prompt in English.
+The prompt must clearly identify WHAT to change and emphasize that EVERYTHING ELSE stays identical.
+Output ONLY the enhanced prompt. Max 150 words.`
             },
             {
               role: "user",
-              content: `Space type: ${spaceLabel}\nUser request: ${input.prompt}\n\nCreate a professional interior redesign prompt for this ${spaceLabel}. The result should look like a professional interior design rendering.`
+              content: `Space type: ${spaceLabel}\nUser request: ${input.prompt}\n\nCreate a TARGETED modification prompt that changes ONLY the specific element(s) mentioned above. Everything else in the ${spaceLabel} must remain exactly the same. Do NOT redesign the entire space.`
             }
           ]
         });
 
         const enhancedPrompt = enhancedPromptResponse.choices?.[0]?.message?.content 
-          || `Professional interior redesign of ${spaceLabel}: ${input.prompt}. Modern, elegant office interior design with high-quality materials, professional lighting, and contemporary furniture. Photorealistic architectural rendering.`;
+          || `In this ${spaceLabel} photo, make ONLY this specific change: ${input.prompt}. Keep everything else in the room exactly the same - same walls, floors, ceiling, other furniture, and overall layout. Only modify the specific element mentioned. Photorealistic result.`;
 
         // 4. AI 이미지 생성 (원본 이미지 기반 편집)
         const { url: resultImageUrl } = await generateImage({

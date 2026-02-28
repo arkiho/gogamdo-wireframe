@@ -43,7 +43,6 @@ import {
   createPurchaseOrder, listPurchaseOrders, getPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder,
   createRfqRequest, listRfqRequests, getRfqRequest, getRfqByToken, updateRfqRequest,
   searchSubcontractors,
-  getClientDashboardStats, getStaffDashboardStats, getPartnerDashboardStats,
 } from "../db/ops";
 
 function generateToken() {
@@ -2168,18 +2167,5 @@ export const opsRouter = router({
         });
         return { success: true };
       }),
-  }),
-
-  // ============ ADMIN DASHBOARD INTEGRATED STATS ============
-  adminDashboard: router({
-    clientStats: adminProcedure.query(async () => {
-      return getClientDashboardStats();
-    }),
-    staffStats: adminProcedure.query(async () => {
-      return getStaffDashboardStats();
-    }),
-    partnerStats: adminProcedure.query(async () => {
-      return getPartnerDashboardStats();
-    }),
   }),
 });

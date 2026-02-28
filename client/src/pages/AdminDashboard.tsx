@@ -19,15 +19,14 @@ import {
   Bot, Sparkles, ExternalLink, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
   HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2, Shield, FileText,
-  ClipboardList, Package, HeartHandshake, HardHat,
-  Briefcase, UserCheck, Handshake, FileSignature, Star, AlertTriangle, TrendingUp,
+  ClipboardList, Package, HeartHandshake, HardHat, RotateCcw, CheckSquare, Square,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
 import Logo from "@/components/Logo";
 import NotificationCenter from "@/components/NotificationCenter";
 
-type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements" | "popups" | "notifications" | "portfolio" | "drive-sync";
+type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements" | "popups" | "notifications" | "portfolio" | "drive-sync" | "deletion-log";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   new: { label: "신규", variant: "destructive" },
@@ -53,6 +52,55 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [expandedInquiry, setExpandedInquiry] = useState<number | null>(null);
 
+  // 일괄 선택/삭제 상태
+  const [selectedIds, setSelectedIds] = useState<Record<string, Set<number>>>({
+    inquiries: new Set(), subscribers: new Set(), estimates: new Set(),
+    lead_downloads: new Set(), chat_sessions: new Set(), style_recommendations: new Set(),
+  });
+  const [deleteReason, setDeleteReason] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ tableName: string; ids: number[] } | null>(null);
+
+  const softDelete = trpc.deletion.softDelete.useMutation({
+    onSuccess: () => { inquiries.refetch(); subscribers.refetch(); estimates.refetch(); leadDownloads.refetch(); chatSessions.refetch(); styleRecs.refetch(); stats.refetch(); },
+  });
+  const bulkSoftDelete = trpc.deletion.bulkSoftDelete.useMutation({
+    onSuccess: () => {
+      inquiries.refetch(); subscribers.refetch(); estimates.refetch(); leadDownloads.refetch(); chatSessions.refetch(); styleRecs.refetch(); stats.refetch();
+      setSelectedIds(prev => ({ ...prev, [deleteTarget?.tableName ?? ""]: new Set() }));
+      setShowDeleteConfirm(false); setDeleteTarget(null); setDeleteReason("");
+    },
+  });
+
+  const toggleSelect = (tableName: string, id: number) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev[tableName]);
+      if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
+      return { ...prev, [tableName]: newSet };
+    });
+  };
+  const toggleSelectAll = (tableName: string, allIds: number[]) => {
+    setSelectedIds(prev => {
+      const current = prev[tableName];
+      if (current.size === allIds.length) return { ...prev, [tableName]: new Set() };
+      return { ...prev, [tableName]: new Set(allIds) };
+    });
+  };
+  const handleBulkDelete = (tableName: string) => {
+    const ids = Array.from(selectedIds[tableName] ?? []);
+    if (ids.length === 0) return;
+    setDeleteTarget({ tableName, ids });
+    setShowDeleteConfirm(true);
+  };
+  const confirmBulkDelete = () => {
+    if (!deleteTarget) return;
+    bulkSoftDelete.mutate({
+      tableName: deleteTarget.tableName as any,
+      recordIds: deleteTarget.ids,
+      reason: deleteReason || undefined,
+    });
+  };
+
   const stats = trpc.admin.stats.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
   const inquiries = trpc.inquiry.list.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
   const subscribers = trpc.newsletter.list.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
@@ -62,11 +110,6 @@ export default function AdminDashboard() {
   const styleRecs = trpc.aiStyle.list.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
   const announcementsList = trpc.announcement.list.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
   const portfolioDrafts = trpc.portfolio.list.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
-
-  // 통합 대시보드 통계
-  const clientStats = trpc.ops.adminDashboard.clientStats.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
-  const staffStats = trpc.ops.adminDashboard.staffStats.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
-  const partnerStats = trpc.ops.adminDashboard.partnerStats.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
 
   // Announcement mutations
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
@@ -143,6 +186,7 @@ export default function AdminDashboard() {
     { id: "notifications", label: "알림센터", icon: <Bell className="w-4 h-4" /> },
     { id: "portfolio", label: "포트폴리오", icon: <Image className="w-4 h-4" />, count: portfolioDrafts.data?.length, href: "/admin/portfolios" },
     { id: "drive-sync", label: "드라이브 동기화", icon: <HardDrive className="w-4 h-4" /> },
+    { id: "deletion-log", label: "삭제 로그", icon: <RotateCcw className="w-4 h-4" /> },
   ];
 
   // DDIA 바로가기 링크
@@ -245,225 +289,6 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="text-3xl font-heading font-bold text-gold">{formatNumber(stats.data?.newInquiries)}</div>
                   <p className="text-xs text-muted-foreground mt-1">미처리 문의</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* ==================== 통합 현황 대시보드 ==================== */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* 고객사 현황 */}
-              <Card className="border-blue-200/60 bg-gradient-to-br from-blue-50/30 to-transparent">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-heading flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <Briefcase className="w-4 h-4 text-blue-600" />
-                    </div>
-                    고객사 현황
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {clientStats.isLoading ? (
-                    <div className="text-sm text-muted-foreground py-4 text-center">로딩 중...</div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-lg bg-white border border-blue-100">
-                          <p className="text-2xl font-heading font-bold text-ink">{clientStats.data?.totalClients ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">CRM 고객</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-white border border-blue-100">
-                          <p className="text-2xl font-heading font-bold text-blue-600">{clientStats.data?.activeDeals ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">진행 중 딜</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-white border border-blue-100">
-                          <p className="text-2xl font-heading font-bold text-emerald-600">{clientStats.data?.wonDeals ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">수주 완료</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-white border border-blue-100">
-                          <p className="text-2xl font-heading font-bold text-ink">{clientStats.data?.portalActive ?? 0}<span className="text-sm text-muted-foreground font-normal">/{clientStats.data?.portalTotal ?? 0}</span></p>
-                          <p className="text-xs text-muted-foreground">포털 고객</p>
-                        </div>
-                      </div>
-                      {/* 최근 고객 */}
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">최근 등록 고객</p>
-                        {(clientStats.data?.recentClients ?? []).length === 0 ? (
-                          <p className="text-xs text-muted-foreground py-2">등록된 고객이 없습니다.</p>
-                        ) : (
-                          clientStats.data?.recentClients.slice(0, 3).map((c: any) => (
-                            <div key={c.id} className="flex items-center justify-between p-2 rounded bg-white border border-blue-50">
-                              <div>
-                                <p className="text-sm font-medium text-ink">{c.companyName}</p>
-                                <p className="text-xs text-muted-foreground">{c.contactName}</p>
-                              </div>
-                              <Badge variant="outline" className="text-xs">{c.source || 'website'}</Badge>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      <Button variant="ghost" size="sm" className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => navigate("/admin/crm")}>
-                        CRM 관리 →
-                      </Button>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* 직원 현황 */}
-              <Card className="border-sky-200/60 bg-gradient-to-br from-sky-50/30 to-transparent">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-heading flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center">
-                      <UserCheck className="w-4 h-4 text-sky-600" />
-                    </div>
-                    직원 현황
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {staffStats.isLoading ? (
-                    <div className="text-sm text-muted-foreground py-4 text-center">로딩 중...</div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-lg bg-white border border-sky-100">
-                          <p className="text-2xl font-heading font-bold text-ink">{staffStats.data?.totalStaff ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">전체 인원</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-white border border-sky-100">
-                          <p className="text-2xl font-heading font-bold text-sky-600">{staffStats.data?.activeStaff ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">배정 직원</p>
-                        </div>
-                      </div>
-                      {/* 부서별 분포 */}
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">부서별 인원</p>
-                        <div className="space-y-1.5">
-                          {(staffStats.data?.byDepartment ?? []).filter((d: any) => d.department !== 'none').map((d: any) => (
-                            <div key={d.department} className="flex items-center justify-between">
-                              <span className="text-sm text-ink">{d.label}</span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 h-1.5 bg-sky-100 rounded-full overflow-hidden">
-                                  <div className="h-full bg-sky-500 rounded-full" style={{ width: `${Math.min(100, (d.count / (staffStats.data?.totalStaff || 1)) * 100)}%` }} />
-                                </div>
-                                <span className="text-xs font-medium text-muted-foreground w-6 text-right">{d.count}</span>
-                              </div>
-                            </div>
-                          ))}
-                          {(staffStats.data?.byDepartment ?? []).filter((d: any) => d.department === 'none').map((d: any) => (
-                            <div key={d.department} className="flex items-center justify-between opacity-50">
-                              <span className="text-sm text-ink">{d.label}</span>
-                              <span className="text-xs font-medium text-muted-foreground">{d.count}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      {/* 역할별 분포 */}
-                      <div className="flex gap-2 flex-wrap">
-                        {(staffStats.data?.byRole ?? []).map((r: any) => (
-                          <Badge key={r.role} variant={r.role === 'admin' || r.role === 'master' ? 'default' : 'outline'} className="text-xs">
-                            {r.label} {r.count}
-                          </Badge>
-                        ))}
-                      </div>
-                      <Button variant="ghost" size="sm" className="w-full text-sky-600 hover:text-sky-700 hover:bg-sky-50" onClick={() => navigate("/admin/settings")}>
-                        직원 관리 →
-                      </Button>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* 협력사 현황 */}
-              <Card className="border-teal-200/60 bg-gradient-to-br from-teal-50/30 to-transparent">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-heading flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
-                      <Handshake className="w-4 h-4 text-teal-600" />
-                    </div>
-                    협력사 현황
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {partnerStats.isLoading ? (
-                    <div className="text-sm text-muted-foreground py-4 text-center">로딩 중...</div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-lg bg-white border border-teal-100">
-                          <p className="text-2xl font-heading font-bold text-ink">{partnerStats.data?.activePartners ?? 0}<span className="text-sm text-muted-foreground font-normal">/{partnerStats.data?.totalPartners ?? 0}</span></p>
-                          <p className="text-xs text-muted-foreground">활성 업체</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-white border border-teal-100">
-                          <p className="text-2xl font-heading font-bold text-teal-600">{partnerStats.data?.activeContracts ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">활성 계약</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-white border border-teal-100">
-                          <p className="text-2xl font-heading font-bold text-ink">{partnerStats.data?.totalPurchaseOrders ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">총 발주서</p>
-                        </div>
-                        {(partnerStats.data?.pendingRegistrations ?? 0) > 0 ? (
-                          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
-                            <p className="text-2xl font-heading font-bold text-amber-600">{partnerStats.data?.pendingRegistrations}</p>
-                            <p className="text-xs text-amber-700">승인 대기</p>
-                          </div>
-                        ) : (
-                          <div className="p-3 rounded-lg bg-white border border-teal-100">
-                            <p className="text-2xl font-heading font-bold text-emerald-600">0</p>
-                            <p className="text-xs text-muted-foreground">승인 대기</p>
-                          </div>
-                        )}
-                      </div>
-                      {/* 만료 임박 경고 */}
-                      {(partnerStats.data?.expiringContracts ?? 0) > 0 && (
-                        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
-                          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                          <p className="text-xs text-amber-700 font-medium">
-                            {partnerStats.data?.expiringContracts}건의 계약이 30일 이내 만료 예정입니다.
-                          </p>
-                        </div>
-                      )}
-                      {/* 최근 등록 업체 */}
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">최근 등록 업체</p>
-                        {(partnerStats.data?.recentPartners ?? []).length === 0 ? (
-                          <p className="text-xs text-muted-foreground py-2">등록된 협력사가 없습니다.</p>
-                        ) : (
-                          partnerStats.data?.recentPartners.slice(0, 3).map((p: any) => (
-                            <div key={p.id} className="flex items-center justify-between p-2 rounded bg-white border border-teal-50">
-                              <div>
-                                <p className="text-sm font-medium text-ink">{p.companyName}</p>
-                                <p className="text-xs text-muted-foreground">{p.specialty || '공종 미지정'}</p>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                {p.rating && <><Star className="w-3 h-3 text-gold fill-gold" /><span className="text-xs font-medium">{p.rating}</span></>}
-                                <Badge variant={p.isActive ? 'default' : 'secondary'} className="text-xs ml-1">{p.isActive ? '활성' : '비활성'}</Badge>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      {/* 대기 중 승인 요청 */}
-                      {(partnerStats.data?.pendingRegs ?? []).length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">승인 대기 중</p>
-                          {partnerStats.data?.pendingRegs.map((r: any) => (
-                            <div key={r.id} className="flex items-center justify-between p-2 rounded bg-amber-50 border border-amber-100">
-                              <div>
-                                <p className="text-sm font-medium text-ink">{r.companyName}</p>
-                                <p className="text-xs text-muted-foreground">{r.contactName}</p>
-                              </div>
-                              <Badge variant={r.status === 'staff_approved' ? 'default' : 'outline'} className="text-xs">
-                                {r.status === 'staff_approved' ? '관리자 승인 대기' : '담당자 승인 대기'}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <Button variant="ghost" size="sm" className="w-full text-teal-600 hover:text-teal-700 hover:bg-teal-50" onClick={() => navigate("/ops/partners")}>
-                        협력사 관리 →
-                      </Button>
-                    </>
-                  )}
                 </CardContent>
               </Card>
             </div>
@@ -740,10 +565,54 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Bulk Delete Confirmation Modal */}
+        {showDeleteConfirm && deleteTarget && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 space-y-4">
+              <h3 className="font-heading text-lg font-bold text-ink">일괄 삭제 확인</h3>
+              <p className="text-sm text-muted-foreground">
+                선택한 <span className="font-bold text-ink">{deleteTarget.ids.length}개</span> 항목을 삭제합니다.
+                삭제된 데이터는 삭제 로그에 보관되며 복구 가능합니다.
+              </p>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">삭제 사유 (선택)</label>
+                <input
+                  type="text"
+                  value={deleteReason}
+                  onChange={e => setDeleteReason(e.target.value)}
+                  placeholder="삭제 사유를 입력하세요..."
+                  className="w-full mt-1 px-3 py-2 border border-border rounded-md text-sm"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => { setShowDeleteConfirm(false); setDeleteTarget(null); setDeleteReason(""); }}>
+                  취소
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-red-600 text-white hover:bg-red-700"
+                  onClick={confirmBulkDelete}
+                  disabled={bulkSoftDelete.isPending}
+                >
+                  {bulkSoftDelete.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Trash2 className="w-4 h-4 mr-1" />}
+                  삭제
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Inquiries Tab */}
         {activeTab === "inquiries" && (
           <div className="space-y-4">
-            <h2 className="font-heading text-xl font-bold text-ink">문의 관리</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl font-bold text-ink">문의 관리</h2>
+              {(selectedIds.inquiries?.size ?? 0) > 0 && (
+                <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => handleBulkDelete("inquiries")}>
+                  <Trash2 className="w-4 h-4 mr-1" /> {selectedIds.inquiries.size}개 삭제
+                </Button>
+              )}
+            </div>
             {inquiries.isLoading ? (
               <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
             ) : (inquiries.data?.length ?? 0) === 0 ? (
@@ -753,15 +622,30 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             ) : (
+              <>
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={() => toggleSelectAll("inquiries", (inquiries.data ?? []).map((i: any) => i.id))}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-ink"
+                >
+                  {selectedIds.inquiries?.size === (inquiries.data?.length ?? 0) && (inquiries.data?.length ?? 0) > 0
+                    ? <CheckSquare className="w-4 h-4 text-gold" />
+                    : <Square className="w-4 h-4" />}
+                  전체 선택
+                </button>
+              </div>
               <div className="space-y-3">
                 {inquiries.data?.map((inq: any) => (
-                  <Card key={inq.id} className="border-border/50 overflow-hidden">
+                  <Card key={inq.id} className={`border-border/50 overflow-hidden ${selectedIds.inquiries?.has(inq.id) ? "ring-2 ring-gold/50" : ""}`}>
                     <div
                       className="p-4 cursor-pointer hover:bg-paper-warm/50 transition-colors"
                       onClick={() => setExpandedInquiry(expandedInquiry === inq.id ? null : inq.id)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
+                          <button onClick={e => { e.stopPropagation(); toggleSelect("inquiries", inq.id); }}>
+                            {selectedIds.inquiries?.has(inq.id) ? <CheckSquare className="w-4 h-4 text-gold" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                          </button>
                           <Badge variant={STATUS_MAP[inq.status]?.variant || "secondary"} className="text-xs">
                             {STATUS_MAP[inq.status]?.label || inq.status}
                           </Badge>
@@ -837,12 +721,19 @@ export default function AdminDashboard() {
                               <Phone className="w-3 h-3" /> 전화 걸기
                             </a>
                           )}
+                          <button
+                            onClick={() => { if (confirm("이 문의를 삭제하시겠습니까? 삭제 로그에서 복구 가능합니다.")) softDelete.mutate({ tableName: "inquiries", recordId: inq.id }); }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded hover:bg-red-100 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" /> 삭제
+                          </button>
                         </div>
                       </div>
                     )}
                   </Card>
                 ))}
               </div>
+              </>
             )}
           </div>
         )}
@@ -850,7 +741,14 @@ export default function AdminDashboard() {
         {/* Subscribers Tab */}
         {activeTab === "subscribers" && (
           <div className="space-y-4">
-            <h2 className="font-heading text-xl font-bold text-ink">뉴스레터 구독자</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl font-bold text-ink">뉴스레터 구독자</h2>
+              {(selectedIds.subscribers?.size ?? 0) > 0 && (
+                <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => handleBulkDelete("subscribers")}>
+                  <Trash2 className="w-4 h-4 mr-1" /> {selectedIds.subscribers.size}개 삭제
+                </Button>
+              )}
+            </div>
             {subscribers.isLoading ? (
               <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
             ) : (subscribers.data?.length ?? 0) === 0 ? (
@@ -866,17 +764,30 @@ export default function AdminDashboard() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border/50 bg-paper-warm">
+                          <th className="p-3 w-10">
+                            <button onClick={() => toggleSelectAll("subscribers", (subscribers.data ?? []).map((s: any) => s.id))}>
+                              {selectedIds.subscribers?.size === (subscribers.data?.length ?? 0) && (subscribers.data?.length ?? 0) > 0
+                                ? <CheckSquare className="w-4 h-4 text-gold" />
+                                : <Square className="w-4 h-4 text-muted-foreground" />}
+                            </button>
+                          </th>
                           <th className="text-left p-3 font-medium text-muted-foreground">이메일</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">이름</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">회사</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">유입경로</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">상태</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">가입일</th>
+                          <th className="p-3 w-10"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {subscribers.data?.map((sub: any) => (
-                          <tr key={sub.id} className="border-b border-border/30 hover:bg-paper-warm/50 transition-colors">
+                          <tr key={sub.id} className={`border-b border-border/30 hover:bg-paper-warm/50 transition-colors ${selectedIds.subscribers?.has(sub.id) ? "bg-gold/5" : ""}`}>
+                            <td className="p-3">
+                              <button onClick={() => toggleSelect("subscribers", sub.id)}>
+                                {selectedIds.subscribers?.has(sub.id) ? <CheckSquare className="w-4 h-4 text-gold" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                              </button>
+                            </td>
                             <td className="p-3 text-ink font-medium">{sub.email}</td>
                             <td className="p-3 text-muted-foreground">{sub.name || "-"}</td>
                             <td className="p-3 text-muted-foreground">{sub.company || "-"}</td>
@@ -894,6 +805,14 @@ export default function AdminDashboard() {
                               </button>
                             </td>
                             <td className="p-3 text-xs text-muted-foreground">{formatDate(sub.createdAt)}</td>
+                            <td className="p-3">
+                              <button
+                                onClick={() => { if (confirm("이 구독자를 삭제하시겠습니까?")) softDelete.mutate({ tableName: "subscribers", recordId: sub.id }); }}
+                                className="text-red-400 hover:text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -908,7 +827,14 @@ export default function AdminDashboard() {
         {/* Estimates Tab */}
         {activeTab === "estimates" && (
           <div className="space-y-4">
-            <h2 className="font-heading text-xl font-bold text-ink">AI 견적 이력</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl font-bold text-ink">AI 견적 이력</h2>
+              {(selectedIds.estimates?.size ?? 0) > 0 && (
+                <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => handleBulkDelete("estimates")}>
+                  <Trash2 className="w-4 h-4 mr-1" /> {selectedIds.estimates.size}개 삭제
+                </Button>
+              )}
+            </div>
             {estimates.isLoading ? (
               <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
             ) : (estimates.data?.length ?? 0) === 0 ? (
@@ -924,17 +850,30 @@ export default function AdminDashboard() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border/50 bg-paper-warm">
+                          <th className="p-3 w-10">
+                            <button onClick={() => toggleSelectAll("estimates", (estimates.data ?? []).map((e: any) => e.id))}>
+                              {selectedIds.estimates?.size === (estimates.data?.length ?? 0) && (estimates.data?.length ?? 0) > 0
+                                ? <CheckSquare className="w-4 h-4 text-gold" />
+                                : <Square className="w-4 h-4 text-muted-foreground" />}
+                            </button>
+                          </th>
                           <th className="text-left p-3 font-medium text-muted-foreground">공간유형</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">면적(평)</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">등급</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">예상 견적</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">연락처</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">일시</th>
+                          <th className="p-3 w-10"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {estimates.data?.map((est: any) => (
-                          <tr key={est.id} className="border-b border-border/30 hover:bg-paper-warm/50 transition-colors">
+                          <tr key={est.id} className={`border-b border-border/30 hover:bg-paper-warm/50 transition-colors ${selectedIds.estimates?.has(est.id) ? "bg-gold/5" : ""}`}>
+                            <td className="p-3">
+                              <button onClick={() => toggleSelect("estimates", est.id)}>
+                                {selectedIds.estimates?.has(est.id) ? <CheckSquare className="w-4 h-4 text-gold" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                              </button>
+                            </td>
                             <td className="p-3 text-ink font-medium">{est.spaceType || "-"}</td>
                             <td className="p-3 text-muted-foreground">{est.area ? `${est.area}평` : "-"}</td>
                             <td className="p-3">
@@ -958,6 +897,9 @@ export default function AdminDashboard() {
                               ) : "-"}
                             </td>
                             <td className="p-3 text-xs text-muted-foreground">{formatDate(est.createdAt)}</td>
+                            <td className="p-3">
+                              <button onClick={() => { if (confirm("이 견적을 삭제하시겠습니까?")) softDelete.mutate({ tableName: "estimates", recordId: est.id }); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -971,7 +913,14 @@ export default function AdminDashboard() {
         {/* Lead Downloads Tab */}
         {activeTab === "leads" && (
           <div className="space-y-4">
-            <h2 className="font-heading text-xl font-bold text-ink">리드 마그넷 다운로드</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl font-bold text-ink">리드 마그넷 다운로드</h2>
+              {(selectedIds.lead_downloads?.size ?? 0) > 0 && (
+                <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => handleBulkDelete("lead_downloads")}>
+                  <Trash2 className="w-4 h-4 mr-1" /> {selectedIds.lead_downloads.size}개 삭제
+                </Button>
+              )}
+            </div>
             {leadDownloads.isLoading ? (
               <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
             ) : (leadDownloads.data?.length ?? 0) === 0 ? (
@@ -987,21 +936,37 @@ export default function AdminDashboard() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border/50 bg-paper-warm">
+                          <th className="p-3 w-10">
+                            <button onClick={() => toggleSelectAll("lead_downloads", (leadDownloads.data ?? []).map((l: any) => l.id))}>
+                              {selectedIds.lead_downloads?.size === (leadDownloads.data?.length ?? 0) && (leadDownloads.data?.length ?? 0) > 0
+                                ? <CheckSquare className="w-4 h-4 text-gold" />
+                                : <Square className="w-4 h-4 text-muted-foreground" />}
+                            </button>
+                          </th>
                           <th className="text-left p-3 font-medium text-muted-foreground">이메일</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">이름</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">회사</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">자료</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">일시</th>
+                          <th className="p-3 w-10"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {leadDownloads.data?.map((lead: any) => (
-                          <tr key={lead.id} className="border-b border-border/30 hover:bg-paper-warm/50 transition-colors">
+                          <tr key={lead.id} className={`border-b border-border/30 hover:bg-paper-warm/50 transition-colors ${selectedIds.lead_downloads?.has(lead.id) ? "bg-gold/5" : ""}`}>
+                            <td className="p-3">
+                              <button onClick={() => toggleSelect("lead_downloads", lead.id)}>
+                                {selectedIds.lead_downloads?.has(lead.id) ? <CheckSquare className="w-4 h-4 text-gold" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                              </button>
+                            </td>
                             <td className="p-3 text-ink font-medium">{lead.email}</td>
                             <td className="p-3 text-muted-foreground">{lead.name || "-"}</td>
                             <td className="p-3 text-muted-foreground">{lead.company || "-"}</td>
                             <td className="p-3"><Badge variant="outline" className="text-xs">{lead.resourceTitle || lead.resourceId}</Badge></td>
                             <td className="p-3 text-xs text-muted-foreground">{formatDate(lead.createdAt)}</td>
+                            <td className="p-3">
+                              <button onClick={() => { if (confirm("이 리드를 삭제하시겠습니까?")) softDelete.mutate({ tableName: "lead_downloads", recordId: lead.id }); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1015,7 +980,14 @@ export default function AdminDashboard() {
         {/* AI Chat Sessions Tab */}
         {activeTab === "ai-chat" && (
           <div className="space-y-4">
-            <h2 className="font-heading text-xl font-bold text-ink">AI 상담 세션</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl font-bold text-ink">AI 상담 세션</h2>
+              {(selectedIds.chat_sessions?.size ?? 0) > 0 && (
+                <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => handleBulkDelete("chat_sessions")}>
+                  <Trash2 className="w-4 h-4 mr-1" /> {selectedIds.chat_sessions.size}개 삭제
+                </Button>
+              )}
+            </div>
             {chatSessions.isLoading ? (
               <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
             ) : (chatSessions.data?.length ?? 0) === 0 ? (
@@ -1025,15 +997,30 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             ) : (
+              <>
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={() => toggleSelectAll("chat_sessions", (chatSessions.data ?? []).map((s: any) => s.id))}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-ink"
+                >
+                  {selectedIds.chat_sessions?.size === (chatSessions.data?.length ?? 0) && (chatSessions.data?.length ?? 0) > 0
+                    ? <CheckSquare className="w-4 h-4 text-gold" />
+                    : <Square className="w-4 h-4" />}
+                  전체 선택
+                </button>
+              </div>
               <div className="space-y-3">
                 {chatSessions.data?.map((session: any) => {
                   const msgs = Array.isArray(session.messages) ? session.messages : [];
                   const userMsgs = msgs.filter((m: any) => m.role === "user");
                   const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
                   return (
-                    <Card key={session.id} className="border-border/50">
+                    <Card key={session.id} className={`border-border/50 ${selectedIds.chat_sessions?.has(session.id) ? "ring-2 ring-gold/50" : ""}`}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
+                          <button onClick={() => toggleSelect("chat_sessions", session.id)} className="mt-1 flex-shrink-0">
+                            {selectedIds.chat_sessions?.has(session.id) ? <CheckSquare className="w-4 h-4 text-gold" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                          </button>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
                               <Bot className="w-4 h-4 text-gold" />
@@ -1073,15 +1060,19 @@ export default function AdminDashboard() {
                               </p>
                             )}
                           </div>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {formatDate(session.updatedAt || session.createdAt)}
-                          </span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {formatDate(session.updatedAt || session.createdAt)}
+                            </span>
+                            <button onClick={() => { if (confirm("이 AI 상담 세션을 삭제하시겠습니까?")) softDelete.mutate({ tableName: "chat_sessions", recordId: session.id }); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   );
                 })}
               </div>
+              </>
             )}
           </div>
         )}
@@ -1089,7 +1080,14 @@ export default function AdminDashboard() {
         {/* AI Style Recommendations Tab */}
         {activeTab === "ai-style" && (
           <div className="space-y-4">
-            <h2 className="font-heading text-xl font-bold text-ink">AI 스타일 추천 기록</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl font-bold text-ink">AI 스타일 추천 기록</h2>
+              {(selectedIds.style_recommendations?.size ?? 0) > 0 && (
+                <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => handleBulkDelete("style_recommendations")}>
+                  <Trash2 className="w-4 h-4 mr-1" /> {selectedIds.style_recommendations.size}개 삭제
+                </Button>
+              )}
+            </div>
             {styleRecs.isLoading ? (
               <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
             ) : (styleRecs.data?.length ?? 0) === 0 ? (
@@ -1099,12 +1097,24 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             ) : (
+              <>
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={() => toggleSelectAll("style_recommendations", (styleRecs.data ?? []).map((r: any) => r.id))}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-ink"
+                >
+                  {selectedIds.style_recommendations?.size === (styleRecs.data?.length ?? 0) && (styleRecs.data?.length ?? 0) > 0
+                    ? <CheckSquare className="w-4 h-4 text-gold" />
+                    : <Square className="w-4 h-4" />}
+                  전체 선택
+                </button>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {styleRecs.data?.map((rec: any) => {
                   const result = typeof rec.resultJson === "string" ? JSON.parse(rec.resultJson) : rec.resultJson;
                   const priorities = typeof rec.priorities === "string" ? JSON.parse(rec.priorities) : rec.priorities;
                   return (
-                    <Card key={rec.id} className="border-border/50 overflow-hidden">
+                    <Card key={rec.id} className={`border-border/50 overflow-hidden ${selectedIds.style_recommendations?.has(rec.id) ? "ring-2 ring-gold/50" : ""}`}>
                       {rec.imageUrl && (
                         <div className="aspect-[16/9] overflow-hidden">
                           <img src={rec.imageUrl} alt={result?.styleName || "추천 스타일"} className="w-full h-full object-cover" />
@@ -1113,12 +1123,18 @@ export default function AdminDashboard() {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
+                            <button onClick={() => toggleSelect("style_recommendations", rec.id)}>
+                              {selectedIds.style_recommendations?.has(rec.id) ? <CheckSquare className="w-4 h-4 text-gold" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                            </button>
                             <Sparkles className="w-4 h-4 text-gold" />
                             <span className="font-heading font-bold text-ink">
                               {result?.styleName || "스타일 추천"}
                             </span>
                           </div>
-                          <span className="text-xs text-muted-foreground">{formatDate(rec.createdAt)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{formatDate(rec.createdAt)}</span>
+                            <button onClick={() => { if (confirm("이 스타일 추천을 삭제하시겠습니까?")) softDelete.mutate({ tableName: "style_recommendations", recordId: rec.id }); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                          </div>
                         </div>
                         <div className="flex flex-wrap gap-2 mb-3">
                           <Badge variant="outline" className="text-xs">{rec.industry}</Badge>
@@ -1155,6 +1171,7 @@ export default function AdminDashboard() {
                   );
                 })}
               </div>
+              </>
             )}
           </div>
         )}
@@ -1355,7 +1372,99 @@ export default function AdminDashboard() {
         {activeTab === "drive-sync" && (
           <DriveSyncTab />
         )}
+        {/* Deletion Log Tab */}
+        {activeTab === "deletion-log" && (
+          <DeletionLogTab />
+        )}
       </div>
+    </div>
+  );
+}
+
+// ===== Deletion Log Tab Component =====
+const TABLE_NAME_MAP: Record<string, string> = {
+  inquiries: "문의",
+  subscribers: "구독자",
+  estimates: "견적",
+  lead_downloads: "리드",
+  chat_sessions: "AI 상담",
+  style_recommendations: "AI 스타일",
+};
+
+function DeletionLogTab() {
+  const logs = trpc.deletion.logs.useQuery(undefined);
+  const restoreRecord = trpc.deletion.restore.useMutation({
+    onSuccess: () => logs.refetch(),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-heading text-xl font-bold text-ink">삭제 로그</h2>
+        <p className="text-sm text-muted-foreground mt-1">삭제된 데이터를 확인하고 복구할 수 있습니다.</p>
+      </div>
+      {logs.isLoading ? (
+        <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
+      ) : (logs.data?.length ?? 0) === 0 ? (
+        <Card className="border-border/50">
+          <CardContent className="py-12 text-center text-muted-foreground">
+            삭제 로그가 없습니다.
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-border/50">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 bg-paper-warm">
+                    <th className="text-left p-3 font-medium text-muted-foreground">유형</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">레코드 ID</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">삭제 사유</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">삭제일</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">상태</th>
+                    <th className="p-3 w-24"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.data?.map((log: any) => (
+                    <tr key={log.id} className="border-b border-border/30 hover:bg-paper-warm/50 transition-colors">
+                      <td className="p-3">
+                        <Badge variant="outline" className="text-xs">
+                          {TABLE_NAME_MAP[log.tableName] || log.tableName}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-muted-foreground text-xs font-mono">#{log.recordId}</td>
+                      <td className="p-3 text-muted-foreground text-xs">{log.reason || "-"}</td>
+                      <td className="p-3 text-xs text-muted-foreground">{new Date(log.deletedAt).toLocaleString("ko-KR")}</td>
+                      <td className="p-3">
+                        {log.restoredAt ? (
+                          <Badge variant="default" className="text-xs bg-green-100 text-green-700">복구됨</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-xs">삭제됨</Badge>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {!log.restoredAt && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => { if (confirm("이 레코드를 복구하시겠습니까?")) restoreRecord.mutate({ logId: log.id }); }}
+                            disabled={restoreRecord.isPending}
+                          >
+                            <RotateCcw className="w-3 h-3 mr-1" /> 복구
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

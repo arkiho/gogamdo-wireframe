@@ -44,6 +44,7 @@ import {
   getSiteSetting, setSiteSetting, listSiteSettings, deleteUser,
   listStaffMembers, updateUserRole, updateUserDepartment,
   createActivityLog, listActivityLogs, getSystemStats, resetSiteSettings, resetAllUserRoles,
+  softDeleteRecord, bulkSoftDeleteRecords, listDeletionLogs, restoreDeletedRecord, getDeletionLogStats,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
@@ -3132,6 +3133,66 @@ ${topicPrompt}
     // 전체 설정 목록 조회
     allSettings: masterProcedure.query(async () => {
       return listSiteSettings();
+    }),
+  }),
+
+  // ===== 삭제 관리 (Deletion Management) =====
+  deletion: router({
+    // Admin: 단일 소프트 삭제
+    softDelete: adminProcedure
+      .input(z.object({
+        tableName: z.enum(["inquiries", "subscribers", "estimates", "lead_downloads", "chat_sessions", "style_recommendations", "ai_redesigns"]),
+        recordId: z.number(),
+        reason: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return softDeleteRecord(
+          input.tableName,
+          input.recordId,
+          ctx.user.id,
+          ctx.user.name ?? "Admin",
+          input.reason
+        );
+      }),
+
+    // Admin: 일괄 소프트 삭제
+    bulkSoftDelete: adminProcedure
+      .input(z.object({
+        tableName: z.enum(["inquiries", "subscribers", "estimates", "lead_downloads", "chat_sessions", "style_recommendations", "ai_redesigns"]),
+        recordIds: z.array(z.number()).min(1),
+        reason: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return bulkSoftDeleteRecords(
+          input.tableName,
+          input.recordIds,
+          ctx.user.id,
+          ctx.user.name ?? "Admin",
+          input.reason
+        );
+      }),
+
+    // Admin: 삭제 로그 목록 조회
+    logs: adminProcedure
+      .input(z.object({
+        tableName: z.string().optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return listDeletionLogs(input ?? undefined);
+      }),
+
+    // Admin: 삭제된 레코드 복구
+    restore: adminProcedure
+      .input(z.object({ logId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return restoreDeletedRecord(input.logId, ctx.user.id);
+      }),
+
+    // Admin: 삭제 로그 통계
+    stats: adminProcedure.query(async () => {
+      return getDeletionLogStats();
     }),
   }),
 });

@@ -2958,3 +2958,33 @@ export const rfqRequests = mysqlTable("rfq_requests", {
 });
 export type RfqRequest = typeof rfqRequests.$inferSelect;
 export type InsertRfqRequest = typeof rfqRequests.$inferInsert;
+
+
+// ============================================================
+// 소프트 삭제 로그 (Deletion Log)
+// Admin이 삭제한 항목의 전체 데이터를 보관하여 복구 가능
+// ============================================================
+export const deletionLogs = mysqlTable("deletion_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  /** 원본 테이블 이름 */
+  tableName: varchar("tableName", { length: 100 }).notNull(),
+  /** 원본 레코드 ID */
+  recordId: int("recordId").notNull(),
+  /** 삭제 전 전체 데이터 (JSON) */
+  recordData: json("recordData").notNull(),
+  /** 삭제한 관리자 ID */
+  deletedByUserId: int("deletedByUserId").notNull(),
+  /** 삭제한 관리자 이름 */
+  deletedByUserName: varchar("deletedByUserName", { length: 200 }),
+  /** 삭제 사유 (선택) */
+  reason: text("reason"),
+  /** 복구 여부 */
+  restored: mysqlEnum("restored", ["yes", "no"]).default("no").notNull(),
+  /** 복구한 관리자 ID */
+  restoredByUserId: int("restoredByUserId"),
+  /** 복구 시각 */
+  restoredAt: timestamp("restoredAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type DeletionLog = typeof deletionLogs.$inferSelect;
+export type InsertDeletionLog = typeof deletionLogs.$inferInsert;

@@ -1,4 +1,4 @@
-import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql } from "drizzle-orm";
+import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -2774,4 +2774,169 @@ export async function updateDailyReport(id: number, data: Partial<InsertDailySit
   const db = await getDb();
   if (!db) return;
   await db.update(dailySiteReports).set(data).where(eq(dailySiteReports.id, id));
+}
+
+
+// ============================================================
+// 소프트 삭제 & 복구 시스템 (Soft Delete & Restore)
+// ============================================================
+
+import { deletionLogs, type InsertDeletionLog } from "../drizzle/schema";
+
+// 테이블 매핑: 삭제 대상 테이블 이름 → drizzle 테이블 참조
+const SOFT_DELETE_TABLES: Record<string, any> = {
+  inquiries,
+  subscribers,
+  estimates,
+  lead_downloads: leadDownloads,
+  chat_sessions: chatSessions,
+  style_recommendations: styleRecommendations,
+  ai_redesigns: aiRedesigns,
+};
+
+/** 소프트 삭제: 레코드를 삭제 로그에 백업 후 원본 삭제 */
+export async function softDeleteRecord(
+  tableName: string,
+  recordId: number,
+  deletedByUserId: number,
+  deletedByUserName: string,
+  reason?: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const table = SOFT_DELETE_TABLES[tableName];
+  if (!table) throw new Error(`Table "${tableName}" is not configured for soft delete`);
+  
+  // 1. 원본 데이터 조회
+  const [record] = await db.select().from(table).where(eq(table.id, recordId));
+  if (!record) throw new Error(`Record #${recordId} not found in ${tableName}`);
+  
+  // 2. 삭제 로그에 백업
+  await db.insert(deletionLogs).values({
+    tableName,
+    recordId,
+    recordData: record,
+    deletedByUserId,
+    deletedByUserName,
+    reason: reason ?? null,
+  });
+  
+  // 3. 원본 삭제
+  await db.delete(table).where(eq(table.id, recordId));
+  
+  return { success: true, recordId };
+}
+
+/** 일괄 소프트 삭제: 여러 레코드를 한 번에 삭제 */
+export async function bulkSoftDeleteRecords(
+  tableName: string,
+  recordIds: number[],
+  deletedByUserId: number,
+  deletedByUserName: string,
+  reason?: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const table = SOFT_DELETE_TABLES[tableName];
+  if (!table) throw new Error(`Table "${tableName}" is not configured for soft delete`);
+  
+  // 1. 원본 데이터 일괄 조회
+  const records = await db.select().from(table).where(inArray(table.id, recordIds));
+  if (records.length === 0) return { success: true, deletedCount: 0 };
+  
+  // 2. 삭제 로그에 일괄 백업
+  const logEntries = records.map((record: any) => ({
+    tableName,
+    recordId: record.id,
+    recordData: record,
+    deletedByUserId,
+    deletedByUserName,
+    reason: reason ?? null,
+  }));
+  
+  await db.insert(deletionLogs).values(logEntries);
+  
+  // 3. 원본 일괄 삭제
+  const foundIds = records.map((r: any) => r.id);
+  await db.delete(table).where(inArray(table.id, foundIds));
+  
+  return { success: true, deletedCount: foundIds.length };
+}
+
+/** 삭제 로그 목록 조회 */
+export async function listDeletionLogs(opts?: {
+  tableName?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  let query = db.select().from(deletionLogs).orderBy(desc(deletionLogs.createdAt));
+  
+  const conditions = [];
+  if (opts?.tableName) {
+    conditions.push(eq(deletionLogs.tableName, opts.tableName));
+  }
+  
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as any;
+  }
+  
+  return query.limit(opts?.limit ?? 100).offset(opts?.offset ?? 0);
+}
+
+/** 삭제된 레코드 복구 */
+export async function restoreDeletedRecord(
+  logId: number,
+  restoredByUserId: number
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // 1. 삭제 로그 조회
+  const [log] = await db.select().from(deletionLogs).where(eq(deletionLogs.id, logId));
+  if (!log) throw new Error(`Deletion log #${logId} not found`);
+  if (log.restored === "yes") throw new Error("This record has already been restored");
+  
+  const table = SOFT_DELETE_TABLES[log.tableName];
+  if (!table) throw new Error(`Table "${log.tableName}" is not configured for restore`);
+  
+  // 2. 원본 테이블에 데이터 복원
+  const recordData = log.recordData as any;
+  // id를 제거하여 새 레코드로 삽입 (auto-increment 충돌 방지)
+  const { id: _id, ...restData } = recordData;
+  
+  try {
+    // 원본 ID로 먼저 삽입 시도
+    await db.insert(table).values(recordData);
+  } catch {
+    // ID 충돌 시 새 ID로 삽입
+    await db.insert(table).values(restData);
+  }
+  
+  // 3. 삭제 로그 업데이트 (복구 완료)
+  await db.update(deletionLogs).set({
+    restored: "yes",
+    restoredByUserId,
+    restoredAt: new Date(),
+  }).where(eq(deletionLogs.id, logId));
+  
+  return { success: true, logId };
+}
+
+/** 삭제 로그 통계 */
+export async function getDeletionLogStats() {
+  const db = await getDb();
+  if (!db) return { total: 0, restored: 0, byTable: [] };
+  
+  const [total] = await db.select({ count: count() }).from(deletionLogs);
+  const [restored] = await db.select({ count: count() }).from(deletionLogs).where(eq(deletionLogs.restored, "yes"));
+  
+  return {
+    total: total?.count ?? 0,
+    restored: restored?.count ?? 0,
+  };
 }
