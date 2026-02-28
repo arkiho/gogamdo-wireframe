@@ -49,6 +49,9 @@ import {
   createStaffInvitation, listStaffInvitations, getStaffInvitationByToken, acceptStaffInvitation, cancelStaffInvitation,
   deactivateStaffMember,
   listCameras, createCamera, updateCamera, deleteCamera, getCameraById, listCameraEvents, createCameraEvent,
+  clockIn, clockOut, getActiveAttendance, listMyAttendance, listAllAttendance,
+  createLeaveRequest, listMyLeaves, listAllLeaves, updateLeaveStatus, cancelLeave,
+  listRfqsBySubcontractorEmail,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
@@ -3386,6 +3389,95 @@ ${topicPrompt}
         }
         return { id: result?.id };
       }),
+  }),
+
+  // ===== 출퇴근 / 근태 (Attendance & Leave) =====
+  attendance: router({
+    clockIn: protectedProcedure
+      .input(z.object({
+        workType: z.enum(["office", "site", "remote", "half_day"]).optional(),
+        siteName: z.string().optional(),
+        memo: z.string().optional(),
+      }).optional())
+      .mutation(async ({ ctx, input }) => {
+        const existing = await getActiveAttendance(ctx.user.id);
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "이미 출근 상태입니다. 퇴근 후 다시 시도하세요." });
+        const result = await clockIn(ctx.user.id, input ?? {});
+        return { id: result.id };
+      }),
+    clockOut: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await clockOut(input.id);
+        if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "출근 기록을 찾을 수 없습니다." });
+        return result;
+      }),
+    active: protectedProcedure.query(async ({ ctx }) => {
+      return getActiveAttendance(ctx.user.id);
+    }),
+    myList: protectedProcedure
+      .input(z.object({
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const start = input?.startDate ? new Date(input.startDate) : undefined;
+        const end = input?.endDate ? new Date(input.endDate) : undefined;
+        return listMyAttendance(ctx.user.id, start, end);
+      }),
+    allList: adminProcedure
+      .input(z.object({
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const start = input?.startDate ? new Date(input.startDate) : undefined;
+        const end = input?.endDate ? new Date(input.endDate) : undefined;
+        return listAllAttendance(start, end);
+      }),
+  }),
+
+  // ===== 휴가 신청 (Leave Requests) =====
+  leave: router({
+    create: protectedProcedure
+      .input(z.object({
+        leaveType: z.enum(["annual", "half_am", "half_pm", "sick", "special", "other"]),
+        startDate: z.string(),
+        endDate: z.string(),
+        reason: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await createLeaveRequest(ctx.user.id, input);
+        return { id: result.id };
+      }),
+    myList: protectedProcedure.query(async ({ ctx }) => {
+      return listMyLeaves(ctx.user.id);
+    }),
+    allList: adminProcedure.query(async () => {
+      return listAllLeaves();
+    }),
+    updateStatus: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["approved", "rejected"]),
+        reviewComment: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return updateLeaveStatus(input.id, input.status, ctx.user.id, input.reviewComment);
+      }),
+    cancel: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return cancelLeave(input.id, ctx.user.id);
+      }),
+  }),
+
+  // ===== 협력업체 포털 RFQ 조회 (Partner Portal) =====
+  partnerPortal: router({
+    myRfqs: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user.email) return [];
+      return listRfqsBySubcontractorEmail(ctx.user.email);
+    }),
   }),
 });
 

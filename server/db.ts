@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent, attendanceRecords, type InsertAttendanceRecord, leaveRequests, type InsertLeaveRequest } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -3097,4 +3097,159 @@ export async function createCameraEvent(data: Omit<InsertOpsCameraEvent, "id" | 
   if (!db) return null;
   const [result] = await db.insert(opsCameraEvents).values(data).$returningId();
   return result;
+}
+
+// ============================================================
+// 출퇴근 기록 (Attendance Records)
+// ============================================================
+export async function clockIn(userId: number, data: { workType?: string; siteName?: string; memo?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(attendanceRecords).values({
+    userId,
+    clockInAt: new Date(),
+    workType: (data.workType ?? "office") as any,
+    siteName: data.siteName,
+    memo: data.memo,
+  }).$returningId();
+  return result;
+}
+
+export async function clockOut(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const clockOutTime = new Date();
+  const [record] = await db.select().from(attendanceRecords).where(eq(attendanceRecords.id, id));
+  if (!record) return null;
+  const totalMinutes = Math.round((clockOutTime.getTime() - new Date(record.clockInAt).getTime()) / 60000);
+  await db.update(attendanceRecords).set({
+    clockOutAt: clockOutTime,
+    totalMinutes,
+  }).where(eq(attendanceRecords.id, id));
+  return { totalMinutes };
+}
+
+export async function getActiveAttendance(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const rows = await db.select().from(attendanceRecords)
+    .where(and(
+      eq(attendanceRecords.userId, userId),
+      gte(attendanceRecords.clockInAt, today),
+      isNull(attendanceRecords.clockOutAt),
+    ))
+    .orderBy(desc(attendanceRecords.clockInAt))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function listMyAttendance(userId: number, startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(attendanceRecords.userId, userId)];
+  if (startDate) conditions.push(gte(attendanceRecords.clockInAt, startDate));
+  if (endDate) conditions.push(lte(attendanceRecords.clockInAt, endDate));
+  return db.select().from(attendanceRecords)
+    .where(and(...conditions))
+    .orderBy(desc(attendanceRecords.clockInAt));
+}
+
+export async function listAllAttendance(startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions: any[] = [];
+  if (startDate) conditions.push(gte(attendanceRecords.clockInAt, startDate));
+  if (endDate) conditions.push(lte(attendanceRecords.clockInAt, endDate));
+  return db.select({
+    attendance: attendanceRecords,
+    userName: users.name,
+    userEmail: users.email,
+  }).from(attendanceRecords)
+    .leftJoin(users, eq(attendanceRecords.userId, users.id))
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(desc(attendanceRecords.clockInAt));
+}
+
+// ============================================================
+// 휴가 신청 (Leave Requests)
+// ============================================================
+export async function createLeaveRequest(userId: number, data: {
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  reason?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(leaveRequests).values({
+    userId,
+    leaveType: data.leaveType as any,
+    startDate: data.startDate,
+    endDate: data.endDate,
+    reason: data.reason,
+  }).$returningId();
+  return result;
+}
+
+export async function listMyLeaves(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(leaveRequests)
+    .where(eq(leaveRequests.userId, userId))
+    .orderBy(desc(leaveRequests.createdAt));
+}
+
+export async function listAllLeaves() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    leave: leaveRequests,
+    userName: users.name,
+    userEmail: users.email,
+  }).from(leaveRequests)
+    .leftJoin(users, eq(leaveRequests.userId, users.id))
+    .orderBy(desc(leaveRequests.createdAt));
+}
+
+export async function updateLeaveStatus(id: number, status: string, approvedBy: number, reviewComment?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(leaveRequests).set({
+    status: status as any,
+    approvedBy,
+    reviewedAt: new Date(),
+    reviewComment,
+  }).where(eq(leaveRequests.id, id));
+  return { success: true };
+}
+
+export async function cancelLeave(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(leaveRequests).set({ status: "cancelled" as any })
+    .where(and(eq(leaveRequests.id, id), eq(leaveRequests.userId, userId)));
+  return { success: true };
+}
+
+// ============================================================
+// 협력업체 RFQ 조회 (by subcontractor)
+// ============================================================
+export async function listRfqsBySubcontractorEmail(email: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const { opsSubcontractors, rfqRequests, purchaseOrders } = await import("../drizzle/schema");
+  // 이메일로 협력업체 찾기
+  const [sub] = await db.select().from(opsSubcontractors).where(eq(opsSubcontractors.contactEmail, email));
+  if (!sub) return [];
+  // 해당 업체의 RFQ 목록
+  return db.select({
+    rfq: rfqRequests,
+    poTitle: purchaseOrders.title,
+    poProjectId: purchaseOrders.projectId,
+  }).from(rfqRequests)
+    .leftJoin(purchaseOrders, eq(rfqRequests.purchaseOrderId, purchaseOrders.id))
+    .where(eq(rfqRequests.subcontractorId, sub.id))
+    .orderBy(desc(rfqRequests.createdAt));
 }

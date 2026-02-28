@@ -1,8 +1,8 @@
 /**
- * 현장 카메라 관리 - 프로젝트별 CCTV/타임랩스 카메라 연동 준비
+ * 현장 카메라 관리 - CCTV/타임랩스 카메라 연동 + HLS 스트림 뷰어
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,13 +13,85 @@ import { Label } from "@/components/ui/label";
 import { Link } from "wouter";
 import {
   Camera, Plus, ArrowLeft, Video, Wifi, WifiOff,
-  Settings, Trash2, ExternalLink, AlertCircle
+  Trash2, ExternalLink, AlertCircle, Maximize2, X, Play
 } from "lucide-react";
 import { toast } from "sonner";
+import Hls from "hls.js";
+
+// HLS Video Player Component
+function HlsPlayer({ src, poster }: { src: string; poster?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    setError(false);
+
+    // Check if it's an HLS stream
+    if (src.includes(".m3u8") || src.startsWith("https://")) {
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+        });
+        hlsRef.current = hls;
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (data.fatal) {
+            setError(true);
+          }
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        // Safari native HLS
+        video.src = src;
+      } else {
+        setError(true);
+      }
+    } else {
+      // Direct video URL (mp4, webm, etc.)
+      video.src = src;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [src]);
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-ink/5">
+        <div className="text-center">
+          <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">스트림 연결 실패</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      ref={videoRef}
+      poster={poster}
+      className="w-full h-full object-contain bg-black"
+      controls
+      muted
+      playsInline
+    />
+  );
+}
 
 export default function OpsCameras() {
   const { user } = useAuth();
+  const utils = trpc.useUtils();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [fullscreenCam, setFullscreenCam] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: "",
     projectId: "",
@@ -29,19 +101,19 @@ export default function OpsCameras() {
 
   // 카메라 목록 조회
   const camerasQuery = trpc.camera.list.useQuery();
-  const addCamera = trpc.camera.add.useMutation({
+  const addCamera = trpc.camera.create.useMutation({
     onSuccess: () => {
       toast.success("카메라가 등록되었습니다.");
-      camerasQuery.refetch();
+      utils.camera.list.invalidate();
       setShowAddForm(false);
       setFormData({ name: "", projectId: "", streamUrl: "", location: "" });
     },
     onError: (err) => toast.error(err.message),
   });
-  const removeCamera = trpc.camera.remove.useMutation({
+  const removeCamera = trpc.camera.delete.useMutation({
     onSuccess: () => {
       toast.success("카메라가 삭제되었습니다.");
-      camerasQuery.refetch();
+      utils.camera.list.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -50,6 +122,41 @@ export default function OpsCameras() {
 
   return (
     <div className="min-h-screen bg-paper">
+      {/* Fullscreen Modal */}
+      {fullscreenCam && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 bg-ink">
+            <div className="flex items-center gap-3">
+              <Camera className="w-5 h-5 text-gold" />
+              <span className="text-white font-medium">{fullscreenCam.name}</span>
+              {fullscreenCam.location && (
+                <span className="text-white/50 text-sm">· {fullscreenCam.location}</span>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-white hover:bg-white/10"
+              onClick={() => setFullscreenCam(null)}
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <div className="flex-1">
+            {fullscreenCam.streamUrl ? (
+              <HlsPlayer src={fullscreenCam.streamUrl} poster={fullscreenCam.thumbnailUrl ?? undefined} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center">
+                  <Camera className="w-16 h-16 text-white/20 mx-auto mb-4" />
+                  <p className="text-white/40">스트림 URL이 설정되지 않았습니다</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-ink text-white">
         <div className="container py-8">
@@ -112,20 +219,21 @@ export default function OpsCameras() {
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">스트림 URL</Label>
+                  <Label className="text-sm font-medium">스트림 URL (HLS/MP4)</Label>
                   <Input
                     value={formData.streamUrl}
                     onChange={(e) => setFormData({ ...formData, streamUrl: e.target.value })}
-                    placeholder="rtsp:// 또는 https:// 스트림 주소"
+                    placeholder="https://.../*.m3u8 또는 MP4 URL"
                     className="mt-1"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">HLS(.m3u8), MP4, WebM 형식을 지원합니다</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">프로젝트 ID</Label>
+                  <Label className="text-sm font-medium">프로젝트 ID *</Label>
                   <Input
                     value={formData.projectId}
                     onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-                    placeholder="연결할 프로젝트 ID (선택)"
+                    placeholder="연결할 프로젝트 ID"
                     className="mt-1"
                   />
                 </div>
@@ -137,11 +245,15 @@ export default function OpsCameras() {
                       toast.error("카메라 이름을 입력해주세요.");
                       return;
                     }
+                    if (!formData.projectId.trim()) {
+                      toast.error("프로젝트 ID를 입력해주세요.");
+                      return;
+                    }
                     addCamera.mutate({
                       name: formData.name,
+                      projectId: parseInt(formData.projectId),
                       streamUrl: formData.streamUrl || undefined,
                       location: formData.location || undefined,
-                      projectId: formData.projectId ? parseInt(formData.projectId) : undefined,
                     });
                   }}
                   className="bg-gold text-ink hover:bg-gold-light"
@@ -178,29 +290,39 @@ export default function OpsCameras() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {cameras.map((cam: any) => (
-              <Card key={cam.id} className="border-border/50 hover:border-gold/30 transition-colors">
+              <Card key={cam.id} className="border-border/50 hover:border-gold/30 transition-colors overflow-hidden">
                 <CardContent className="p-0">
                   {/* Camera Preview Area */}
-                  <div className="aspect-video bg-ink/5 flex items-center justify-center relative">
+                  <div className="aspect-video relative group">
                     {cam.streamUrl ? (
                       <>
-                        <Video className="w-10 h-10 text-muted-foreground" />
-                        <Badge className={`absolute top-2 right-2 ${
-                          cam.status === "online"
+                        <HlsPlayer src={cam.streamUrl} poster={cam.thumbnailUrl ?? undefined} />
+                        <Badge className={`absolute top-2 right-2 z-10 ${
+                          cam.isOnline
                             ? "bg-green-500/20 text-green-600 border-green-500/30"
                             : "bg-red-500/20 text-red-600 border-red-500/30"
                         }`}>
-                          {cam.status === "online" ? (
+                          {cam.isOnline ? (
                             <><Wifi className="w-3 h-3 mr-1" /> 온라인</>
                           ) : (
                             <><WifiOff className="w-3 h-3 mr-1" /> 오프라인</>
                           )}
                         </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="absolute top-2 left-2 z-10 bg-black/50 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setFullscreenCam(cam)}
+                        >
+                          <Maximize2 className="w-4 h-4" />
+                        </Button>
                       </>
                     ) : (
-                      <div className="text-center">
-                        <Camera className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-xs text-muted-foreground">스트림 미설정</p>
+                      <div className="w-full h-full bg-ink/5 flex items-center justify-center">
+                        <div className="text-center">
+                          <Camera className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-xs text-muted-foreground">스트림 미설정</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -217,14 +339,10 @@ export default function OpsCameras() {
                             size="sm"
                             variant="outline"
                             className="h-7 text-xs"
-                            onClick={() => {
-                              if (cam.streamUrl) {
-                                window.open(cam.streamUrl, "_blank");
-                              }
-                            }}
+                            onClick={() => setFullscreenCam(cam)}
                           >
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            보기
+                            <Play className="w-3 h-3 mr-1" />
+                            전체화면
                           </Button>
                         )}
                       </div>
@@ -256,15 +374,15 @@ export default function OpsCameras() {
               <div>
                 <h3 className="font-heading font-bold text-ink mb-1">카메라 연동 안내</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  현장 카메라 시스템이 연결되면 실시간 영상 스트리밍, 타임랩스 녹화,
-                  이벤트 감지 알림 등의 기능을 사용할 수 있습니다.
-                  RTSP, HLS, WebRTC 프로토콜을 지원하며, IP 카메라 또는 NVR 시스템과 연동 가능합니다.
+                  HLS(.m3u8) 스트림 URL을 등록하면 브라우저에서 실시간 영상을 확인할 수 있습니다.
+                  IP 카메라의 RTSP 스트림은 미디어 서버(예: MediaMTX, Nginx-RTMP)를 통해
+                  HLS로 변환한 후 URL을 등록해 주세요.
                 </p>
                 <div className="flex gap-2 mt-3">
-                  <Badge variant="outline" className="text-xs">RTSP</Badge>
                   <Badge variant="outline" className="text-xs">HLS</Badge>
-                  <Badge variant="outline" className="text-xs">WebRTC</Badge>
-                  <Badge variant="outline" className="text-xs">ONVIF</Badge>
+                  <Badge variant="outline" className="text-xs">MP4</Badge>
+                  <Badge variant="outline" className="text-xs">WebM</Badge>
+                  <Badge variant="outline" className="text-xs">ONVIF → HLS</Badge>
                 </div>
               </div>
             </div>

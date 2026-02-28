@@ -3085,3 +3085,61 @@ export const opsCameraEvents = mysqlTable("ops_camera_events", {
 });
 export type OpsCameraEvent = typeof opsCameraEvents.$inferSelect;
 export type InsertOpsCameraEvent = typeof opsCameraEvents.$inferInsert;
+
+// ============================================================
+// 출퇴근 기록 (Attendance Records)
+// ============================================================
+export const attendanceRecords = mysqlTable("attendance_records", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** 출근 시각 */
+  clockInAt: timestamp("clockInAt").notNull(),
+  /** 퇴근 시각 */
+  clockOutAt: timestamp("clockOutAt"),
+  /** 근무 유형 */
+  workType: mysqlEnum("workType", ["office", "site", "remote", "half_day"]).default("office").notNull(),
+  /** 현장명 (현장 근무 시) */
+  siteName: varchar("siteName", { length: 200 }),
+  /** 메모 */
+  memo: text("memo"),
+  /** 총 근무 시간 (분) */
+  totalMinutes: int("totalMinutes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
+export type InsertAttendanceRecord = typeof attendanceRecords.$inferInsert;
+
+// ============================================================
+// 휴가 신청 (Leave Requests)
+// ============================================================
+export const leaveRequests = mysqlTable("leave_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** 휴가 유형 */
+  leaveType: mysqlEnum("leaveType", [
+    "annual",       // 연차
+    "half_am",      // 오전 반차
+    "half_pm",      // 오후 반차
+    "sick",         // 병가
+    "special",      // 경조사
+    "other",        // 기타
+  ]).notNull(),
+  /** 시작일 (YYYY-MM-DD) */
+  startDate: varchar("startDate", { length: 10 }).notNull(),
+  /** 종료일 (YYYY-MM-DD) */
+  endDate: varchar("endDate", { length: 10 }).notNull(),
+  /** 사유 */
+  reason: text("reason"),
+  /** 상태 */
+  status: mysqlEnum("leaveStatus", ["pending", "approved", "rejected", "cancelled"]).default("pending").notNull(),
+  /** 승인자 ID */
+  approvedBy: int("approvedBy"),
+  /** 승인/거절 시각 */
+  reviewedAt: timestamp("reviewedAt"),
+  /** 승인/거절 코멘트 */
+  reviewComment: text("reviewComment"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type LeaveRequest = typeof leaveRequests.$inferSelect;
+export type InsertLeaveRequest = typeof leaveRequests.$inferInsert;
