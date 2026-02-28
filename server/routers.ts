@@ -11,7 +11,7 @@ import {
   createLeadDownload, listLeadDownloads,
   upsertChatSession, listChatSessions,
   createStyleRecommendation, listStyleRecommendations,
-  createAnnouncement, listAnnouncements, getActiveAnnouncements, updateAnnouncement, deleteAnnouncement,
+  createAnnouncement, listAnnouncements, getActiveAnnouncements, updateAnnouncement, deleteAnnouncement, bulkDeleteAnnouncements,
   getDashboardStats,
   createPortfolioDraft, listPortfolioDrafts, getPortfolioDraft, updatePortfolioDraft,
   publishPortfolioDraft, archivePortfolioDraft, deletePortfolioDraft,
@@ -45,6 +45,10 @@ import {
   listStaffMembers, updateUserRole, updateUserDepartment,
   createActivityLog, listActivityLogs, getSystemStats, resetSiteSettings, resetAllUserRoles,
   softDeleteRecord, bulkSoftDeleteRecords, listDeletionLogs, restoreDeletedRecord, getDeletionLogStats,
+  createStaffApplication, listStaffApplications, reviewStaffApplication, getStaffApplicationById, getStaffApplicationByEmail,
+  createStaffInvitation, listStaffInvitations, getStaffInvitationByToken, acceptStaffInvitation, cancelStaffInvitation,
+  deactivateStaffMember,
+  listCameras, createCamera, updateCamera, deleteCamera, getCameraById, listCameraEvents, createCameraEvent,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
@@ -711,6 +715,12 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return deleteAnnouncement(input.id);
+      }),
+    // 관리자: 일괄 삭제
+    bulkDelete: adminProcedure
+      .input(z.object({ ids: z.array(z.number()).min(1) }))
+      .mutation(async ({ input }) => {
+        return bulkDeleteAnnouncements(input.ids);
       }),
   }),
 
@@ -3194,6 +3204,188 @@ ${topicPrompt}
     stats: adminProcedure.query(async () => {
       return getDeletionLogStats();
     }),
+  }),
+
+  // ============================================================
+  // 직원 가입신청 / 초대 관리
+  // ============================================================
+  staffManagement: router({
+    // 공개: 직원 가입 신청
+    submitApplication: publicProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        phone: z.string().optional(),
+        department: z.enum(["design", "construction", "accounting", "management", "sales", "none"]).optional(),
+        message: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await getStaffApplicationByEmail(input.email);
+        if (existing && existing.status === "pending") {
+          throw new TRPCError({ code: "CONFLICT", message: "이미 가입 신청이 접수되어 있습니다." });
+        }
+        const result = await createStaffApplication(input);
+        return { id: result?.id, message: "가입 신청이 접수되었습니다. 관리자 승인 후 이용 가능합니다." };
+      }),
+
+    // Admin: 가입 신청 목록
+    listApplications: adminProcedure
+      .input(z.object({ status: z.enum(["pending", "approved", "rejected"]).optional() }).optional())
+      .query(async ({ input }) => {
+        return listStaffApplications(input?.status);
+      }),
+
+    // Admin: 가입 신청 승인/거절
+    reviewApplication: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        action: z.enum(["approved", "rejected"]),
+        rejectReason: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const app = await getStaffApplicationById(input.id);
+        if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "신청을 찾을 수 없습니다." });
+        if (app.status !== "pending") throw new TRPCError({ code: "BAD_REQUEST", message: "이미 처리된 신청입니다." });
+        await reviewStaffApplication(input.id, input.action, ctx.user.id, input.rejectReason);
+        return { success: true, action: input.action };
+      }),
+
+    // Admin: 직원 초대 이메일 발송
+    invite: adminProcedure
+      .input(z.object({
+        email: z.string().email(),
+        department: z.enum(["design", "construction", "accounting", "management", "sales", "none"]).optional(),
+        opsRole: z.enum(["pm", "designer", "site_manager", "accountant", "director", "staff"]).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7일
+        await createStaffInvitation({
+          email: input.email,
+          invitedByUserId: ctx.user.id,
+          token,
+          department: input.department ?? "none",
+          opsRole: input.opsRole ?? "staff",
+          status: "pending",
+          expiresAt,
+        });
+        // TODO: 실제 이메일 발송 연동 (Resend API)
+        return { success: true, token, message: `${input.email}로 초대가 발송되었습니다.` };
+      }),
+
+    // Admin: 초대 목록
+    listInvitations: adminProcedure
+      .input(z.object({ status: z.enum(["pending", "accepted", "expired", "cancelled"]).optional() }).optional())
+      .query(async ({ input }) => {
+        return listStaffInvitations(input?.status);
+      }),
+
+    // Admin: 초대 취소
+    cancelInvitation: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await cancelStaffInvitation(input.id);
+        return { success: true };
+      }),
+
+    // Admin: 직원 비활성화 (접근 차단)
+    deactivate: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (input.userId === ctx.user.id) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "자기 자신은 비활성화할 수 없습니다." });
+        }
+        await deactivateStaffMember(input.userId);
+        return { success: true };
+      }),
+
+    // 공개: 초대 토큰 확인
+    verifyInvitation: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const inv = await getStaffInvitationByToken(input.token);
+        if (!inv) return { valid: false, message: "유효하지 않은 초대입니다." };
+        if (inv.status !== "pending") return { valid: false, message: "이미 처리된 초대입니다." };
+        if (new Date() > inv.expiresAt) return { valid: false, message: "만료된 초대입니다." };
+        return { valid: true, email: inv.email, department: inv.department, opsRole: inv.opsRole };
+      }),
+  }),
+
+  // ============================================================
+  // 현장 카메라 관리
+  // ============================================================
+  camera: router({
+    // 카메라 목록
+    list: protectedProcedure
+      .input(z.object({ projectId: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        return listCameras(input?.projectId);
+      }),
+
+    // 카메라 등록
+    create: adminProcedure
+      .input(z.object({
+        projectId: z.number(),
+        name: z.string().min(1),
+        location: z.string().optional(),
+        streamUrl: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await createCamera(input);
+        return { id: result?.id };
+      }),
+
+    // 카메라 수정
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        location: z.string().optional(),
+        streamUrl: z.string().optional(),
+        thumbnailUrl: z.string().optional(),
+        isOnline: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateCamera(id, data);
+        return { success: true };
+      }),
+
+    // 카메라 삭제
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteCamera(input.id);
+        return { success: true };
+      }),
+
+    // 카메라 이벤트 로그
+    events: protectedProcedure
+      .input(z.object({ cameraId: z.number(), limit: z.number().optional() }))
+      .query(async ({ input }) => {
+        return listCameraEvents(input.cameraId, input.limit);
+      }),
+
+    // 카메라 이벤트 기록 (외부 시스템 연동용)
+    recordEvent: protectedProcedure
+      .input(z.object({
+        cameraId: z.number(),
+        eventType: z.enum(["online", "offline", "snapshot", "motion", "error"]),
+        message: z.string().optional(),
+        snapshotUrl: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await createCameraEvent(input);
+        // 카메라 온라인/오프라인 상태 업데이트
+        if (input.eventType === "online") {
+          await updateCamera(input.cameraId, { isOnline: 1, lastOnlineAt: new Date() });
+        } else if (input.eventType === "offline") {
+          await updateCamera(input.cameraId, { isOnline: 0 });
+        } else if (input.eventType === "snapshot" && input.snapshotUrl) {
+          await updateCamera(input.cameraId, { thumbnailUrl: input.snapshotUrl });
+        }
+        return { id: result?.id };
+      }),
   }),
 });
 

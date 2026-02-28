@@ -56,6 +56,7 @@ export default function AdminDashboard() {
   const [selectedIds, setSelectedIds] = useState<Record<string, Set<number>>>({
     inquiries: new Set(), subscribers: new Set(), estimates: new Set(),
     lead_downloads: new Set(), chat_sessions: new Set(), style_recommendations: new Set(),
+    announcements: new Set(),
   });
   const [deleteReason, setDeleteReason] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1179,7 +1180,14 @@ export default function AdminDashboard() {
         {activeTab === "announcements" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="font-heading text-xl font-bold text-ink">공지 배너 관리</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="font-heading text-xl font-bold text-ink">공지 배너 관리</h2>
+                {(selectedIds.announcements?.size ?? 0) > 0 && (
+                  <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => handleBulkDelete("announcements")}>
+                    <Trash2 className="w-4 h-4 mr-1" /> {selectedIds.announcements.size}개 삭제
+                  </Button>
+                )}
+              </div>
               <Button onClick={() => setShowNewAnnouncement(!showNewAnnouncement)} className="bg-ink text-white hover:bg-ink/90">
                 <Plus className="w-4 h-4 mr-1" />
                 새 공지
@@ -1301,12 +1309,25 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             ) : (
+              <>
+              <div className="flex items-center gap-2 mb-3">
+                <button onClick={() => toggleSelectAll("announcements", announcementsList.data!.map(a => a.id))} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-ink transition-colors">
+                  {selectedIds.announcements?.size === (announcementsList.data?.length ?? 0) && (announcementsList.data?.length ?? 0) > 0
+                    ? <CheckSquare className="w-4 h-4 text-gold" />
+                    : <Square className="w-4 h-4" />}
+                  전체 선택
+                </button>
+              </div>
               <div className="space-y-3">
                 {announcementsList.data.map((ann) => (
-                  <Card key={ann.id} className="border-border/50">
+                  <Card key={ann.id} className={`border-border/50 ${selectedIds.announcements?.has(ann.id) ? "ring-2 ring-gold/50" : ""}`}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
+                        <div className="flex items-start gap-3 flex-1">
+                          <button onClick={() => toggleSelect("announcements", ann.id)} className="mt-1 flex-shrink-0">
+                            {selectedIds.announcements?.has(ann.id) ? <CheckSquare className="w-4 h-4 text-gold" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                          </button>
+                          <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge variant={ann.active === "yes" ? "default" : "secondary"} className={ann.active === "yes" ? "bg-green-500 text-white" : ""}>
                               {ann.active === "yes" ? "활성" : "비활성"}
@@ -1328,6 +1349,7 @@ export default function AdminDashboard() {
                             <span>{formatDate(ann.createdAt)}</span>
                             {ann.startsAt && <span>시작: {formatDate(ann.startsAt)}</span>}
                             {ann.endsAt && <span>종료: {formatDate(ann.endsAt)}</span>}
+                          </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
@@ -1353,6 +1375,7 @@ export default function AdminDashboard() {
                   </Card>
                 ))}
               </div>
+              </>
             )}
           </div>
         )}

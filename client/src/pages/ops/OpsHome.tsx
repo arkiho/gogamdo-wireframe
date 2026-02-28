@@ -13,7 +13,7 @@ import { useState } from "react";
 import {
   FolderKanban, Plus, Building2, MapPin, Calendar,
   TrendingUp, ClipboardList, Receipt, Clock,
-  Banknote, CheckCircle2, Activity, Wallet,
+  Banknote, CheckCircle2, Activity, Wallet, Camera, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import NotificationBell from "@/components/NotificationBell";
@@ -92,8 +92,14 @@ export default function OpsHome() {
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           <NotificationBell />
+          <Button variant="outline" size="sm" onClick={() => setLocation("/ops/staff")} className="h-9">
+            <Users className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">직원관리</span>
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setLocation("/ops/partners")} className="h-9">
             <Building2 className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">협력업체</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/ops/cameras")} className="h-9">
+            <Camera className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">현장카메라</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setLocation("/ops/calendar")} className="h-9">
             <Calendar className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">캘린더</span>

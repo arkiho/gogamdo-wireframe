@@ -2988,3 +2988,100 @@ export const deletionLogs = mysqlTable("deletion_logs", {
 });
 export type DeletionLog = typeof deletionLogs.$inferSelect;
 export type InsertDeletionLog = typeof deletionLogs.$inferInsert;
+
+
+// ============================================================
+// 직원 가입신청 / 초대 (Staff Applications & Invitations)
+// ============================================================
+
+/**
+ * 직원 가입 신청 (자가 가입 → 관리자 승인)
+ */
+export const staffApplications = mysqlTable("staff_applications", {
+  id: int("id").autoincrement().primaryKey(),
+  /** 신청자 이름 */
+  name: varchar("name", { length: 200 }).notNull(),
+  /** 신청자 이메일 */
+  email: varchar("email", { length: 320 }).notNull(),
+  /** 신청자 전화번호 */
+  phone: varchar("phone", { length: 30 }),
+  /** 희망 부서 */
+  department: mysqlEnum("department", [
+    "design", "construction", "accounting", "management", "sales", "none",
+  ]).default("none"),
+  /** 자기소개 / 메모 */
+  message: text("message"),
+  /** 상태 */
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  /** 승인/거절한 관리자 ID */
+  reviewedByUserId: int("reviewedByUserId"),
+  /** 승인/거절 시각 */
+  reviewedAt: timestamp("reviewedAt"),
+  /** 거절 사유 */
+  rejectReason: text("rejectReason"),
+  /** 승인 후 생성된 사용자 ID */
+  createdUserId: int("createdUserId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type StaffApplication = typeof staffApplications.$inferSelect;
+export type InsertStaffApplication = typeof staffApplications.$inferInsert;
+
+/**
+ * 직원 초대 (관리자가 이메일 입력 → 초대 링크 발송)
+ */
+export const staffInvitations = mysqlTable("staff_invitations", {
+  id: int("id").autoincrement().primaryKey(),
+  /** 초대 이메일 */
+  email: varchar("email", { length: 320 }).notNull(),
+  /** 초대자(관리자) ID */
+  invitedByUserId: int("invitedByUserId").notNull(),
+  /** 초대 토큰 (URL에 포함) */
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  /** 배정할 부서 */
+  department: mysqlEnum("department", [
+    "design", "construction", "accounting", "management", "sales", "none",
+  ]).default("none"),
+  /** 배정할 OpsX 역할 */
+  opsRole: mysqlEnum("opsRole", [
+    "pm", "designer", "site_manager", "accountant", "director", "staff",
+  ]).default("staff"),
+  /** 상태 */
+  status: mysqlEnum("status", ["pending", "accepted", "expired", "cancelled"]).default("pending").notNull(),
+  /** 수락 후 생성된 사용자 ID */
+  acceptedUserId: int("acceptedUserId"),
+  /** 수락 시각 */
+  acceptedAt: timestamp("acceptedAt"),
+  /** 만료 시각 (기본 7일) */
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type StaffInvitation = typeof staffInvitations.$inferSelect;
+export type InsertStaffInvitation = typeof staffInvitations.$inferInsert;
+
+// ============================================================
+// 현장 카메라 관리 확장 (Site Camera Management)
+// 기존 opsCameras 테이블 활용 + 카메라 이벤트 로그
+// ============================================================
+
+/**
+ * 카메라 이벤트 로그 (접속, 오프라인, 스냅샷 등)
+ */
+export const opsCameraEvents = mysqlTable("ops_camera_events", {
+  id: int("id").autoincrement().primaryKey(),
+  cameraId: int("cameraId").notNull(),
+  /** 이벤트 유형 */
+  eventType: mysqlEnum("eventType", [
+    "online",       // 카메라 온라인
+    "offline",      // 카메라 오프라인
+    "snapshot",     // 스냅샷 촬영
+    "motion",       // 움직임 감지
+    "error",        // 오류 발생
+  ]).notNull(),
+  /** 이벤트 상세 메시지 */
+  message: text("message"),
+  /** 스냅샷 URL (snapshot 이벤트 시) */
+  snapshotUrl: text("snapshotUrl"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type OpsCameraEvent = typeof opsCameraEvents.$inferSelect;
+export type InsertOpsCameraEvent = typeof opsCameraEvents.$inferInsert;

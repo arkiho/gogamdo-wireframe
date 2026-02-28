@@ -56,6 +56,10 @@ import AdminPostOccupancy from "./pages/AdminPostOccupancy";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import AdminPortfolios from "./pages/AdminPortfolios";
 import SurveyResponse from "./pages/SurveyResponse";
+import OpsStaffDashboard from "./pages/ops/OpsStaffDashboard";
+import OpsCameras from "./pages/ops/OpsCameras";
+import PartnerPortal from "./pages/PartnerPortal";
+import StaffJoin from "./pages/StaffJoin";
 
 function PublicRouter() {
   return (
@@ -112,6 +116,12 @@ function Router() {
       <Route path="/ops/calendar" component={OpsCalendar} />
       <Route path="/ops/partners" component={OpsPartners} />
       <Route path="/ops/partners/:tab" component={OpsPartners} />
+      <Route path="/ops/staff-dashboard" component={OpsStaffDashboard} />
+      <Route path="/ops/cameras" component={OpsCameras} />
+      {/* 협력업체 포털 */}
+      <Route path="/partner-portal" component={PartnerPortal} />
+      {/* 직원 가입 신청 */}
+      <Route path="/staff-join" component={StaffJoin} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/portfolios" component={AdminPortfolios} />

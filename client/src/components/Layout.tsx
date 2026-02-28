@@ -9,7 +9,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ArrowUpRight, Mail, ChevronDown, User, Building2, HardHat, LogIn, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, ArrowUpRight, Mail, ChevronDown, User, Building2, HardHat, LogIn, LogOut, LayoutDashboard, Users, Handshake, Camera } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -301,6 +301,20 @@ function LoginDropdown({ isTransparent }: { isTransparent: boolean }) {
                     고객 포털
                   </span>
                 </Link>
+                {isStaff && (
+                  <Link href="/ops/staff-dashboard">
+                    <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
+                      <Users className="w-4 h-4" />
+                      직원용 대시보드
+                    </span>
+                  </Link>
+                )}
+                <Link href="/partner-portal">
+                  <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
+                    <Handshake className="w-4 h-4" />
+                    협력업체 대시보드
+                  </span>
+                </Link>
                 {(user.role === "admin" || user.role === "master") && (
                   <Link href="/admin">
                     <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
@@ -409,6 +423,20 @@ function MobileLoginButtons() {
             <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
               <Building2 className="w-5 h-5" />
               고객 포털
+            </span>
+          </Link>
+          {isStaff && (
+            <Link href="/ops/staff-dashboard">
+              <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
+                <Users className="w-5 h-5" />
+                직원용 대시보드
+              </span>
+            </Link>
+          )}
+          <Link href="/partner-portal">
+            <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
+              <Handshake className="w-5 h-5" />
+              협력업체 대시보드
             </span>
           </Link>
           {(user.role === "admin" || user.role === "master") && (

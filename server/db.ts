@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -278,6 +278,14 @@ export async function deleteAnnouncement(id: number) {
   if (!db) throw new Error("Database not available");
   await db.delete(announcements).where(eq(announcements.id, id));
   return { success: true };
+}
+
+export async function bulkDeleteAnnouncements(ids: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (ids.length === 0) return { success: true, count: 0 };
+  await db.delete(announcements).where(inArray(announcements.id, ids));
+  return { success: true, count: ids.length };
 }
 
 // ===== Portfolio Draft Queries =====
@@ -2939,4 +2947,154 @@ export async function getDeletionLogStats() {
     total: total?.count ?? 0,
     restored: restored?.count ?? 0,
   };
+}
+
+
+// ============================================================
+// 직원 가입신청 (Staff Applications)
+// ============================================================
+
+export async function createStaffApplication(data: Omit<InsertStaffApplication, "id" | "createdAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(staffApplications).values(data).$returningId();
+  return result;
+}
+
+export async function listStaffApplications(status?: "pending" | "approved" | "rejected") {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = status ? [eq(staffApplications.status, status)] : [];
+  return db.select().from(staffApplications).where(conditions.length ? conditions[0] : undefined).orderBy(desc(staffApplications.createdAt));
+}
+
+export async function reviewStaffApplication(id: number, action: "approved" | "rejected", reviewedByUserId: number, rejectReason?: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(staffApplications).set({
+    status: action,
+    reviewedByUserId,
+    reviewedAt: new Date(),
+    rejectReason: rejectReason ?? null,
+  }).where(eq(staffApplications.id, id));
+}
+
+export async function getStaffApplicationById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [app] = await db.select().from(staffApplications).where(eq(staffApplications.id, id));
+  return app ?? null;
+}
+
+export async function getStaffApplicationByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const [app] = await db.select().from(staffApplications).where(eq(staffApplications.email, email));
+  return app ?? null;
+}
+
+// ============================================================
+// 직원 초대 (Staff Invitations)
+// ============================================================
+
+export async function createStaffInvitation(data: Omit<InsertStaffInvitation, "id" | "createdAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(staffInvitations).values(data).$returningId();
+  return result;
+}
+
+export async function listStaffInvitations(status?: "pending" | "accepted" | "expired" | "cancelled") {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = status ? [eq(staffInvitations.status, status)] : [];
+  return db.select().from(staffInvitations).where(conditions.length ? conditions[0] : undefined).orderBy(desc(staffInvitations.createdAt));
+}
+
+export async function getStaffInvitationByToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const [inv] = await db.select().from(staffInvitations).where(eq(staffInvitations.token, token));
+  return inv ?? null;
+}
+
+export async function acceptStaffInvitation(token: string, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(staffInvitations).set({
+    status: "accepted",
+    acceptedUserId: userId,
+    acceptedAt: new Date(),
+  }).where(eq(staffInvitations.token, token));
+}
+
+export async function cancelStaffInvitation(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(staffInvitations).set({ status: "cancelled" }).where(eq(staffInvitations.id, id));
+}
+
+// ============================================================
+// 직원 비활성화/제거
+// ============================================================
+
+export async function deactivateStaffMember(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  // 부서를 none으로, opsRole을 staff로 변경하여 접근 차단
+  await db.update(users).set({
+    department: "none",
+    opsRole: "staff",
+    role: "user",
+  }).where(eq(users.id, userId));
+}
+
+// ============================================================
+// 현장 카메라 관리 (Site Camera Management)
+// ============================================================
+
+export async function listCameras(projectId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = projectId ? [eq(opsCameras.projectId, projectId)] : [];
+  return db.select().from(opsCameras).where(conditions.length ? conditions[0] : undefined).orderBy(desc(opsCameras.createdAt));
+}
+
+export async function createCamera(data: Omit<InsertOpsCamera, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(opsCameras).values(data).$returningId();
+  return result;
+}
+
+export async function updateCamera(id: number, data: Partial<Omit<InsertOpsCamera, "id" | "createdAt" | "updatedAt">>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(opsCameras).set(data).where(eq(opsCameras.id, id));
+}
+
+export async function deleteCamera(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(opsCameras).where(eq(opsCameras.id, id));
+}
+
+export async function getCameraById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [cam] = await db.select().from(opsCameras).where(eq(opsCameras.id, id));
+  return cam ?? null;
+}
+
+export async function listCameraEvents(cameraId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(opsCameraEvents).where(eq(opsCameraEvents.cameraId, cameraId)).orderBy(desc(opsCameraEvents.createdAt)).limit(limit);
+}
+
+export async function createCameraEvent(data: Omit<InsertOpsCameraEvent, "id" | "createdAt">) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(opsCameraEvents).values(data).$returningId();
+  return result;
 }
