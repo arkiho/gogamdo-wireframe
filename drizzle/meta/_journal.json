@@ -36,6 +36,13 @@
       "when": 1772298764460,
       "tag": "0004_sharp_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1772351377191,
+      "tag": "0005_bizarre_quasar",
+      "breakpoints": true
     }
   ]
 }

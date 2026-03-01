@@ -783,3 +783,11 @@
 - [x] 협력업체 포털 견적 제출 UI 완성 (PartnerPortal.tsx - RFQ 목록, 견적서 제출 다이얼로그)
 - [x] 협력업체 포털: tRPC 라우터 (partnerPortal.myRfqs - 로그인한 파트너의 RFQ 조회)
 - [x] Vitest 테스트 작성 (attendance-leave-partner.test.ts - 14개 테스트 통과)
+
+## 카메라 도착 전 사전 준비 (2026-03-01)
+- [x] 4G IoT USIM 요금제 비교 및 신청 가이드 작성
+- [x] go2rtc Docker 설정 파일 및 배포 가이드 작성
+- [x] 고감도 웹앱 카메라 모듈에 go2rtc HLS/WebRTC 연동 코드 구현
+- [x] 카메라 DB 스키마 확장 (rtspUrl, go2rtcStreamName, go2rtcServerUrl, batteryLevel 필드 추가)
+- [x] 카메라 tRPC 라우터 확장 (go2rtc 연동 create/update + heartbeat API)
+- [x] OpsCameras.tsx go2rtc 연동 UI 업그레이드 (배터리 표시, 스냅샷, 연결 모드 탭)

@@ -1704,9 +1704,13 @@ export const opsCameras = mysqlTable("ops_cameras", {
   projectId: int("projectId").notNull(),
   name: varchar("name", { length: 200 }).notNull(),
   location: varchar("location", { length: 300 }), // 설치 위치
-  streamUrl: text("streamUrl"), // 스트리밍 URL
+  streamUrl: text("streamUrl"), // HLS 스트리밍 URL (go2rtc 자동 생성)
+  rtspUrl: text("rtspUrl"), // 원본 RTSP URL (카메라 직접 접속)
+  go2rtcStreamName: varchar("go2rtcStreamName", { length: 100 }), // go2rtc 스트림 이름
+  go2rtcServerUrl: text("go2rtcServerUrl"), // go2rtc 서버 URL (예: http://서버:1984)
   thumbnailUrl: text("thumbnailUrl"), // 최근 스냅샷
   isOnline: tinyint("isOnline").default(0),
+  batteryLevel: int("batteryLevel"), // 배터리 잔량 (0~100, null이면 유선)
   lastOnlineAt: timestamp("lastOnlineAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

@@ -3325,32 +3325,65 @@ ${topicPrompt}
         return listCameras(input?.projectId);
       }),
 
-    // 카메라 등록
+    // 카메라 등록 (go2rtc 연동 지원)
     create: adminProcedure
       .input(z.object({
         projectId: z.number(),
         name: z.string().min(1),
         location: z.string().optional(),
         streamUrl: z.string().optional(),
+        rtspUrl: z.string().optional(),
+        go2rtcStreamName: z.string().optional(),
+        go2rtcServerUrl: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        const result = await createCamera(input);
+        // go2rtc 서버 URL과 스트림 이름이 있으면 자동으로 HLS URL 생성
+        let finalStreamUrl = input.streamUrl;
+        if (!finalStreamUrl && input.go2rtcServerUrl && input.go2rtcStreamName) {
+          finalStreamUrl = `${input.go2rtcServerUrl}/api/stream.m3u8?src=${input.go2rtcStreamName}`;
+        }
+        const result = await createCamera({
+          ...input,
+          streamUrl: finalStreamUrl,
+        });
         return { id: result?.id };
       }),
-
-    // 카메라 수정
+    // 카메라 수정 (go2rtc 연동 지원)
     update: adminProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
         location: z.string().optional(),
         streamUrl: z.string().optional(),
+        rtspUrl: z.string().optional(),
+        go2rtcStreamName: z.string().optional(),
+        go2rtcServerUrl: z.string().optional(),
         thumbnailUrl: z.string().optional(),
         isOnline: z.number().optional(),
+        batteryLevel: z.number().min(0).max(100).optional(),
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
+        // go2rtc 서버 URL과 스트림 이름이 있으면 자동으로 HLS URL 생성
+        if (!data.streamUrl && data.go2rtcServerUrl && data.go2rtcStreamName) {
+          (data as any).streamUrl = `${data.go2rtcServerUrl}/api/stream.m3u8?src=${data.go2rtcStreamName}`;
+        }
         await updateCamera(id, data);
+        return { success: true };
+      }),
+    // 카메라 하트비트 + 배터리 업데이트 (외부 모니터링 시스템용)
+    heartbeat: protectedProcedure
+      .input(z.object({
+        cameraId: z.number(),
+        batteryLevel: z.number().min(0).max(100).optional(),
+        isOnline: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const updateData: any = { lastOnlineAt: new Date() };
+        if (input.batteryLevel !== undefined) updateData.batteryLevel = input.batteryLevel;
+        if (input.isOnline !== undefined) updateData.isOnline = input.isOnline;
+        else updateData.isOnline = 1;
+        await updateCamera(input.cameraId, updateData);
         return { success: true };
       }),
 
