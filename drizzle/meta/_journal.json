@@ -43,6 +43,13 @@
       "when": 1772351377191,
       "tag": "0005_bizarre_quasar",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1772414638226,
+      "tag": "0006_premium_maginty",
+      "breakpoints": true
     }
   ]
 }

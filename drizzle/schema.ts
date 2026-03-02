@@ -3147,3 +3147,85 @@ export const leaveRequests = mysqlTable("leave_requests", {
 });
 export type LeaveRequest = typeof leaveRequests.$inferSelect;
 export type InsertLeaveRequest = typeof leaveRequests.$inferInsert;
+
+// ============================================================
+// Re:Wall 인벤토리 (Inventory)
+// ============================================================
+export const rewallInventory = mysqlTable("rewall_inventory", {
+  id: int("id").autoincrement().primaryKey(),
+  productId: int("productId").notNull(),
+  warehouseLocation: varchar("warehouseLocation", { length: 200 }),
+  quantity: int("quantity").default(0).notNull(),
+  reservedQuantity: int("reservedQuantity").default(0).notNull(),
+  lastRestockedAt: timestamp("lastRestockedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type RewallInventory = typeof rewallInventory.$inferSelect;
+export type InsertRewallInventory = typeof rewallInventory.$inferInsert;
+
+// ============================================================
+// Re:Wall 예약 (Reservations)
+// ============================================================
+export const rewallReservations = mysqlTable("rewall_reservations", {
+  id: int("id").autoincrement().primaryKey(),
+  clientProjectId: int("clientProjectId"),
+  userId: int("userId").notNull(),
+  status: mysqlEnum("reservationStatus", ["draft", "confirmed", "in_progress", "completed", "cancelled"]).default("draft").notNull(),
+  installDate: varchar("installDate", { length: 10 }),
+  returnDate: varchar("returnDate", { length: 10 }),
+  totalAmount: int("totalAmount").default(0),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type RewallReservation = typeof rewallReservations.$inferSelect;
+export type InsertRewallReservation = typeof rewallReservations.$inferInsert;
+
+// ============================================================
+// Re:Wall 예약 항목 (Reservation Items)
+// ============================================================
+export const rewallReservationItems = mysqlTable("rewall_reservation_items", {
+  id: int("id").autoincrement().primaryKey(),
+  reservationId: int("reservationId").notNull(),
+  productId: int("productId").notNull(),
+  quantity: int("quantity").default(1).notNull(),
+  unitPrice: int("unitPrice").default(0).notNull(),
+  subtotal: int("subtotal").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RewallReservationItem = typeof rewallReservationItems.$inferSelect;
+export type InsertRewallReservationItem = typeof rewallReservationItems.$inferInsert;
+
+// ============================================================
+// Re:Wall 가격 정책 (Pricing)
+// ============================================================
+export const rewallPricing = mysqlTable("rewall_pricing", {
+  id: int("id").autoincrement().primaryKey(),
+  productId: int("productId").notNull(),
+  pricingType: mysqlEnum("pricingType", ["daily", "weekly", "monthly", "purchase"]).default("monthly").notNull(),
+  price: int("price").default(0).notNull(),
+  discountPercent: int("discountPercent").default(0),
+  validFrom: timestamp("validFrom"),
+  validTo: timestamp("validTo"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RewallPricing = typeof rewallPricing.$inferSelect;
+export type InsertRewallPricing = typeof rewallPricing.$inferInsert;
+
+// ============================================================
+// Re:Wall vs 일반 시공 비용 비교 (Comparisons)
+// ============================================================
+export const rewallComparisons = mysqlTable("rewall_comparisons", {
+  id: int("id").autoincrement().primaryKey(),
+  clientProjectId: int("clientProjectId"),
+  userId: int("userId"),
+  traditionalCost: int("traditionalCost").default(0),
+  rewallCost: int("rewallCost").default(0),
+  savingsAmount: int("savingsAmount").default(0),
+  savingsPercent: int("savingsPercent").default(0),
+  comparisonDetails: json("comparisonDetails"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RewallComparison = typeof rewallComparisons.$inferSelect;
+export type InsertRewallComparison = typeof rewallComparisons.$inferInsert;

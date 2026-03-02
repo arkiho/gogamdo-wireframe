@@ -22,28 +22,28 @@ export default function AdminPostOccupancy() {
   const [showScheduleVisit, setShowScheduleVisit] = useState(false);
   const [showCreateSubscription, setShowCreateSubscription] = useState(false);
   const [visitForm, setVisitForm] = useState({
-    projectId: 0, visitDate: Date.now(), visitType: "3month" as const,
-    notes: "",
+    clientProjectId: 0, visitDate: Date.now(), visitType: "initial_inspection" as const,
+    scheduledDate: Date.now(), description: "",
   });
   const [subscriptionForm, setSubscriptionForm] = useState({
-    projectId: 0, clientId: 0, planType: "basic" as const,
-    intervalMonths: 3, startDate: Date.now(),
+    clientProjectId: 0, plan: "basic" as const,
+    monthlyFee: 0, sensorTypes: "[]", reportFrequency: "monthly" as const,
   });
 
   const satisfaction = trpc.postOccupancy.getSatisfaction.useQuery(
-    { projectId: selectedProjectId! },
+    { clientProjectId: selectedProjectId! },
     { enabled: !!selectedProjectId }
   );
   const visits = trpc.postOccupancy.getVisits.useQuery(
-    { projectId: selectedProjectId! },
+    { clientProjectId: selectedProjectId! },
     { enabled: !!selectedProjectId }
   );
   const subscription = trpc.postOccupancy.getSubscription.useQuery(
-    { projectId: selectedProjectId! },
+    { clientProjectId: selectedProjectId! },
     { enabled: !!selectedProjectId }
   );
   const reports = trpc.postOccupancy.getOptimizationReports.useQuery(
-    { projectId: selectedProjectId! },
+    { subscriptionId: selectedProjectId! },
     { enabled: !!selectedProjectId }
   );
 
@@ -206,7 +206,7 @@ export default function AdminPostOccupancy() {
                       </Select>
                       <Input type="date" onChange={e => setVisitForm(f => ({ ...f, visitDate: new Date(e.target.value).getTime() }))} />
                       <Textarea placeholder="방문 목적 및 메모" onChange={e => setVisitForm(f => ({ ...f, notes: e.target.value }))} />
-                      <Button className="w-full" onClick={() => scheduleVisit.mutate({ ...visitForm, projectId: selectedProjectId! })} disabled={scheduleVisit.isPending}>
+                      <Button className="w-full" onClick={() => scheduleVisit.mutate({ ...visitForm, clientProjectId: selectedProjectId!, scheduledDate: visitForm.visitDate })} disabled={scheduleVisit.isPending}>
                         {scheduleVisit.isPending ? "예약 중..." : "방문 예약"}
                       </Button>
                     </div>
@@ -301,7 +301,7 @@ export default function AdminPostOccupancy() {
                               <SelectItem value="premium">Premium (월 2회)</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Button className="w-full" onClick={() => createSubscription.mutate({ ...subscriptionForm, projectId: selectedProjectId! })} disabled={createSubscription.isPending}>
+                          <Button className="w-full" onClick={() => createSubscription.mutate({ ...subscriptionForm, clientProjectId: selectedProjectId! })} disabled={createSubscription.isPending}>
                             {createSubscription.isPending ? "생성 중..." : "구독 생성"}
                           </Button>
                         </div>
@@ -317,7 +317,7 @@ export default function AdminPostOccupancy() {
               <div className="flex justify-end">
                 <Button
                   className="gap-2"
-                  onClick={() => generateReport.mutate({ projectId: selectedProjectId! })}
+                  onClick={() => generateReport.mutate({ subscriptionId: selectedProjectId!, clientProjectId: selectedProjectId!, sensorDataSummary: '{}' })}
                   disabled={generateReport.isPending}
                 >
                   <Brain className="w-4 h-4" />{generateReport.isPending ? "생성 중..." : "AI 최적화 리포트 생성"}

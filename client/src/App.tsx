@@ -58,6 +58,7 @@ import AdminPortfolios from "./pages/AdminPortfolios";
 import SurveyResponse from "./pages/SurveyResponse";
 import OpsStaffDashboard from "./pages/ops/OpsStaffDashboard";
 import OpsCameras from "./pages/ops/OpsCameras";
+import AdminKpiOkr from "./pages/AdminKpiOkr";
 import PartnerPortal from "./pages/PartnerPortal";
 import StaffJoin from "./pages/StaffJoin";
 
@@ -140,6 +141,7 @@ function Router() {
       <Route path="/admin/vendor" component={AdminVendorPortal} />
       <Route path="/admin/aftercare" component={AdminPostOccupancy} />
       <Route path="/admin/employee" component={EmployeeDashboard} />
+      <Route path="/admin/kpi-okr" component={AdminKpiOkr} />
       <Route component={PublicRouter} />
     </Switch>
   );

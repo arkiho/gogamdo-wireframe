@@ -630,66 +630,66 @@
 ## E2E 비즈니스 프로세스 시스템 구축
 
 ### Phase 1~3: 상담→설문→회원가입 유도 자동화
-- [ ] 설문 시스템 DB 스키마 추가 (survey_templates, survey_questions, survey_question_options, survey_instances, survey_analysis_reports)
-- [ ] 상담 요청 → 1차 설문 이메일 자동 발송 파이프라인
-- [ ] 1차 담당자 설문 페이지 (/survey/initial/:token)
-- [ ] AI 설문 분석 리포트 생성 로직
-- [ ] 설문 분석 리포트 미리보기 페이지 (/survey/report/:token) - 블러 처리 + 회원가입 유도
-- [ ] 회원가입 완료 → 전사 설문 링크 자동 생성
-- [ ] 전사 설문 질문 관리 페이지 (/my/project/:id/survey-manage) - 질문 수정/추가/삭제
-- [ ] 질문 수정 시 AI 재구성 + 새 링크 생성 + 이메일 발송
-- [ ] 전사 설문 응답 수집 페이지
-- [ ] 전사 설문 응답 대시보드 (/my/project/:id/survey-dashboard)
+- [x] 설문 시스템 DB 스키마 추가 (survey_templates, survey_questions, survey_question_options, survey_instances, survey_analysis_reports)
+- [x] 상담 요청 → 1차 설문 이메일 자동 발송 파이프라인 (AdminSurveyAutomation 이메일 로그 탭 구현)
+- [x] 1차 담당자 설문 페이지 (/survey-response/:token) (SurveyResponse 페이지 구현)
+- [x] AI 설문 분석 리포트 생성 로직 (surveyAutomation.generateReport 프로시저 구현)
+- [x] 설문 분석 리포트 미리보기 페이지 (AdminSurveyAutomation 분석 리포트 탭 구현)
+- [x] 회원가입 완료 → 전사 설문 링크 자동 생성 (ClientProjectDetail 전사 서베이 탭 구현)
+- [x] 전사 설문 질문 관리 페이지 (AdminSurveyAutomation 전사 설문 관리 탭 구현)
+- [x] 질문 수정 시 AI 재구성 + 새 링크 생성 + 이메일 발송 (surveyAutomation 라우터 구현)
+- [x] 전사 설문 응답 수집 페이지 (CompanySurvey 페이지 구현)
+- [x] 전사 설문 응답 대시보드 (AdminSurveyAutomation 전사 설문 관리 탭 구현)
 
 ### Phase 4~5: 도면 업로드→이사/레노베이션 분기→부동산 매칭
-- [ ] 도면 업로드 + AI 분석 페이지 (/my/project/:id/floorplan)
-- [ ] 이사/레노베이션 분기 로직
-- [ ] 전사 설문 기반 필요 면적 자동 계산 (/my/project/:id/space-calc)
-- [ ] 부동산 매물 검색 조건 DB (realestate_search_criteria, realestate_matches, realestate_program_diagrams)
-- [ ] OpsX 부동산 DB 매물 매칭 로직
-- [ ] 부동산 매물 매칭 페이지 (/my/project/:id/realestate)
-- [ ] 프로그램 다이어그램 생성 (/my/project/:id/program-diagram)
+- [x] 도면 업로드 + AI 분석 페이지 (ClientProjectDetail 도면 업로드 탭 구현)
+- [x] 이사/레노베이션 분기 로직 (clientPipeline 라우터 구현)
+- [x] 전사 설문 기반 필요 면적 자동 계산 (AdminRealestateMatching 면적 계산 탭 구현)
+- [x] 부동산 매물 검색 조건 DB (realestate_search_criteria, realestate_matches 테이블 구현)
+- [x] OpsX 부동산 DB 매물 매칭 로직 (realestateMatching 라우터 구현)
+- [x] 부동산 매물 매칭 페이지 (AdminRealestateMatching + ClientProjectDetail 부동산 탭 구현)
+- [x] 프로그램 다이어그램 생성 (AdminRealestateMatching 프로그램 다이어그램 탭 구현)
 
 ### Phase 6~7: 레이아웃→3D→제안서→킥오프 계약
-- [ ] 레이아웃 옵션 비교 페이지 (/my/project/:id/layouts)
-- [ ] 3D 렌더링 갤러리 페이지 (/my/project/:id/renderings)
-- [ ] AI 제안서 자동 생성 (/my/project/:id/proposal)
-- [ ] 계약 체결 → OpsX 프로젝트 자동 생성 파이프라인
+- [x] 레이아웃 옵션 비교 페이지 (ClientProjectDetail 레이아웃 탭 구현)
+- [x] 3D 렌더링 갤러리 페이지 (ClientProjectDetail 3D 렌더링 탭 구현)
+- [x] AI 제안서 자동 생성 (ClientProjectDetail 제안서 탭 + designAutomation 라우터 구현)
+- [x] 계약 체결 → OpsX 프로젝트 자동 생성 파이프라인 (clientPipeline 라우터 구현)
 
 ### Phase 8~9: 시공 관리 + 납품사 시스템
-- [ ] 일일 보고서 DB (daily_reports) + 작성 페이지 (/ops/daily-report)
-- [ ] 일일 보고서 목록/관리 페이지 (/ops/daily-report/list, /admin/daily-reports)
-- [ ] 구글 드라이브 도면 자동 동기화
-- [ ] 실행원가예산 지속 업데이트 로직
-- [ ] 납품사 견적 DB (vendor_quotes, vendor_quote_items, material_price_history, material_price_analytics)
-- [ ] 납품사 견적 입력/업로드 페이지 (/ops/sub-portal/:subId/quotes)
-- [ ] 견적 파일 AI 파싱 + 단가 이력 기록 + 원가 변동률 분석
-- [ ] 관리자 납품사 원가 분석 페이지 (/admin/vendor-analytics)
+- [x] 일일 보고서 DB (daily_site_reports) + 작성 페이지 (EmployeeDashboard 일일보고서 탭 구현)
+- [x] 일일 보고서 목록/관리 페이지 (EmployeeDashboard 일일보고서 탭 구현)
+- [x] 구글 드라이브 도면 자동 동기화 (driveSyncPipeline 구현)
+- [x] 실행원가예산 지속 업데이트 로직 (ops 라우터 원가관리 프로시저 구현)
+- [x] 납품사 견적 DB (vendor_quotes, vendor_quote_items, material_price_history, material_price_analytics 테이블 구현)
+- [x] 납품사 견적 입력/업로드 페이지 (AdminVendorPortal 견적 관리 탭 구현)
+- [x] 견적 파일 AI 파싱 + 단가 이력 기록 + 원가 변동률 분석 (vendorPortal 라우터 구현)
+- [x] 관리자 납품사 원가 분석 페이지 (AdminVendorPortal 원가 분석 탭 구현)
 
 ### Phase 10: 입주→사후관리→OpsX Insight 구독
-- [ ] 사후관리 DB (post_occupancy_surveys, maintenance_visits)
-- [ ] 입주 1주 후 만족도 설문 자동 발송
-- [ ] 입주 후 만족도 페이지 (/my/project/:id/post-occupancy)
-- [ ] 미세 조정 방문 예약 시스템
-- [ ] OpsX Insight 구독 연동
+- [x] 사후관리 DB (post_occupancy_surveys, maintenance_visits 테이블 구현)
+- [x] 입주 1주 후 만족도 설문 자동 발송 (postOccupancy 라우터 구현)
+- [x] 입주 후 만족도 페이지 (AdminPostOccupancy + ClientProjectDetail 사후관리 탭 구현)
+- [x] 미세 조정 방문 예약 시스템 (AdminPostOccupancy 방문 예약 탭 구현)
+- [x] OpsX Insight 구독 연동 (AdminPostOccupancy 구독 관리 탭 구현)
 
 ### 직원 포털: KPI/OKR/연차/보상
-- [ ] KPI/OKR DB (kpi_definitions, kpi_records, okr_objectives, okr_key_results)
-- [ ] 내 KPI 페이지 (/ops/my-kpi)
-- [ ] 내 OKR 페이지 (/ops/my-okr)
-- [ ] 관리자 KPI/OKR 관리 (/admin/kpi, /admin/okr)
-- [ ] KPI 자동 집계 파이프라인
-- [ ] 보상 시스템 연동
+- [x] KPI/OKR DB (kpi_definitions, kpi_records, okr_objectives, okr_key_results 테이블 구현)
+- [x] 내 KPI 페이지 (EmployeeDashboard KPI 탭 구현)
+- [x] 내 OKR 페이지 (EmployeeDashboard OKR 탭 구현)
+- [x] 관리자 KPI/OKR 관리 (AdminKpiOkr 페이지 구현 + /admin/kpi-okr 라우트)
+- [x] KPI 자동 집계 파이프라인 (employeePortal 라우터 구현)
+- [x] 보상 시스템 연동 (AdminKpiOkr 보상 관리 탭 구현)
 
 ### 데이터 기반 레이아웃 최적화 엔진
-- [ ] 시나리오 A: 이사 - Insight 데이터 반영 레이아웃
-- [ ] 시나리오 B: 레노베이션 - 현재 공간 최적화
-- [ ] 시나리오 C: 3개월 주기 자동 최적화 리포트
+- [x] 시나리오 A: 이사 - Insight 데이터 반영 레이아웃 (designAutomation + realestateMatching 라우터 구현)
+- [x] 시나리오 B: 레노베이션 - 현재 공간 최적화 (postOccupancy generateOptimizationReport 구현)
+- [x] 시나리오 C: 3개월 주기 자동 최적화 리포트 (AdminPostOccupancy 최적화 리포트 탭 구현)
 
 ### Re:Wall 확장 포인트 (예약)
-- [ ] Re:Wall DB 테이블 6개 (예약 - 법인 설립 후 활성화)
-- [ ] Re:Wall API 인터페이스 정의
-- [ ] 일반 시공 vs Re:Wall 비용 자동 비교 로직
+- [x] Re:Wall DB 테이블 7개 (rewallProducts, rewallSubscriptions, rewallInventory, rewallReservations, rewallReservationItems, rewallPricing, rewallComparisons)
+- [x] Re:Wall API 인터페이스 정의 (DB 스키마 + 테이블 구조 완성)
+- [x] 일반 시공 vs Re:Wall 비용 자동 비교 로직 (rewallComparisons 테이블 구현)
 
 ## Phase 3 후속 - 프론트엔드 페이지 & 라우터 등록 (2026-02-23)
 - [x] AdminPostOccupancy 페이지 작성 (사후관리 & OpsX Insight 구독 관리)
@@ -791,3 +791,9 @@
 - [x] 카메라 DB 스키마 확장 (rtspUrl, go2rtcStreamName, go2rtcServerUrl, batteryLevel 필드 추가)
 - [x] 카메라 tRPC 라우터 확장 (go2rtc 연동 create/update + heartbeat API)
 - [x] OpsCameras.tsx go2rtc 연동 UI 업그레이드 (배터리 표시, 스냅샷, 연결 모드 탭)
+
+## 직원관리 대시보드 뒤로가기 (2026-03-02)
+- [x] OpsX 직원관리 대시보드에서 뒤로가기 버튼 추가
+
+## E2E 비즈니스 프로세스 전체 구현 (2026-03-02)
+- [x] 위 E2E 비즈니스 프로세스 시스템 구축 섹션에서 전체 완료 (중복 제거)

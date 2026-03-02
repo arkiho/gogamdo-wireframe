@@ -21,7 +21,7 @@ export default function EmployeeDashboard() {
   const [showCreateReport, setShowCreateReport] = useState(false);
   const [showCreateOkr, setShowCreateOkr] = useState(false);
   const [reportForm, setReportForm] = useState({
-    projectId: 0, reportDate: Date.now(),
+    projectId: 0, reportDate: new Date().toISOString().split('T')[0],
     weatherCondition: "sunny", workSummary: "", workDetails: "",
     materialsUsed: "", progressPercentage: 0, tomorrowPlan: "",
     issuesEncountered: "", safetyNotes: "",
@@ -155,7 +155,7 @@ export default function EmployeeDashboard() {
                     </div>
                   </div>
                   <Textarea placeholder="내일 계획" rows={2} onChange={e => setReportForm(f => ({ ...f, tomorrowPlan: e.target.value }))} />
-                  <Button className="w-full" onClick={() => createReport.mutate(reportForm)} disabled={createReport.isPending}>
+                  <Button className="w-full" onClick={() => createReport.mutate({ ...reportForm, reportDate: new Date(reportForm.reportDate).getTime() })} disabled={createReport.isPending}>
                     {createReport.isPending ? "제출 중..." : "보고서 제출"}
                   </Button>
                 </div>

@@ -19,21 +19,21 @@ export default function AdminRealestateMatching() {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showCreateSearch, setShowCreateSearch] = useState(false);
   const [searchForm, setSearchForm] = useState({
-    projectId: 0, relocationType: "relocation" as const,
+    clientProjectId: 0,
     minArea: 0, maxArea: 0, preferredDistricts: "",
-    budgetMin: 0, budgetMax: 0, requirements: "",
+    maxRent: 0, maxDeposit: 0, additionalRequirements: "",
   });
 
   const searchCriteria = trpc.realestate.getSearchCriteria.useQuery(
-    { projectId: selectedProjectId! },
+    { clientProjectId: selectedProjectId! },
     { enabled: !!selectedProjectId }
   );
   const matches = trpc.realestate.getMatches.useQuery(
-    { projectId: selectedProjectId! },
+    { clientProjectId: selectedProjectId! },
     { enabled: !!selectedProjectId }
   );
   const diagrams = trpc.realestate.getDiagrams.useQuery(
-    { projectId: selectedProjectId! },
+    { clientProjectId: selectedProjectId! },
     { enabled: !!selectedProjectId }
   );
 
@@ -67,7 +67,7 @@ export default function AdminRealestateMatching() {
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>부동산 검색 조건 등록</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-4">
-              <Input placeholder="프로젝트 ID" type="number" onChange={e => setSearchForm(f => ({ ...f, projectId: parseInt(e.target.value) || 0 }))} />
+              <Input placeholder="프로젝트 ID" type="number" onChange={e => setSearchForm(f => ({ ...f, clientProjectId: parseInt(e.target.value) || 0 }))} />
               <Select value={searchForm.relocationType} onValueChange={v => setSearchForm(f => ({ ...f, relocationType: v as any }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -81,10 +81,10 @@ export default function AdminRealestateMatching() {
               </div>
               <Input placeholder="선호 지역 (강남구, 서초구, ...)" onChange={e => setSearchForm(f => ({ ...f, preferredDistricts: e.target.value }))} />
               <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="예산 하한 (만원)" type="number" onChange={e => setSearchForm(f => ({ ...f, budgetMin: parseInt(e.target.value) || 0 }))} />
-                <Input placeholder="예산 상한 (만원)" type="number" onChange={e => setSearchForm(f => ({ ...f, budgetMax: parseInt(e.target.value) || 0 }))} />
+                <Input placeholder="최대 임대료 (만원/평)" type="number" onChange={e => setSearchForm(f => ({ ...f, maxRent: parseInt(e.target.value) || 0 }))} />
+                <Input placeholder="최대 보증금 (만원)" type="number" onChange={e => setSearchForm(f => ({ ...f, maxDeposit: parseInt(e.target.value) || 0 }))} />
               </div>
-              <Textarea placeholder="추가 요구사항 (주차, 층수, 엘리베이터 등)" onChange={e => setSearchForm(f => ({ ...f, requirements: e.target.value }))} />
+              <Textarea placeholder="추가 요구사항 (주차, 층수, 엘리베이터 등)" onChange={e => setSearchForm(f => ({ ...f, additionalRequirements: e.target.value }))} />
               <Button className="w-full" onClick={() => createSearch.mutate(searchForm)} disabled={createSearch.isPending}>
                 {createSearch.isPending ? "등록 중..." : "등록"}
               </Button>
@@ -134,9 +134,9 @@ export default function AdminRealestateMatching() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">예산</span>
-                    <span>{searchCriteria.data.budgetMin?.toLocaleString()}~{searchCriteria.data.budgetMax?.toLocaleString()} 만원</span>
+                    <span>{searchCriteria.data.maxRent?.toLocaleString()} 만원/평 (보증금: {searchCriteria.data.maxDeposit?.toLocaleString()} 만원)</span>
                   </div>
-                  <Button className="w-full mt-4 gap-2" onClick={() => runMatching.mutate({ projectId: selectedProjectId! })} disabled={runMatching.isPending}>
+                  <Button className="w-full mt-4 gap-2" onClick={() => runMatching.mutate({ clientProjectId: selectedProjectId! })} disabled={runMatching.isPending}>
                     <Zap className="w-4 h-4" />{runMatching.isPending ? "매칭 중..." : "AI 매물 매칭 실행"}
                   </Button>
                 </div>
@@ -173,7 +173,7 @@ export default function AdminRealestateMatching() {
                       </div>
                       <Button
                         size="sm" variant="outline" className="w-full mt-3 gap-1"
-                        onClick={() => generateDiagram.mutate({ projectId: selectedProjectId!, matchId: m.id })}
+                        onClick={() => generateDiagram.mutate({ clientProjectId: selectedProjectId!, matchId: m.id, spaceNeeds: '{}' })}
                         disabled={generateDiagram.isPending}
                       >
                         <LayoutGrid className="w-3 h-3" />프로그램 다이어그램 생성

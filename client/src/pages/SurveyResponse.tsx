@@ -13,7 +13,7 @@ import { CheckCircle2, ClipboardList, ArrowRight, ArrowLeft, Loader2 } from "luc
 import { useRoute } from "wouter";
 
 export default function SurveyResponse() {
-  const [, params] = useRoute("/survey/:token");
+  const [, params] = useRoute("/survey-response/:token");
   const token = params?.token || "";
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -71,16 +71,15 @@ export default function SurveyResponse() {
   }
 
   const handleSubmit = () => {
-    const responses = Object.entries(answers).map(([qId, value]) => ({
-      questionId: parseInt(qId),
-      answerValue: value,
-    }));
+    const answersObj = Object.fromEntries(
+      Object.entries(answers).map(([qId, value]) => [qId, value])
+    );
     submitResponse.mutate({
-      instanceId: survey.data!.id,
+      token,
       respondentName: respondentInfo.name,
       respondentEmail: respondentInfo.email,
       respondentDepartment: respondentInfo.department,
-      responses,
+      answers: JSON.stringify(answersObj),
     });
   };
 
@@ -183,7 +182,7 @@ export default function SurveyResponse() {
       <div className="max-w-2xl mx-auto">
         {/* 헤더 */}
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold font-heading">{survey.data.templateName || "업무환경 설문조사"}</h1>
+          <h1 className="text-2xl font-bold font-heading">{"업무환경 설문조사"}</h1>
           <p className="text-muted-foreground mt-2">고감도 공간 컨설팅을 위한 설문입니다.</p>
           <div className="flex items-center justify-center gap-2 mt-4">
             <div className="h-1 bg-muted rounded-full flex-1 max-w-xs">

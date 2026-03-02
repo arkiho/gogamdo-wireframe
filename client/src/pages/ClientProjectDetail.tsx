@@ -22,6 +22,7 @@ import {
   ArrowLeft, Upload, FileText, ClipboardList, BarChart3, Calendar,
   Loader2, CheckCircle2, Clock, Send, Link2, Copy, Users, Star,
   ChevronRight, Building2, Mail, Phone, MapPin,
+  Home, Layers, Box, FileCheck, HeartHandshake,
 } from "lucide-react";
 import KakaoShareButton from "@/components/KakaoShareButton";
 
@@ -277,12 +278,17 @@ export default function ClientProjectDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue={currentStep <= 2 ? "floorplan" : currentStep <= 3 ? "survey" : currentStep <= 5 ? "report" : currentStep <= 7 ? "company-survey" : "meeting"}>
-          <TabsList className="w-full grid grid-cols-5 mb-6">
-            <TabsTrigger value="floorplan" className="text-xs sm:text-sm">도면 업로드</TabsTrigger>
-            <TabsTrigger value="survey" className="text-xs sm:text-sm">업무환경 서베이</TabsTrigger>
-            <TabsTrigger value="report" className="text-xs sm:text-sm">AI 보고서</TabsTrigger>
-            <TabsTrigger value="company-survey" className="text-xs sm:text-sm">전사 서베이</TabsTrigger>
-            <TabsTrigger value="meeting" className="text-xs sm:text-sm">미팅 예약</TabsTrigger>
+          <TabsList className="w-full flex flex-wrap gap-1 mb-6">
+            <TabsTrigger value="floorplan" className="text-xs">도면</TabsTrigger>
+            <TabsTrigger value="survey" className="text-xs">서베이</TabsTrigger>
+            <TabsTrigger value="report" className="text-xs">AI 보고서</TabsTrigger>
+            <TabsTrigger value="company-survey" className="text-xs">전사 서베이</TabsTrigger>
+            <TabsTrigger value="realestate" className="text-xs">부동산</TabsTrigger>
+            <TabsTrigger value="layouts" className="text-xs">레이아웃</TabsTrigger>
+            <TabsTrigger value="renderings" className="text-xs">3D</TabsTrigger>
+            <TabsTrigger value="proposal" className="text-xs">제안서</TabsTrigger>
+            <TabsTrigger value="meeting" className="text-xs">미팅</TabsTrigger>
+            <TabsTrigger value="aftercare" className="text-xs">사후관리</TabsTrigger>
           </TabsList>
 
           {/* ===== TAB 1: Floor Plan Upload ===== */}
@@ -848,6 +854,130 @@ export default function ClientProjectDetail() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ===== TAB: 부동산 매칭 ===== */}
+          <TabsContent value="realestate">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading text-lg flex items-center gap-2">
+                  <Home className="w-5 h-5 text-gold" /> 부동산 매칭
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  전사 서베이 결과와 도면 분석을 기반으로 최적의 사무실 매물을 매칭합니다.
+                  필요 면적, 예산, 위치 조건을 분석하여 적합한 매물을 추천합니다.
+                </p>
+                <div className="border rounded-lg p-6 bg-gray-50 text-center">
+                  <Home className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm font-medium text-ink">매물 매칭 서비스</p>
+                  <p className="text-xs text-muted-foreground mt-1">서베이 완료 후 담당자가 매물 검색 조건을 설정하면 자동으로 매칭됩니다.</p>
+                  <Badge variant="outline" className="mt-3">담당자 배정 대기 중</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ===== TAB: 레이아웃 비교 ===== */}
+          <TabsContent value="layouts">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading text-lg flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-gold" /> 레이아웃 옵션 비교
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  AI가 생성한 다양한 레이아웃 옵션을 비교하고 선호하는 안을 선택할 수 있습니다.
+                </p>
+                <div className="border rounded-lg p-6 bg-gray-50 text-center">
+                  <Layers className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm font-medium text-ink">레이아웃 생성 대기 중</p>
+                  <p className="text-xs text-muted-foreground mt-1">도면 분석과 서베이 데이터를 기반으로 레이아웃 옵션이 자동 생성됩니다.</p>
+                  <Badge variant="outline" className="mt-3">도면 분석 완료 후 활성화</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ===== TAB: 3D 렌더링 ===== */}
+          <TabsContent value="renderings">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading text-lg flex items-center gap-2">
+                  <Box className="w-5 h-5 text-gold" /> 3D 렌더링 갤러리
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  선택한 레이아웃을 기반으로 생성된 포토리얼리스틱 3D 렌더링을 확인하세요.
+                </p>
+                <div className="border rounded-lg p-6 bg-gray-50 text-center">
+                  <Box className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm font-medium text-ink">3D 렌더링 대기 중</p>
+                  <p className="text-xs text-muted-foreground mt-1">레이아웃 선택 후 3D 렌더링이 자동 생성됩니다.</p>
+                  <Badge variant="outline" className="mt-3">레이아웃 선택 후 활성화</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ===== TAB: AI 제안서 ===== */}
+          <TabsContent value="proposal">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading text-lg flex items-center gap-2">
+                  <FileCheck className="w-5 h-5 text-gold" /> AI 제안서
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  모든 분석 데이터를 종합하여 자동 생성된 제안서를 확인하세요.
+                  견적, 일정, 시공 범위가 포함됩니다.
+                </p>
+                <div className="border rounded-lg p-6 bg-gray-50 text-center">
+                  <FileCheck className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm font-medium text-ink">제안서 생성 대기 중</p>
+                  <p className="text-xs text-muted-foreground mt-1">미팅 확정 후 담당자가 제안서를 생성합니다.</p>
+                  <Badge variant="outline" className="mt-3">미팅 확정 후 활성화</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ===== TAB: 사후관리 ===== */}
+          <TabsContent value="aftercare">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading text-lg flex items-center gap-2">
+                  <HeartHandshake className="w-5 h-5 text-gold" /> 사후관리
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  입주 후 만족도 설문, 미세 조정 방문 예약, OpsX Insight 구독 서비스를 이용할 수 있습니다.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="border rounded-lg p-4 text-center">
+                    <Star className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium">만족도 설문</p>
+                    <p className="text-xs text-muted-foreground mt-1">입주 1주 후 자동 발송</p>
+                  </div>
+                  <div className="border rounded-lg p-4 text-center">
+                    <Calendar className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium">방문 예약</p>
+                    <p className="text-xs text-muted-foreground mt-1">미세 조정 방문 예약</p>
+                  </div>
+                  <div className="border rounded-lg p-4 text-center">
+                    <BarChart3 className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Insight 구독</p>
+                    <p className="text-xs text-muted-foreground mt-1">3개월 주기 최적화 리포트</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="mt-2">프로젝트 완료 후 활성화</Badge>
               </CardContent>
             </Card>
           </TabsContent>

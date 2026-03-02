@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { Users, Shield, Building2, UserCog, Search, Mail, UserPlus, UserMinus, CheckCircle2, XCircle, Clock, Send } from "lucide-react";
+import { Users, Shield, Building2, UserCog, Search, Mail, UserPlus, UserMinus, CheckCircle2, XCircle, Clock, Send, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
@@ -46,6 +47,7 @@ const DEPT_PERMISSIONS: Record<string, string[]> = {
 
 export default function OpsStaffManagement() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editDept, setEditDept] = useState("none");
@@ -120,9 +122,14 @@ export default function OpsStaffManagement() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Users className="w-6 h-6" />직원 관리
-        </h1>
+        <div className="flex items-center gap-3 mb-1">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/ops")} className="h-8 w-8">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Users className="w-6 h-6" />직원 관리
+          </h1>
+        </div>
         <p className="text-muted-foreground mt-1">부서 배정 및 역할 관리를 통해 OpsX 접근 권한을 설정합니다.</p>
       </div>
 

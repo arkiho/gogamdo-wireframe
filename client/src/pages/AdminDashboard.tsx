@@ -548,6 +548,21 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
+            {/* KPI/OKR 관리 바로가기 */}
+            <Card className="border-amber-300/30 bg-gradient-to-r from-amber-50/50 to-transparent cursor-pointer hover:border-amber-400/50 transition-colors" onClick={() => navigate("/admin/kpi-okr")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">KPI / OKR 관리</h3>
+                    <p className="text-xs text-muted-foreground">전사 KPI 정의, 직원별 실적 기록, OKR 현황</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
             {/* OpsX 직원 포털 바로가기 (관리자도 접근 가능) */}
             <Card className="border-teal-300/30 bg-gradient-to-r from-teal-50/50 to-transparent cursor-pointer hover:border-teal-400/50 transition-colors" onClick={() => navigate("/ops")}>
               <CardContent className="py-6 flex items-center justify-between">

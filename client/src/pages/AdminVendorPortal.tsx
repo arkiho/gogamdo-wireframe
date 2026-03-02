@@ -19,10 +19,10 @@ export default function AdminVendorPortal() {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showUploadQuote, setShowUploadQuote] = useState(false);
   const [quoteForm, setQuoteForm] = useState({
-    projectId: 0, vendorName: "", vendorContact: "", category: "furniture",
-    totalAmount: 0, notes: "", items: [] as Array<{ materialName: string; materialCode: string; unit: string; quantity: number; unitPrice: number; }>,
+    projectId: 0, vendorName: "", vendorContact: "", quoteCategory: "furniture" as const,
+    totalAmount: 0, notes: "", items: [] as Array<{ itemName: string; materialCode: string; unit: string; quantity: number; unitPrice: number; amount: number; sortOrder: number; }>,
   });
-  const [newItem, setNewItem] = useState({ materialName: "", materialCode: "", unit: "EA", quantity: 0, unitPrice: 0 });
+  const [newItem, setNewItem] = useState({ itemName: "", materialCode: "", unit: "EA", quantity: 0, unitPrice: 0 });
 
   const quotes = trpc.vendor.getQuotesByProject.useQuery(
     { projectId: selectedProjectId! },
@@ -41,13 +41,14 @@ export default function AdminVendorPortal() {
   });
 
   const addItem = () => {
-    if (!newItem.materialName || !newItem.unitPrice) return;
+    if (!newItem.itemName || !newItem.unitPrice) return;
+    const amount = newItem.quantity * newItem.unitPrice;
     setQuoteForm(f => ({
       ...f,
-      items: [...f.items, { ...newItem }],
-      totalAmount: f.totalAmount + (newItem.quantity * newItem.unitPrice),
+      items: [...f.items, { ...newItem, amount, sortOrder: f.items.length }],
+      totalAmount: f.totalAmount + amount,
     }));
-    setNewItem({ materialName: "", materialCode: "", unit: "EA", quantity: 0, unitPrice: 0 });
+    setNewItem({ itemName: "", materialCode: "", unit: "EA", quantity: 0, unitPrice: 0 });
   };
 
   const categoryLabels: Record<string, string> = {
@@ -77,7 +78,7 @@ export default function AdminVendorPortal() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Input placeholder="담당자 연락처" onChange={e => setQuoteForm(f => ({ ...f, vendorContact: e.target.value }))} />
-                <Select value={quoteForm.category} onValueChange={v => setQuoteForm(f => ({ ...f, category: v }))}>
+                <Select value={quoteForm.quoteCategory} onValueChange={v => setQuoteForm(f => ({ ...f, quoteCategory: v as any }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(categoryLabels).map(([k, v]) => (
@@ -91,7 +92,7 @@ export default function AdminVendorPortal() {
               <div className="border rounded-lg p-4 space-y-3">
                 <h4 className="font-medium text-sm">견적 항목</h4>
                 <div className="grid grid-cols-5 gap-2">
-                  <Input placeholder="자재명" value={newItem.materialName} onChange={e => setNewItem(i => ({ ...i, materialName: e.target.value }))} />
+                  <Input placeholder="자재명" value={newItem.itemName} onChange={e => setNewItem(i => ({ ...i, itemName: e.target.value }))} />
                   <Input placeholder="자재코드" value={newItem.materialCode} onChange={e => setNewItem(i => ({ ...i, materialCode: e.target.value }))} />
                   <Input placeholder="수량" type="number" value={newItem.quantity || ""} onChange={e => setNewItem(i => ({ ...i, quantity: parseInt(e.target.value) || 0 }))} />
                   <Input placeholder="단가" type="number" value={newItem.unitPrice || ""} onChange={e => setNewItem(i => ({ ...i, unitPrice: parseInt(e.target.value) || 0 }))} />
@@ -101,7 +102,7 @@ export default function AdminVendorPortal() {
                   <div className="space-y-1">
                     {quoteForm.items.map((item, i) => (
                       <div key={i} className="flex items-center justify-between text-xs p-2 bg-muted/50 rounded">
-                        <span>{item.materialName} ({item.materialCode})</span>
+                        <span>{item.itemName} ({item.materialCode})</span>
                         <span>{item.quantity} x {item.unitPrice.toLocaleString()} = {(item.quantity * item.unitPrice).toLocaleString()}원</span>
                       </div>
                     ))}
@@ -183,7 +184,7 @@ export default function AdminVendorPortal() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium">{q.vendorName}</h4>
-                      <Badge variant="outline">{categoryLabels[q.category] || q.category}</Badge>
+                      <Badge variant="outline">{categoryLabels[q.quoteCategory] || q.quoteCategory}</Badge>
                       <Badge variant={q.status === "approved" ? "default" : q.status === "rejected" ? "destructive" : "secondary"}>
                         {q.status === "submitted" ? "제출됨" : q.status === "reviewed" ? "검토중" : q.status === "approved" ? "승인" : q.status === "rejected" ? "반려" : q.status}
                       </Badge>
@@ -196,7 +197,7 @@ export default function AdminVendorPortal() {
                   <div className="flex gap-2">
                     <Button
                       size="sm" variant="outline" className="gap-1"
-                      onClick={() => analyzeQuote.mutate({ quoteId: q.id })}
+                      onClick={() => analyzeQuote.mutate({ materialCode: q.quoteCategory })}
                       disabled={analyzeQuote.isPending}
                     >
                       <Brain className="w-3 h-3" />AI 분석
