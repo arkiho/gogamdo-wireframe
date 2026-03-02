@@ -73,10 +73,10 @@ export default function EmployeeDashboard() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-heading">직원 대시보드</h1>
-          <p className="text-muted-foreground mt-1">일일 보고서, KPI, OKR 관리</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground font-heading">직원 대시보드</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">일일 보고서, KPI, OKR 관리</p>
         </div>
         <div className="flex gap-2">
           <Badge variant="outline" className="text-sm">{currentPeriod}</Badge>
@@ -84,7 +84,7 @@ export default function EmployeeDashboard() {
       </div>
 
       {/* 요약 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="pt-6">
             <FileText className="w-6 h-6 text-blue-500 mb-2" />
@@ -133,7 +133,7 @@ export default function EmployeeDashboard() {
               <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>일일 현장 보고서</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4 max-h-[60vh] overflow-y-auto">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input placeholder="프로젝트 ID" type="number" onChange={e => setReportForm(f => ({ ...f, projectId: parseInt(e.target.value) || 0 }))} />
                     <Input type="date" value={reportForm.reportDate} onChange={e => setReportForm(f => ({ ...f, reportDate: e.target.value }))} />
                   </div>
@@ -148,7 +148,7 @@ export default function EmployeeDashboard() {
                   <Textarea placeholder="작업 내용 (상세히 기록)" rows={4} onChange={e => setReportForm(f => ({ ...f, workSummary: e.target.value }))} />
                   <Textarea placeholder="안전 이슈 (있을 경우)" rows={2} onChange={e => setReportForm(f => ({ ...f, safetyNotes: e.target.value }))} />
                   <Textarea placeholder="사용 자재" rows={2} onChange={e => setReportForm(f => ({ ...f, materialsUsed: e.target.value }))} />
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground">공정률 (%)</label>
                       <Input type="number" min={0} max={100} value={reportForm.progressPercentage || ""} onChange={e => setReportForm(f => ({ ...f, progressPercentage: parseInt(e.target.value) || 0 }))} />

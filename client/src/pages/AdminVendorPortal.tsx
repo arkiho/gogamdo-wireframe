@@ -60,10 +60,10 @@ export default function AdminVendorPortal() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-heading">납품사 견적 관리</h1>
-          <p className="text-muted-foreground mt-1">견적 등록 → AI 파싱 → 원가 변동률 추적 → 자동 학습</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground font-heading">납품사 견적 관리</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">견적 등록 → AI 파싱 → 원가 변동률 추적 → 자동 학습</p>
         </div>
         <Dialog open={showUploadQuote} onOpenChange={setShowUploadQuote}>
           <DialogTrigger asChild>
@@ -72,11 +72,11 @@ export default function AdminVendorPortal() {
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader><DialogTitle>납품사 견적 등록</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input placeholder="프로젝트 ID" type="number" onChange={e => setQuoteForm(f => ({ ...f, projectId: parseInt(e.target.value) || 0 }))} />
                 <Input placeholder="납품사명" onChange={e => setQuoteForm(f => ({ ...f, vendorName: e.target.value }))} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input placeholder="담당자 연락처" onChange={e => setQuoteForm(f => ({ ...f, vendorContact: e.target.value }))} />
                 <Select value={quoteForm.quoteCategory} onValueChange={v => setQuoteForm(f => ({ ...f, quoteCategory: v as any }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -91,7 +91,7 @@ export default function AdminVendorPortal() {
               {/* 항목 추가 */}
               <div className="border rounded-lg p-4 space-y-3">
                 <h4 className="font-medium text-sm">견적 항목</h4>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   <Input placeholder="자재명" value={newItem.itemName} onChange={e => setNewItem(i => ({ ...i, itemName: e.target.value }))} />
                   <Input placeholder="자재코드" value={newItem.materialCode} onChange={e => setNewItem(i => ({ ...i, materialCode: e.target.value }))} />
                   <Input placeholder="수량" type="number" value={newItem.quantity || ""} onChange={e => setNewItem(i => ({ ...i, quantity: parseInt(e.target.value) || 0 }))} />
@@ -123,7 +123,7 @@ export default function AdminVendorPortal() {
       </div>
 
       {/* 원가 분석 대시보드 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">

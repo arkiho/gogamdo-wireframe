@@ -61,13 +61,13 @@ export default function AdminKpiOkr() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground font-heading">KPI / OKR 관리</h1>
-          <p className="text-muted-foreground mt-1">전사 KPI 정의 및 직원별 실적 관리</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground font-heading">KPI / OKR 관리</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">전사 KPI 정의 및 직원별 실적 관리</p>
         </div>
       </div>
 
@@ -100,7 +100,7 @@ export default function AdminKpiOkr() {
                 <div className="space-y-4 pt-4">
                   <Input placeholder="KPI 이름 (예: 프로젝트 수주율)" value={kpiForm.name} onChange={e => setKpiForm(f => ({ ...f, name: e.target.value }))} />
                   <Textarea placeholder="설명" value={kpiForm.description} onChange={e => setKpiForm(f => ({ ...f, description: e.target.value }))} />
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Select value={kpiForm.category} onValueChange={v => setKpiForm(f => ({ ...f, category: v as any }))}>
                       <SelectTrigger><SelectValue placeholder="카테고리" /></SelectTrigger>
                       <SelectContent>
@@ -118,7 +118,7 @@ export default function AdminKpiOkr() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Input placeholder="단위 (건, %, 원)" value={kpiForm.unit} onChange={e => setKpiForm(f => ({ ...f, unit: e.target.value }))} />
                     <Input placeholder="목표값" type="number" value={kpiForm.targetValue || ""} onChange={e => setKpiForm(f => ({ ...f, targetValue: parseInt(e.target.value) || 0 }))} />
                     <Input placeholder="가중치" type="number" value={kpiForm.weight || ""} onChange={e => setKpiForm(f => ({ ...f, weight: parseFloat(e.target.value) || 1 }))} />
@@ -137,12 +137,12 @@ export default function AdminKpiOkr() {
               {kpiDefs.data.map((kpi: any) => (
                 <Card key={kpi.id}>
                   <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{kpi.name}</h4>
-                          <Badge variant="outline">{categoryLabels[kpi.category] || kpi.category}</Badge>
-                          <Badge variant="secondary">{periodLabels[kpi.measurementPeriod] || kpi.measurementPeriod}</Badge>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-medium text-sm sm:text-base">{kpi.name}</h4>
+                          <Badge variant="outline" className="text-xs">{categoryLabels[kpi.category] || kpi.category}</Badge>
+                          <Badge variant="secondary" className="text-xs">{periodLabels[kpi.measurementPeriod] || kpi.measurementPeriod}</Badge>
                         </div>
                         {kpi.description && <p className="text-xs text-muted-foreground mt-1">{kpi.description}</p>}
                       </div>

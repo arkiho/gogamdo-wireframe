@@ -20,6 +20,7 @@ import {
   Image, Eye, Archive, Send, Wand2, Upload, FolderOpen, Check, X, Loader2,
   HardDrive, RefreshCw, CloudDownload, BarChart3, Bell, Clock, Link2, Shield, FileText,
   ClipboardList, Package, HeartHandshake, HardHat, RotateCcw, CheckSquare, Square,
+  Activity,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
@@ -548,6 +549,21 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
+            {/* E2E 파이프라인 현황판 바로가기 */}
+            <Card className="border-gold/30 bg-gradient-to-r from-gold/5 to-transparent cursor-pointer hover:border-gold/50 transition-colors" onClick={() => navigate("/admin/pipeline")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-gold/20 flex items-center justify-center">
+                    <Activity className="w-6 h-6 text-gold" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">E2E 파이프라인 현황판</h3>
+                    <p className="text-xs text-muted-foreground">상담 → 설문 → 부동산 → 설계 → 시공 → 사후관리 전체 흐름</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
             {/* KPI/OKR 관리 바로가기 */}
             <Card className="border-amber-300/30 bg-gradient-to-r from-amber-50/50 to-transparent cursor-pointer hover:border-amber-400/50 transition-colors" onClick={() => navigate("/admin/kpi-okr")}>
               <CardContent className="py-6 flex items-center justify-between">

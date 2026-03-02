@@ -278,7 +278,7 @@ export default function ClientProjectDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue={currentStep <= 2 ? "floorplan" : currentStep <= 3 ? "survey" : currentStep <= 5 ? "report" : currentStep <= 7 ? "company-survey" : "meeting"}>
-          <TabsList className="w-full flex flex-wrap gap-1 mb-6">
+          <TabsList className="w-full flex overflow-x-auto gap-1 mb-6 pb-1">
             <TabsTrigger value="floorplan" className="text-xs">도면</TabsTrigger>
             <TabsTrigger value="survey" className="text-xs">서베이</TabsTrigger>
             <TabsTrigger value="report" className="text-xs">AI 보고서</TabsTrigger>

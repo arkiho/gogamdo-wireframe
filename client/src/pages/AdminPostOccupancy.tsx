@@ -71,8 +71,8 @@ export default function AdminPostOccupancy() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-heading">사후관리 & OpsX Insight</h1>
-          <p className="text-muted-foreground mt-1">입주 후 만족도 → 정기 방문 → 공간 최적화 제안 → 구독 매출</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground font-heading">사후관리 & OpsX Insight</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">입주 후 만족도 → 정기 방문 → 공간 최적화 제안 → 구독 매출</p>
         </div>
       </div>
 
@@ -96,7 +96,7 @@ export default function AdminPostOccupancy() {
       {selectedProjectId && (
         <>
           {/* 요약 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <Card>
               <CardContent className="pt-6">
                 <Star className="w-6 h-6 text-amber-500 mb-2" />

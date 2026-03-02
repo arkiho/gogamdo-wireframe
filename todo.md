@@ -797,3 +797,29 @@
 
 ## E2E 비즈니스 프로세스 전체 구현 (2026-03-02)
 - [x] 위 E2E 비즈니스 프로세스 시스템 구축 섹션에서 전체 완료 (중복 제거)
+
+## Vitest 테스트 보강 + 통합 현황판 + 모바일 최적화 (2026-03-02)
+### 1. Vitest 테스트 보강
+- [x] AdminKpiOkr 라우터 테스트 (KPI 생성/조회/기록, OKR 생성/조회) — 12개 테스트 통과
+- [x] ClientProjectDetail 신규 탭 관련 라우터 테스트 (부동산/레이아웃/3D/제안서/사후관리) — 6개 테스트 통과
+- [x] AdminSurveyAutomation 라우터 테스트 (분석 리포트/전사 설문/이메일 로그) — 13개 테스트 통과
+- [x] AdminRealestateMatching 라우터 테스트 (면적 계산/매물 매칭/프로그램 다이어그램) — 8개 테스트 통과
+- [x] AdminVendorPortal 라우터 테스트 (견적 관리/원가 분석) — 10개 테스트 통과
+- [x] AdminPostOccupancy 라우터 테스트 (만족도/방문 예약/구독) — 10개 테스트 통과
+
+### 2. 관리자 대시보드 통합 현황판
+- [x] E2E 파이프라인 종합 현황판 페이지 생성 (/admin/pipeline-overview)
+- [x] 파이프라인 단계별 프로젝트 수/진행률 표시
+- [x] 최근 활동 타임라인
+- [x] 주요 KPI 요약 카드
+- [x] App.tsx 라우트 등록 + AdminDashboard에 링크 추가
+
+### 3. 모바일 반응형 최적화
+- [x] ClientProjectDetail 탭 네비게이션 모바일 최적화 (스크롤 가능한 탭)
+- [x] AdminKpiOkr 모바일 레이아웃 최적화
+- [x] AdminSurveyAutomation 모바일 레이아웃 최적화
+- [x] AdminRealestateMatching 모바일 레이아웃 최적화
+- [x] AdminVendorPortal 모바일 레이아웃 최적화
+- [x] AdminPostOccupancy 모바일 레이아웃 최적화
+- [x] EmployeeDashboard 모바일 레이아웃 최적화
+- [x] ops_cameras DB 마이그레이션 (rtspUrl 등 누락 컨럼 추가)

@@ -55,10 +55,10 @@ export default function AdminRealestateMatching() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-heading">부동산 매칭</h1>
-          <p className="text-muted-foreground mt-1">이사 예정 고객을 위한 매물 탐색 + 프로그램 다이어그램 자동 생성</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground font-heading">부동산 매칭</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">이사 예정 고객을 위한 매물 탐색 + 프로그램 다이어그램 자동 생성</p>
         </div>
         <Dialog open={showCreateSearch} onOpenChange={setShowCreateSearch}>
           <DialogTrigger asChild>
@@ -75,12 +75,12 @@ export default function AdminRealestateMatching() {
                   <SelectItem value="renovation">레노베이션 (현재 공간)</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input placeholder="최소 면적 (㎡)" type="number" onChange={e => setSearchForm(f => ({ ...f, minArea: parseInt(e.target.value) || 0 }))} />
                 <Input placeholder="최대 면적 (㎡)" type="number" onChange={e => setSearchForm(f => ({ ...f, maxArea: parseInt(e.target.value) || 0 }))} />
               </div>
               <Input placeholder="선호 지역 (강남구, 서초구, ...)" onChange={e => setSearchForm(f => ({ ...f, preferredDistricts: e.target.value }))} />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input placeholder="최대 임대료 (만원/평)" type="number" onChange={e => setSearchForm(f => ({ ...f, maxRent: parseInt(e.target.value) || 0 }))} />
                 <Input placeholder="최대 보증금 (만원)" type="number" onChange={e => setSearchForm(f => ({ ...f, maxDeposit: parseInt(e.target.value) || 0 }))} />
               </div>

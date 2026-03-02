@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS rtspUrl TEXT NULL AFTER streamUrl; ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS go2rtcStreamName VARCHAR(100) NULL AFTER rtspUrl; ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS go2rtcServerUrl TEXT NULL AFTER go2rtcStreamName; ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS batteryLevel INT NULL AFTER isOnline; ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS lastOnlineAt TIMESTAMP NULL AFTER batteryLevel;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS rtspUrl TEXT NULL AFTER streamUrl; ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS go2rtcStreamName VARCHAR(100) NULL AFTER rtspUrl; ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS go2rtcServerUrl TEXT NULL AFTER go2rtcStreamName; ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS batteryLevel INT NULL AFTER isOnline; ALTER TABLE ops_cameras ADD COLUMN IF NOT EXISTS lastOnlineAt TIMESTAMP NULL AFTER batteryLevel;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 7522
+}
