@@ -358,3 +358,245 @@ export async function sendReviewRequestEmail(data: ReviewEmailData): Promise<{ s
 
   return { sent: false, method: "notification_fallback" };
 }
+
+
+// ============================================================
+// Survey Email Types
+// ============================================================
+
+interface SurveyReportEmailData {
+  recipientEmail: string;
+  recipientName: string;
+  companyName: string;
+  projectId: number;
+  reportSummary: string;
+  overallScore: number;
+  categoryScores: Record<string, number>;
+  painPoints: string[];
+  recommendations: string[];
+  origin: string;
+}
+
+interface CompanySurveyInviteEmailData {
+  recipientEmail: string;
+  recipientName: string;
+  companyName: string;
+  surveyUrl: string;
+  expiresAt: Date;
+  contactName: string;
+  description?: string;
+}
+
+// ============================================================
+// Survey Email Templates
+// ============================================================
+
+function generateSurveyReportEmailHtml(data: SurveyReportEmailData): string {
+  const scoreColor = data.overallScore >= 70 ? "#4caf50" : data.overallScore >= 50 ? "#ff9800" : "#f44336";
+  const categoryHtml = Object.entries(data.categoryScores)
+    .map(([name, score]) => {
+      const barWidth = Math.min(score, 100);
+      const color = score >= 70 ? "#4caf50" : score >= 50 ? "#ff9800" : "#f44336";
+      return `
+        <tr>
+          <td style="padding:6px 0;font-size:13px;color:#333;width:100px;">${name}</td>
+          <td style="padding:6px 0;">
+            <div style="background:#f0f0f0;height:20px;width:100%;position:relative;">
+              <div style="background:${color};height:20px;width:${barWidth}%;"></div>
+            </div>
+          </td>
+          <td style="padding:6px 8px;font-size:13px;color:#666;width:50px;text-align:right;">${score}점</td>
+        </tr>`;
+    })
+    .join("");
+
+  const painPointsHtml = data.painPoints
+    .slice(0, 5)
+    .map(p => `<li style="margin:4px 0;font-size:13px;color:#666;line-height:1.5;">${p}</li>`)
+    .join("");
+
+  const recommendationsHtml = data.recommendations
+    .slice(0, 5)
+    .map(r => `<li style="margin:4px 0;font-size:13px;color:#666;line-height:1.5;">${r}</li>`)
+    .join("");
+
+  const portalUrl = `${data.origin}/client/projects/${data.projectId}`;
+
+  return emailWrapper(`
+    <h1 style="font-size:20px;color:#1a1a1a;margin:0 0 8px 0;font-weight:700;">
+      업무환경 진단 분석 보고서
+    </h1>
+    <p style="font-size:14px;color:#666;margin:0 0 24px 0;line-height:1.6;">
+      안녕하세요, <strong>${data.recipientName}</strong>님.<br>
+      <strong>${data.companyName}</strong>의 업무환경 진단 설문 결과를 바탕으로<br>
+      AI 분석 보고서가 준비되었습니다.
+    </p>
+
+    <!-- Overall Score -->
+    <div style="text-align:center;margin:24px 0;padding:20px;background:#f9f8f6;">
+      <p style="font-size:12px;color:#999;margin:0 0 8px 0;text-transform:uppercase;letter-spacing:1px;">종합 점수</p>
+      <span style="font-size:48px;font-weight:800;color:${scoreColor};">${data.overallScore}</span>
+      <span style="font-size:16px;color:#999;">/100</span>
+    </div>
+
+    <!-- Category Scores -->
+    <h3 style="font-size:15px;color:#1a1a1a;margin:24px 0 12px 0;font-weight:600;">영역별 점수</h3>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+      ${categoryHtml}
+    </table>
+
+    <!-- Executive Summary -->
+    <div style="background:#f9f8f6;padding:16px;margin:0 0 24px 0;">
+      <p style="font-size:12px;color:#c8a97e;margin:0 0 8px 0;font-weight:600;text-transform:uppercase;letter-spacing:1px;">핵심 요약</p>
+      <p style="font-size:13px;color:#333;margin:0;line-height:1.6;">${data.reportSummary}</p>
+    </div>
+
+    <!-- Pain Points -->
+    <h3 style="font-size:15px;color:#1a1a1a;margin:0 0 8px 0;font-weight:600;">주요 개선 필요 영역</h3>
+    <ul style="padding-left:20px;margin:0 0 24px 0;">${painPointsHtml}</ul>
+
+    <!-- Recommendations -->
+    <h3 style="font-size:15px;color:#1a1a1a;margin:0 0 8px 0;font-weight:600;">개선 제안</h3>
+    <ul style="padding-left:20px;margin:0 0 24px 0;">${recommendationsHtml}</ul>
+
+    <!-- CTA -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0;">
+      <tr>
+        <td align="center">
+          <a href="${portalUrl}" 
+             style="display:inline-block;background-color:#c8a97e;color:#1a1a1a;text-decoration:none;padding:14px 32px;font-size:14px;font-weight:700;letter-spacing:0.5px;">
+            전체 보고서 확인하기
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="font-size:12px;color:#999;margin:0;line-height:1.5;">
+      전체 보고서에는 상세 공간 설계 제안, 예상 비용 분석, 프로젝트 로드맵 등이 포함되어 있습니다.<br>
+      고객 포털에 로그인하시면 전체 내용을 확인하실 수 있습니다.
+    </p>
+  `);
+}
+
+function generateCompanySurveyInviteEmailHtml(data: CompanySurveyInviteEmailData): string {
+  const expiresDate = new Date(data.expiresAt).toLocaleDateString("ko-KR", {
+    year: "numeric", month: "long", day: "numeric",
+  });
+
+  return emailWrapper(`
+    <h1 style="font-size:20px;color:#1a1a1a;margin:0 0 8px 0;font-weight:700;">
+      업무환경 개선을 위한 설문조사
+    </h1>
+    <p style="font-size:14px;color:#666;margin:0 0 24px 0;line-height:1.6;">
+      안녕하세요, <strong>${data.companyName}</strong> 임직원 여러분.<br>
+      ${data.contactName}님의 요청으로, 더 나은 업무환경을 만들기 위한<br>
+      설문조사를 진행하고 있습니다.
+    </p>
+
+    <!-- Instruction Box -->
+    <div style="background:#f9f8f6;padding:20px;margin:0 0 24px 0;border-left:3px solid #c8a97e;">
+      <p style="font-size:13px;color:#c8a97e;margin:0 0 8px 0;font-weight:600;">안내사항</p>
+      <ul style="padding-left:16px;margin:0;">
+        <li style="font-size:13px;color:#555;margin:4px 0;line-height:1.5;">
+          소요 시간: 약 <strong>3~5분</strong>
+        </li>
+        <li style="font-size:13px;color:#555;margin:4px 0;line-height:1.5;">
+          모든 응답은 <strong>익명</strong>으로 처리됩니다
+        </li>
+        <li style="font-size:13px;color:#555;margin:4px 0;line-height:1.5;">
+          솔직한 의견이 실제 공간 개선에 반영됩니다
+        </li>
+        <li style="font-size:13px;color:#555;margin:4px 0;line-height:1.5;">
+          응답 기한: <strong>${expiresDate}</strong>까지
+        </li>
+      </ul>
+    </div>
+
+    ${data.description ? `
+    <p style="font-size:13px;color:#666;margin:0 0 24px 0;line-height:1.6;">
+      ${data.description}
+    </p>` : ""}
+
+    <!-- CTA Button -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0;">
+      <tr>
+        <td align="center">
+          <a href="${data.surveyUrl}" 
+             style="display:inline-block;background-color:#c8a97e;color:#1a1a1a;text-decoration:none;padding:14px 32px;font-size:14px;font-weight:700;letter-spacing:0.5px;">
+            설문 참여하기
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="font-size:12px;color:#999;margin:0 0 8px 0;">
+      위 버튼이 작동하지 않으면 아래 링크를 브라우저에 복사하여 접속해주세요:
+    </p>
+    <p style="font-size:11px;color:#c8a97e;word-break:break-all;margin:0 0 24px 0;">
+      ${data.surveyUrl}
+    </p>
+
+    <div style="border-top:1px solid #eee;padding-top:16px;margin-top:16px;">
+      <p style="font-size:12px;color:#999;margin:0;line-height:1.5;">
+        본 설문은 <strong>${data.companyName}</strong>의 업무환경 개선 프로젝트의 일환으로 진행됩니다.<br>
+        설문 결과는 공간 설계 전문가의 분석을 거쳐 최적의 업무환경 개선안 수립에 활용됩니다.
+      </p>
+    </div>
+  `);
+}
+
+// ============================================================
+// Survey Email Send Functions
+// ============================================================
+
+/**
+ * AI 분석 보고서 이메일 발송
+ * 담당자 서베이 완료 후 AI 분석 결과를 이메일로 발송
+ */
+export async function sendSurveyReportEmail(data: SurveyReportEmailData): Promise<EmailResult> {
+  const html = generateSurveyReportEmailHtml(data);
+
+  const result = await sendViaResend({
+    to: data.recipientEmail,
+    subject: `[고감도] ${data.companyName} 업무환경 진단 분석 보고서`,
+    html,
+  });
+
+  if (result.sent) return result;
+
+  // Fallback: 관리자에게 알림
+  try {
+    await notifyOwner({
+      title: `[고감도] 분석 보고서 이메일 발송 필요: ${data.recipientName}`,
+      content: `${data.recipientName}님(${data.recipientEmail})에게 "${data.companyName}" 업무환경 분석 보고서를 보내주세요.\n\n종합 점수: ${data.overallScore}/100\n핵심 요약: ${data.reportSummary}\n\n※ Resend API 키가 설정되지 않아 직접 이메일을 보내주세요.`,
+    });
+  } catch { /* ignore */ }
+
+  return result;
+}
+
+/**
+ * 전사 서베이 안내 이메일 발송
+ * 전 직원 대상 설문 링크 + 안내 인스트럭션 포함
+ */
+export async function sendCompanySurveyInviteEmail(data: CompanySurveyInviteEmailData): Promise<EmailResult> {
+  const html = generateCompanySurveyInviteEmailHtml(data);
+
+  const result = await sendViaResend({
+    to: data.recipientEmail,
+    subject: `[${data.companyName}] 업무환경 개선을 위한 설문조사 참여 안내`,
+    html,
+  });
+
+  if (result.sent) return result;
+
+  // Fallback: 관리자에게 알림
+  try {
+    await notifyOwner({
+      title: `[고감도] 전사 서베이 이메일 발송 필요`,
+      content: `${data.recipientName}님(${data.recipientEmail})에게 "${data.companyName}" 전사 설문조사 안내 이메일을 보내주세요.\n\n설문 링크: ${data.surveyUrl}\n만료일: ${new Date(data.expiresAt).toLocaleDateString("ko-KR")}`,
+    });
+  } catch { /* ignore */ }
+
+  return result;
+}

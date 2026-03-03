@@ -115,22 +115,103 @@ export default function CompanySurvey() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-paper">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="py-12 text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="font-heading text-2xl font-bold text-ink">감사합니다!</h2>
-            <p className="text-muted-foreground">
-              소중한 의견이 제출되었습니다.<br />
-              더 나은 업무환경을 만드는 데 큰 도움이 됩니다.
-            </p>
-            <div className="pt-4">
-              <Logo className="h-6 mx-auto opacity-30" />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-paper py-8 lg:py-16">
+        <div className="container max-w-2xl">
+          {/* 완료 메시지 */}
+          <Card className="mb-6">
+            <CardContent className="py-12 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="font-heading text-2xl font-bold text-ink">감사합니다!</h2>
+              <p className="text-muted-foreground">
+                소중한 의견이 제출되었습니다.<br />
+                더 나은 업무환경을 만드는 데 큰 도움이 됩니다.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* AI 분석 결과 미리보기 + 회원가입 유도 */}
+          <Card className="relative overflow-hidden">
+            <CardContent className="py-8 space-y-6">
+              <div className="text-center">
+                <h3 className="font-heading text-lg font-bold text-ink mb-2">
+                  AI 업무환경 분석 결과 미리보기
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  귀사의 업무환경 데이터를 기반으로 AI가 분석한 결과입니다.
+                </p>
+              </div>
+
+              {/* 미리보기 영역 (블러 처리) */}
+              <div className="relative">
+                {/* 실제 콘텐츠 (블러 처리됨) */}
+                <div className="space-y-4 filter blur-sm select-none pointer-events-none">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">종합 만족도</p>
+                      <p className="text-2xl font-bold text-gold">72<span className="text-sm text-muted-foreground">/100</span></p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">공간 활용도</p>
+                      <p className="text-2xl font-bold text-gold">65<span className="text-sm text-muted-foreground">/100</span></p>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-2">주요 개선 영역</p>
+                    <ul className="text-sm text-ink space-y-1">
+                      <li>• 소음 환경 개선 필요</li>
+                      <li>• 집중 업무 공간 부족</li>
+                      <li>• 협업 공간 확충 권장</li>
+                      <li>• 온도/냉난방 시스템 점검</li>
+                    </ul>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-2">추천 공간 설계 방향</p>
+                    <p className="text-sm text-ink">오픈 플랜 + 집중 존 병행 배치로 협업과 집중 업무의 균형을 맞춘 공간 설계를 권장합니다.</p>
+                  </div>
+                </div>
+
+                {/* 오버레이 - 회원가입 유도 */}
+                <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[2px]">
+                  <div className="text-center space-y-4 p-6">
+                    <div className="w-14 h-14 rounded-full bg-gold/10 flex items-center justify-center mx-auto">
+                      <Building2 className="w-7 h-7 text-gold" />
+                    </div>
+                    <div>
+                      <h4 className="font-heading text-lg font-bold text-ink mb-1">
+                        전체 분석 결과를 확인하세요
+                      </h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        상세 분석 보고서, 공간 설계 제안,<br />
+                        예상 비용 분석 등 전체 자료를<br />
+                        고감도 고객 포털에서 확인하실 수 있습니다.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <a
+                        href="/client/register"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gold text-ink font-semibold text-sm hover:bg-gold-light transition-colors"
+                      >
+                        무료 회원가입하고 확인하기
+                      </a>
+                      <a
+                        href="/client/login"
+                        className="text-sm text-muted-foreground hover:text-ink transition-colors"
+                      >
+                        이미 계정이 있으신가요? 로그인
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            Powered by <span className="font-heading font-semibold">KOKAMDO</span> · 고감도 오피스 인테리어
+          </p>
+        </div>
       </div>
     );
   }

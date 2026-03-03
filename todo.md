@@ -823,3 +823,20 @@
 - [x] AdminPostOccupancy 모바일 레이아웃 최적화
 - [x] EmployeeDashboard 모바일 레이아웃 최적화
 - [x] ops_cameras DB 마이그레이션 (rtspUrl 등 누락 컨럼 추가)
+
+## 도면 AI 분석 + 서베이 이메일 + 회원가입 유도 (2026-03-03)
+### 1. 도면 AI 분석 버그 수정
+- [x] PDF 도면 업로드 시 "이미지 없음" 분석 실패 원인 파악 (image_url로 PDF 전달 → LLM이 이미지로 인식 불가)
+- [x] PDF→file_url 타입으로 변환하여 LLM에 올바르게 전달 (clientPipeline + designAutomation 양쪽 수정)
+- [ ] 분석 결과가 정상적으로 출력되는지 확인 (배포 후 테스트 필요)
+
+### 2. 업무환경 서베이 이메일 보고서 + 전사 서베이 이메일 안내
+- [x] 담당자 서베이 완료 후 AI 분석 결과 보고서를 이메일로 발송 (sendSurveyReportEmail 함수 + clientPipeline.sendReportEmail 연동)
+- [x] 사무환경 관련 전사 서베이 질문 세트 생성 (기존 CompanySurvey 포맷 활용)
+- [x] 전사 서베이 이메일 발송 + 인스트럭션 안내 포함 (sendCompanySurveyInviteEmail + clientPipeline.sendCompanySurveyEmails)
+- [x] 이메일 템플릿 구현 (분석 보고서: 점수/카테고리/문제점/개선안 + 전사 서베이: 안내사항/CTA/링크)
+
+### 3. 서베이 완료 후 회원가입 유도
+- [x] 서베이 완료 시 결과물 미리보기 제공 (CompanySurvey + SurveyResponse 양쪽 구현)
+- [x] 전체 자료 열람을 위한 회원가입 유도 UI 구현 (블러 오버레이 + CTA 버튼)
+- [x] 회원가입 유도 CTA 및 블러 처리 구현 (무료 회원가입 + 로그인 링크)

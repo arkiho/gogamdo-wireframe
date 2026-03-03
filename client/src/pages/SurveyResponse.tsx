@@ -53,19 +53,74 @@ export default function SurveyResponse() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="pt-8 pb-8 text-center">
-            <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-500" />
-            <h2 className="text-xl font-bold mb-2">설문이 완료되었습니다</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              소중한 의견 감사합니다. 분석 결과는 담당자에게 공유됩니다.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              분석 리포트를 확인하시려면 <a href="/portal" className="text-primary underline">회원가입</a>이 필요합니다.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-background py-8 px-4">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* 완료 메시지 */}
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center">
+              <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-500" />
+              <h2 className="text-xl font-bold mb-2">설문이 완료되었습니다</h2>
+              <p className="text-sm text-muted-foreground">
+                소중한 의견 감사합니다. 분석 결과는 담당자에게 공유됩니다.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* AI 분석 결과 미리보기 + 회원가입 유도 */}
+          <Card className="relative overflow-hidden">
+            <CardContent className="pt-6 pb-8 space-y-4">
+              <h3 className="text-center font-semibold text-lg">AI 업무환경 분석 결과</h3>
+              <div className="relative">
+                {/* 블러 처리된 미리보기 */}
+                <div className="space-y-3 filter blur-sm select-none pointer-events-none">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-muted p-3 rounded-lg">
+                      <p className="text-xs text-muted-foreground">종합 점수</p>
+                      <p className="text-xl font-bold">72/100</p>
+                    </div>
+                    <div className="bg-muted p-3 rounded-lg">
+                      <p className="text-xs text-muted-foreground">공간 활용도</p>
+                      <p className="text-xl font-bold">65/100</p>
+                    </div>
+                  </div>
+                  <div className="bg-muted p-3 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">주요 개선 영역</p>
+                    <ul className="text-sm space-y-0.5">
+                      <li>• 소음 환경 개선 필요</li>
+                      <li>• 집중 업무 공간 부족</li>
+                      <li>• 협업 공간 확충 권장</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* 오버레이 - 회원가입 유도 */}
+                <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[2px]">
+                  <div className="text-center space-y-3 p-4">
+                    <h4 className="font-semibold">전체 분석 결과를 확인하세요</h4>
+                    <p className="text-sm text-muted-foreground">
+                      상세 보고서, 공간 설계 제안, 예상 비용 분석 등<br />
+                      전체 자료를 고감도 고객 포털에서 확인하세요.
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <a
+                        href="/client/register"
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground font-semibold text-sm rounded-md hover:opacity-90 transition-opacity"
+                      >
+                        무료 회원가입하고 확인하기
+                      </a>
+                      <a
+                        href="/client/login"
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        이미 계정이 있으신가요? 로그인
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

@@ -180,11 +180,18 @@ export const designAutomationRouter = router({
       await updateFloorPlan(input.floorPlanId, { analysisStatus: "analyzing" });
 
       try {
+        // PDF 파일은 file_url 타입으로, 이미지 파일은 image_url 타입으로 전달
+        const isPdf = plan.fileType?.includes("pdf") || plan.fileName?.toLowerCase().endsWith(".pdf");
+        const fileContent = isPdf
+          ? { type: "file_url" as const, file_url: { url: plan.fileUrl, mime_type: "application/pdf" as const } }
+          : { type: "image_url" as const, image_url: { url: plan.fileUrl, detail: "high" as const } };
+
         const response = await invokeLLM({
           messages: [
             {
               role: "system",
-              content: `당신은 건축/인테리어 도면 분석 전문가입니다. 업로드된 도면 이미지를 분석하여 공간 구조를 파악합니다.
+              content: `당신은 건축/인테리어 도면 분석 전문가입니다. 업로드된 도면 이미지 또는 PDF를 분석하여 공간 구조를 파악합니다.
+PDF 파일인 경우에도 내용을 최대한 분석하여 공간 구조를 파악하세요.
 결과를 JSON으로 반환하세요. 도면이 명확하지 않더라도 최선을 다해 분석하세요.`,
             },
             {
@@ -192,7 +199,7 @@ export const designAutomationRouter = router({
               content: [
                 {
                   type: "text" as const,
-                  text: `이 도면을 분석해주세요. 파일명: ${plan.fileName}. 다음 정보를 추출해주세요:
+                  text: `이 도면을 분석해주세요. 파일명: ${plan.fileName}. 파일 형식: ${isPdf ? 'PDF' : '이미지'}. 다음 정보를 추출해주세요:
 1. 총 면적 (추정)
 2. 층수
 3. 방/공간 개수
@@ -200,10 +207,7 @@ export const designAutomationRouter = router({
 5. 공간 구조 설명
 6. 특이사항`,
                 },
-                {
-                  type: "image_url" as const,
-                  image_url: { url: plan.fileUrl, detail: "high" as const },
-                },
+                fileContent,
               ],
             },
           ],

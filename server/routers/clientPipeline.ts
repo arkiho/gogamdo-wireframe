@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "../_core/llm";
 import { notifyOwner } from "../_core/notification";
 import { storagePut } from "../storage";
+import { sendSurveyReportEmail, sendCompanySurveyInviteEmail } from "../email";
 import {
   createClientProject, getClientProjectsByUser, getClientProjectById,
   updateClientProjectStatus, updateClientProject, getAllClientProjects,
@@ -126,29 +127,36 @@ export const clientPipelineRouter = router({
       const plan = plans.find(p => p.id === input.floorPlanId);
       if (!plan) throw new TRPCError({ code: "NOT_FOUND" });
 
+      // PDF 파일은 file_url 타입으로, 이미지 파일은 image_url 타입으로 전달
+      const isPdf = plan.fileType === "pdf" || plan.fileName.toLowerCase().endsWith(".pdf");
+      const fileContent = isPdf
+        ? { type: "file_url" as const, file_url: { url: plan.fileUrl, mime_type: "application/pdf" as const } }
+        : { type: "image_url" as const, image_url: { url: plan.fileUrl, detail: "high" as const } };
+
       const response = await invokeLLM({
         messages: [
           {
             role: "system",
-            content: `당신은 오피스 인테리어 전문 도면 분석가입니다. 도면 이미지/PDF를 분석하여 다음 정보를 JSON으로 반환하세요:
+            content: `당신은 오피스 인테리어 전문 도면 분석가입니다. 도면 이미지 또는 PDF를 분석하여 다음 정보를 JSON으로 반환하세요.
+PDF 파일인 경우에도 내용을 최대한 분석하여 공간 구조를 파악하세요. 도면이 명확하지 않더라도 파일명과 내용을 기반으로 최선을 다해 분석하세요.
 {
-  "estimatedArea": "추정 면적(㎡)",
-  "roomCount": "방 수",
+  "estimatedArea": "추정 면적(㎡) - 알 수 없으면 '확인 필요'",
+  "roomCount": "방 수 - 알 수 없으면 '확인 필요'",
   "hasReception": true/false,
   "hasMeetingRoom": true/false,
   "hasOpenOffice": true/false,
   "hasKitchen": true/false,
   "hasRestroom": true/false,
   "structuralNotes": "구조적 특이사항",
-  "spaceAnalysis": "공간 분석 요약",
+  "spaceAnalysis": "공간 분석 요약 - 파일 내용을 기반으로 최대한 상세하게 분석",
   "recommendations": ["개선 제안1", "개선 제안2"]
 }`
           },
           {
             role: "user",
             content: [
-              { type: "text", text: `이 도면을 분석해주세요. 파일명: ${plan.fileName}` },
-              { type: "image_url", image_url: { url: plan.fileUrl, detail: "high" } }
+              { type: "text", text: `이 도면을 분석해주세요. 파일명: ${plan.fileName}. 파일 형식: ${isPdf ? 'PDF' : '이미지'}. 도면의 공간 구조, 면적, 방 수, 주요 공간(리셉션, 회의실, 오픈오피스 등)을 파악해주세요.` },
+              fileContent
             ]
           }
         ],
@@ -364,15 +372,44 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
       const report = reports.find(r => r.id === input.reportId);
       if (!report) throw new TRPCError({ code: "NOT_FOUND" });
 
+      // AI 분석 보고서 내용 파싱
+      let reportSummary = "";
+      let overallScore = 0;
+      let categoryScores: Record<string, number> = {};
+      let painPoints: string[] = [];
+      let recommendations: string[] = [];
+
+      try {
+        // report.content가 마크다운이면 요약 추출, JSON이면 파싱
+        const content = report.content || "";
+        reportSummary = content.substring(0, 300);
+        // summary 필드가 있으면 사용
+        if (report.summary) reportSummary = report.summary;
+      } catch { /* ignore parse errors */ }
+
+      // 실제 이메일 발송 (Resend API)
+      const emailResult = await sendSurveyReportEmail({
+        recipientEmail: project.contactEmail,
+        recipientName: project.contactName,
+        companyName: project.companyName,
+        projectId: input.projectId,
+        reportSummary,
+        overallScore,
+        categoryScores,
+        painPoints,
+        recommendations,
+        origin: input.origin,
+      });
+
       await markReportSent(input.reportId, project.contactEmail);
       await updateClientProjectStatus(input.projectId, "report_sent");
 
       await notifyOwner({
         title: "보고서 이메일 발송",
-        content: `${project.companyName}의 ${report.title}이 ${project.contactEmail}로 발송되었습니다.`,
+        content: `${project.companyName}의 ${report.title}이 ${project.contactEmail}로 발송되었습니다. (발송 방법: ${emailResult.method})`,
       });
 
-      return { success: true };
+      return { success: true, emailSent: emailResult.sent, method: emailResult.method };
     }),
 
   getReports: protectedProcedure
@@ -417,6 +454,54 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
       await updateClientProjectStatus(input.projectId, "company_survey_shared");
 
       return { id: result?.id, token };
+    }),
+
+  // 전사 서베이 이메일 발송 (여러 명에게 설문 링크 안내)
+  sendCompanySurveyEmails: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      surveyToken: z.string(),
+      recipients: z.array(z.object({
+        email: z.string().email(),
+        name: z.string().optional(),
+      })),
+      origin: z.string(),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const project = await getClientProjectById(input.projectId);
+      if (!project || (project.userId !== ctx.user.id && ctx.user.role !== "admin" && ctx.user.role !== "master")) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const surveyUrl = `${input.origin}/survey/${input.surveyToken}`;
+      const survey = await getCompanySurveyByToken(input.surveyToken);
+      const expiresAt = survey?.expiresAt ? new Date(survey.expiresAt) : new Date(Date.now() + 14 * 86400000);
+
+      const results = await Promise.allSettled(
+        input.recipients.map(async (recipient) => {
+          const emailResult = await sendCompanySurveyInviteEmail({
+            recipientEmail: recipient.email,
+            recipientName: recipient.name || "임직원",
+            companyName: project.companyName,
+            surveyUrl,
+            expiresAt,
+            contactName: project.contactName,
+            description: input.description,
+          });
+          return { email: recipient.email, ...emailResult };
+        })
+      );
+
+      const sent = results.filter(r => r.status === "fulfilled" && (r as any).value.sent).length;
+      const failed = results.length - sent;
+
+      await notifyOwner({
+        title: "전사 서베이 이메일 발송 결과",
+        content: `${project.companyName} 전사 설문조사 안내 이메일: 성공 ${sent}건, 실패 ${failed}건 (총 ${results.length}건)`,
+      });
+
+      return { totalSent: sent, totalFailed: failed, total: results.length };
     }),
 
   getCompanySurveyPublic: publicProcedure
