@@ -71,6 +71,7 @@ import { realestateMatchingRouter } from "./routers/realestateMatching";
 import { vendorPortalRouter } from "./routers/vendorPortal";
 import { postOccupancyRouter } from "./routers/postOccupancy";
 import { employeePortalRouter } from "./routers/employeePortal";
+import { fieldMeasurementRouter } from "./routers/fieldMeasurement";
 import { hash, compare } from "bcryptjs";
 import { randomBytes } from "crypto";
 
@@ -1920,6 +1921,9 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
 
   // ===== 직원 포털 (일일보고/KPI/OKR) =====
   employee: employeePortalRouter,
+
+  // ===== 360도 현장 실측 도구 (Field Measurement) =====
+  fieldMeasurement: fieldMeasurementRouter,
 
   // ===== 팝업 알림 관리 (Popups) =====
   popup: router({

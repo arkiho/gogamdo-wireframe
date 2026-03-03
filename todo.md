@@ -840,3 +840,17 @@
 - [x] 서베이 완료 시 결과물 미리보기 제공 (CompanySurvey + SurveyResponse 양쪽 구현)
 - [x] 전체 자료 열람을 위한 회원가입 유도 UI 구현 (블러 오버레이 + CTA 버튼)
 - [x] 회원가입 유도 CTA 및 블러 처리 구현 (무료 회원가입 + 로그인 링크)
+
+### 알리바바 4G 현장 관제 카메라 검색
+- [x] 4G LTE + 프로그래밍 가능(API/SDK) 감시 카메라 알리바바 검색 (5개 후보 제품 발굴)
+- [x] 주요 제품 비교 분석 (Leekgo 8MP 4K $82-85 1순위 추천, SIP-K678K5, LS Vision Solar 등)
+- [x] 추천 제품 목록 정리 및 사용자 전달 (비교표 + 구매 전략 3가지 제안)
+
+### Insta360 RS1 기반 360도 현장 실측 도구
+- [x] Insta360 RS1 SDK/API 조사 (equirectangular 좌표 변환, Great Circle Distance 공식, 카메라 높이 보정)
+- [x] 사진 기반 공간 치수 추정 알고리즘 설계 (두 점 클릭 → 각도 거리 → 실제 거리 변환)
+- [x] 기준 치수 입력 → 오차 보정 시스템 구현 (다중 기준점 + 최소자승법 + 표준편차 + 95% 신뢰구간)
+- [x] 360도 파노라마 이미지에서 거리/면적 측정 기능 (Three.js SphereGeometry + raycaster + 측정 마커)
+- [x] 향후 3D 디지털 트윈 확장 고려한 데이터 구조 설계 (pointCloudData, digitalTwinStatus 필드)
+- [x] 웹앱에 실측 도구 페이지 추가 (/ops/field-measure + OpsHome 바로가기)
+- [x] Vitest 테스트 21개 통과 (실측 세션 CRUD + 파노라마 관리 + 측정 데이터 + 보정 시스템 + 좌표 변환 + AI 보고서)

@@ -50,6 +50,13 @@
       "when": 1772414638226,
       "tag": "0006_premium_maginty",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1772569185282,
+      "tag": "0007_wakeful_lizard",
+      "breakpoints": true
     }
   ]
 }

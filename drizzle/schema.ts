@@ -3229,3 +3229,106 @@ export const rewallComparisons = mysqlTable("rewall_comparisons", {
 });
 export type RewallComparison = typeof rewallComparisons.$inferSelect;
 export type InsertRewallComparison = typeof rewallComparisons.$inferInsert;
+
+
+/**
+ * 360도 현장 실측 세션 (Field Measurement Sessions)
+ * Insta360 RS1 기반 360도 파노라마 이미지를 이용한 공간 실측
+ */
+export const fieldMeasurementSessions = mysqlTable("field_measurement_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  projectName: varchar("projectName", { length: 200 }).notNull(),
+  location: varchar("location", { length: 500 }),
+  description: text("description"),
+  // 연결된 OpsX 프로젝트 (선택)
+  opsProjectId: int("opsProjectId"),
+  // 연결된 고객 프로젝트 (선택)
+  clientProjectId: int("clientProjectId"),
+  // 촬영자 정보
+  createdBy: int("createdBy"),
+  createdByName: varchar("createdByName", { length: 100 }),
+  status: mysqlEnum("status", ["active", "completed", "archived"]).default("active").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type FieldMeasurementSession = typeof fieldMeasurementSessions.$inferSelect;
+export type InsertFieldMeasurementSession = typeof fieldMeasurementSessions.$inferInsert;
+
+/**
+ * 360도 파노라마 이미지 (Panorama Images)
+ * 각 촬영 지점별 equirectangular 이미지
+ */
+export const panoramaImages = mysqlTable("panorama_images", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(),
+  // 이미지 URL (S3)
+  imageUrl: text("imageUrl").notNull(),
+  thumbnailUrl: text("thumbnailUrl"),
+  // 촬영 위치 정보
+  spotName: varchar("spotName", { length: 200 }).notNull(), // 예: "회의실 A", "로비 중앙"
+  spotOrder: int("spotOrder").default(0), // 촬영 순서
+  // 카메라 설정
+  cameraHeight: decimal("cameraHeight", { precision: 6, scale: 3 }), // 카메라 높이 (m)
+  // 기준 치수 보정 데이터
+  calibrationData: json("calibrationData"), // { referencePoints: [{x1,y1,x2,y2,realDistance}], scaleFactor }
+  // EXIF 메타데이터
+  exifData: json("exifData"), // GPS, 방향 등
+  // 이미지 크기
+  imageWidth: int("imageWidth"),
+  imageHeight: int("imageHeight"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type PanoramaImage = typeof panoramaImages.$inferSelect;
+export type InsertPanoramaImage = typeof panoramaImages.$inferInsert;
+
+/**
+ * 측정 데이터 (Measurements)
+ * 360도 이미지에서 두 점을 클릭하여 측정한 거리/면적 데이터
+ */
+export const fieldMeasurements = mysqlTable("field_measurements", {
+  id: int("id").autoincrement().primaryKey(),
+  panoramaId: int("panoramaId").notNull(),
+  sessionId: int("sessionId").notNull(),
+  // 측정 유형
+  type: mysqlEnum("type", ["distance", "height", "area", "reference"]).default("distance").notNull(),
+  // 측정 라벨
+  label: varchar("label", { length: 200 }),
+  // 측정 포인트 데이터 (이미지 좌표 + 구면 좌표)
+  points: json("points").notNull(), // [{imgX, imgY, theta, phi}, ...]
+  // 측정 결과
+  rawAngle: decimal("rawAngle", { precision: 10, scale: 6 }), // 보정 전 각도 거리 (rad)
+  calibratedValue: decimal("calibratedValue", { precision: 10, scale: 3 }), // 보정 후 실제 값 (m or m²)
+  unit: varchar("unit", { length: 10 }).default("m"), // m, m², cm
+  // 기준 치수 여부 (보정용)
+  isReference: boolean("isReference").default(false),
+  referenceRealValue: decimal("referenceRealValue", { precision: 10, scale: 3 }), // 기준 실제 치수 (m)
+  // 메모
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type FieldMeasurement = typeof fieldMeasurements.$inferSelect;
+export type InsertFieldMeasurement = typeof fieldMeasurements.$inferInsert;
+
+/**
+ * 실측 보고서 (Measurement Reports)
+ * 세션별 종합 실측 보고서
+ */
+export const measurementReports = mysqlTable("measurement_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(),
+  // 보고서 데이터
+  totalArea: decimal("totalArea", { precision: 10, scale: 2 }), // 총 면적 (m²)
+  roomCount: int("roomCount"),
+  // 공간별 치수 요약
+  spaceSummary: json("spaceSummary"), // [{name, width, length, height, area}]
+  // AI 분석 결과
+  aiAnalysis: longtext("aiAnalysis"),
+  // PDF URL
+  pdfUrl: text("pdfUrl"),
+  // 3D 디지털 트윈 데이터 (향후 확장)
+  pointCloudData: json("pointCloudData"), // 3D 포인트 클라우드 메타데이터
+  digitalTwinStatus: mysqlEnum("digitalTwinStatus", ["none", "processing", "ready"]).default("none"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type MeasurementReport = typeof measurementReports.$inferSelect;
+export type InsertMeasurementReport = typeof measurementReports.$inferInsert;

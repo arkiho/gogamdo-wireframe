@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent, attendanceRecords, type InsertAttendanceRecord, leaveRequests, type InsertLeaveRequest } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent, attendanceRecords, type InsertAttendanceRecord, leaveRequests, type InsertLeaveRequest, fieldMeasurementSessions, type InsertFieldMeasurementSession, panoramaImages, type InsertPanoramaImage, fieldMeasurements, type InsertFieldMeasurement, measurementReports, type InsertMeasurementReport } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -3252,4 +3252,126 @@ export async function listRfqsBySubcontractorEmail(email: string) {
     .leftJoin(purchaseOrders, eq(rfqRequests.purchaseOrderId, purchaseOrders.id))
     .where(eq(rfqRequests.subcontractorId, sub.id))
     .orderBy(desc(rfqRequests.createdAt));
+}
+
+
+// ===== 360도 현장 실측 (Field Measurement) =====
+
+// --- 실측 세션 ---
+export async function createMeasurementSession(data: InsertFieldMeasurementSession) {
+  const db = await getDb();
+  const result = await db.insert(fieldMeasurementSessions).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function listMeasurementSessions(filters?: { createdBy?: number; status?: string; opsProjectId?: number }) {
+  const db = await getDb();
+  const conditions = [];
+  if (filters?.createdBy) conditions.push(eq(fieldMeasurementSessions.createdBy, filters.createdBy));
+  if (filters?.status) conditions.push(eq(fieldMeasurementSessions.status, filters.status as any));
+  if (filters?.opsProjectId) conditions.push(eq(fieldMeasurementSessions.opsProjectId, filters.opsProjectId));
+  return db.select().from(fieldMeasurementSessions)
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(desc(fieldMeasurementSessions.createdAt));
+}
+
+export async function getMeasurementSession(id: number) {
+  const db = await getDb();
+  const rows = await db.select().from(fieldMeasurementSessions).where(eq(fieldMeasurementSessions.id, id));
+  return rows[0] || null;
+}
+
+export async function updateMeasurementSession(id: number, data: Partial<InsertFieldMeasurementSession>) {
+  const db = await getDb();
+  await db.update(fieldMeasurementSessions).set(data).where(eq(fieldMeasurementSessions.id, id));
+}
+
+export async function deleteMeasurementSession(id: number) {
+  const db = await getDb();
+  await db.delete(fieldMeasurements).where(eq(fieldMeasurements.sessionId, id));
+  await db.delete(panoramaImages).where(eq(panoramaImages.sessionId, id));
+  await db.delete(measurementReports).where(eq(measurementReports.sessionId, id));
+  await db.delete(fieldMeasurementSessions).where(eq(fieldMeasurementSessions.id, id));
+}
+
+// --- 파노라마 이미지 ---
+export async function createPanoramaImage(data: InsertPanoramaImage) {
+  const db = await getDb();
+  const result = await db.insert(panoramaImages).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function listPanoramaImages(sessionId: number) {
+  const db = await getDb();
+  return db.select().from(panoramaImages)
+    .where(eq(panoramaImages.sessionId, sessionId))
+    .orderBy(panoramaImages.spotOrder);
+}
+
+export async function getPanoramaImage(id: number) {
+  const db = await getDb();
+  const rows = await db.select().from(panoramaImages).where(eq(panoramaImages.id, id));
+  return rows[0] || null;
+}
+
+export async function updatePanoramaImage(id: number, data: Partial<InsertPanoramaImage>) {
+  const db = await getDb();
+  await db.update(panoramaImages).set(data).where(eq(panoramaImages.id, id));
+}
+
+export async function deletePanoramaImage(id: number) {
+  const db = await getDb();
+  await db.delete(fieldMeasurements).where(eq(fieldMeasurements.panoramaId, id));
+  await db.delete(panoramaImages).where(eq(panoramaImages.id, id));
+}
+
+// --- 측정 데이터 ---
+export async function createFieldMeasurement(data: InsertFieldMeasurement) {
+  const db = await getDb();
+  const result = await db.insert(fieldMeasurements).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function listFieldMeasurements(panoramaId: number) {
+  const db = await getDb();
+  return db.select().from(fieldMeasurements)
+    .where(eq(fieldMeasurements.panoramaId, panoramaId))
+    .orderBy(fieldMeasurements.createdAt);
+}
+
+export async function listSessionMeasurements(sessionId: number) {
+  const db = await getDb();
+  return db.select().from(fieldMeasurements)
+    .where(eq(fieldMeasurements.sessionId, sessionId))
+    .orderBy(fieldMeasurements.createdAt);
+}
+
+export async function updateFieldMeasurement(id: number, data: Partial<InsertFieldMeasurement>) {
+  const db = await getDb();
+  await db.update(fieldMeasurements).set(data).where(eq(fieldMeasurements.id, id));
+}
+
+export async function deleteFieldMeasurement(id: number) {
+  const db = await getDb();
+  await db.delete(fieldMeasurements).where(eq(fieldMeasurements.id, id));
+}
+
+// --- 실측 보고서 ---
+export async function createMeasurementReport(data: InsertMeasurementReport) {
+  const db = await getDb();
+  const result = await db.insert(measurementReports).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function getMeasurementReport(sessionId: number) {
+  const db = await getDb();
+  const rows = await db.select().from(measurementReports)
+    .where(eq(measurementReports.sessionId, sessionId))
+    .orderBy(desc(measurementReports.createdAt));
+  return rows[0] || null;
+}
+
+export async function updateMeasurementReport(id: number, data: Partial<InsertMeasurementReport>) {
+  const db = await getDb();
+  await db.update(measurementReports).set(data).where(eq(measurementReports.id, id));
 }

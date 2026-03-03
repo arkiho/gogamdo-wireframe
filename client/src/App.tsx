@@ -62,6 +62,7 @@ import AdminKpiOkr from "./pages/AdminKpiOkr";
 import AdminPipelineOverview from "./pages/AdminPipelineOverview";
 import PartnerPortal from "./pages/PartnerPortal";
 import StaffJoin from "./pages/StaffJoin";
+import OpsFieldMeasure from "./pages/ops/OpsFieldMeasure";
 
 function PublicRouter() {
   return (
@@ -120,6 +121,7 @@ function Router() {
       <Route path="/ops/partners/:tab" component={OpsPartners} />
       <Route path="/ops/staff-dashboard" component={OpsStaffDashboard} />
       <Route path="/ops/cameras" component={OpsCameras} />
+      <Route path="/ops/field-measure" component={OpsFieldMeasure} />
       {/* 협력업체 포털 */}
       <Route path="/partner-portal" component={PartnerPortal} />
       {/* 직원 가입 신청 */}
