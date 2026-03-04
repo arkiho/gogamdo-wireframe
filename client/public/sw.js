@@ -1,11 +1,11 @@
 /**
- * 고감도 OpsX Service Worker
+ * Kokamdo(고감도) Service Worker
  * - 오프라인 캐싱 (App Shell)
  * - 네트워크 우선 전략 (API 요청)
  * - 캐시 우선 전략 (정적 자산)
  */
 
-const CACHE_NAME = 'gogamdo-opsx-v1';
+const CACHE_NAME = 'kokamdo-v2';
 const OFFLINE_URL = '/ops';
 
 // 앱 셸 캐시 대상
@@ -113,7 +113,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || '고감도 OpsX', options)
+    self.registration.showNotification(data.title || '고감도', options)
   );
 });
 

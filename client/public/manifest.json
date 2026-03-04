@@ -1,8 +1,8 @@
 {
-  "name": "고감도 OpsX",
-  "short_name": "OpsX",
-  "description": "고감도 직원용 현장관리 앱 - 공정관리, 결재, 일정, 협력사 관리",
-  "start_url": "/ops",
+  "name": "Kokamdo - 고감도",
+  "short_name": "Kokamdo",
+  "description": "고감도 - 사무공간 인테리어 전문 기업. AI 견적, 포트폴리오, 프로젝트 관리",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

@@ -153,7 +153,7 @@ export default function NotificationBell() {
       }
       if (settings.browserNotif) {
         showBrowserNotification(
-          "고감도 OpsX",
+          "고감도",
           `새로운 알림이 ${currentCount - prevCountRef.current}건 도착했습니다.`
         );
       }

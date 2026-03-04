@@ -857,3 +857,6 @@
 
 ### PWA 앱 설치 시 에러 수정
 - [x] ServiceWorkerRegistration.showNotification TypeError 에러 수정 (NotificationBell.tsx에서 new Notification() → ServiceWorkerRegistration.showNotification() 변경 + fallback 처리)
+
+### PWA 앱 이름 변경
+- [x] PWA 앱 이름을 OpsX에서 Kokamdo(고감도)로 변경 (manifest.json, sw.js, index.html, NotificationBell.tsx 모두 수정)
