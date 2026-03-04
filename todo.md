@@ -860,3 +860,8 @@
 
 ### PWA 앱 이름 변경
 - [x] PWA 앱 이름을 OpsX에서 Kokamdo(고감도)로 변경 (manifest.json, sw.js, index.html, NotificationBell.tsx 모두 수정)
+
+### PWA 개선 3종
+- [x] PWA 앱 아이콘 512x512 고해상도 교체 (32/180/192/512 세트 CDN 업로드 + manifest/index.html/sw.js 모두 교체)
+- [x] PWA 오프라인 전용 안내 페이지 구현 (Offline.tsx + /offline 라우트 + sw.js 오프라인 fallback 변경)
+- [x] PWA 설치 유도 배너 (PwaInstallBanner.tsx - beforeinstallprompt 감지, 7일 재표시 억제, 설치 프롬프트)

@@ -63,6 +63,8 @@ import AdminPipelineOverview from "./pages/AdminPipelineOverview";
 import PartnerPortal from "./pages/PartnerPortal";
 import StaffJoin from "./pages/StaffJoin";
 import OpsFieldMeasure from "./pages/ops/OpsFieldMeasure";
+import Offline from "./pages/Offline";
+import PwaInstallBanner from "./components/PwaInstallBanner";
 
 function PublicRouter() {
   return (
@@ -126,6 +128,8 @@ function Router() {
       <Route path="/partner-portal" component={PartnerPortal} />
       {/* 직원 가입 신청 */}
       <Route path="/staff-join" component={StaffJoin} />
+      {/* 오프라인 페이지 */}
+      <Route path="/offline" component={Offline} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/portfolios" component={AdminPortfolios} />
@@ -159,6 +163,7 @@ function App() {
           <Toaster />
           <AnalyticsProvider>
             <Router />
+            <PwaInstallBanner />
           </AnalyticsProvider>
         </TooltipProvider>
       </ThemeProvider>

@@ -6,11 +6,12 @@
  */
 
 const CACHE_NAME = 'kokamdo-v2';
-const OFFLINE_URL = '/ops';
+const OFFLINE_URL = '/offline';
 
 // 앱 셸 캐시 대상
 const APP_SHELL = [
   '/',
+  '/offline',
   '/ops',
   '/ops/calendar',
 ];
@@ -103,8 +104,8 @@ self.addEventListener('push', (event) => {
   const data = event.data.json();
   const options = {
     body: data.body || '',
-    icon: 'https://files.manuscdn.com/user_upload_by_module/session_file/98603122/SfHLuQGAjxPTrVWr.png',
-    badge: 'https://files.manuscdn.com/user_upload_by_module/session_file/98603122/sxFLBDGEinEorgzx.png',
+    icon: 'https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/kokamdo-icon-192x192_5e8135d9.png',
+    badge: 'https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/kokamdo-icon-32x32_a9b11cb2.png',
     vibrate: [100, 50, 100],
     data: {
       url: data.url || '/ops',
