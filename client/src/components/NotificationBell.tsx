@@ -209,7 +209,7 @@ export default function NotificationBell() {
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-h-[480px] bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+        <div className="fixed left-1/2 -translate-x-1/2 top-14 sm:absolute sm:left-auto sm:translate-x-0 sm:right-0 sm:top-full sm:mt-2 w-[calc(100vw-2rem)] sm:w-96 max-h-[70vh] sm:max-h-[480px] bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
             <h3 className="font-semibold text-sm">알림</h3>

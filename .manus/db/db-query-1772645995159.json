@@ -1,0 +1,66 @@
+{
+  "query": "SELECT id, title, client, category, status FROM portfolio_drafts ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, client, category, status FROM portfolio_drafts ORDER BY id;",
+  "rows": [
+    {
+      "id": "2",
+      "title": "허시드",
+      "client": "(주)허시드",
+      "category": "사무실 인테리어",
+      "status": "published"
+    },
+    {
+      "id": "3",
+      "title": "LAB543",
+      "client": "(주)LAB543",
+      "category": "크리에이티브 스튜디오",
+      "status": "published"
+    },
+    {
+      "id": "4",
+      "title": "필립스코리아",
+      "client": "필립스코리아(주)",
+      "category": "글로벌 기업 오피스",
+      "status": "published"
+    },
+    {
+      "id": "5",
+      "title": "페이퍼랩",
+      "client": "(주)페이퍼랩",
+      "category": "크리에이티브 오피스",
+      "status": "published"
+    },
+    {
+      "id": "6",
+      "title": "휴레이",
+      "client": "(주)휴레이",
+      "category": "IT 오피스",
+      "status": "published"
+    },
+    {
+      "id": "7",
+      "title": "HEAL",
+      "client": "(주)HEAL",
+      "category": "헬스케어 오피스",
+      "status": "published"
+    },
+    {
+      "id": "8",
+      "title": "SBA/SETEC",
+      "client": "서울산업진흥원(SBA)",
+      "category": "공공기관",
+      "status": "published"
+    },
+    {
+      "id": "9",
+      "title": "제조시설 리모델링",
+      "client": "비공개",
+      "category": "산업시설",
+      "status": "published"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tclient\tcategory\tstatus\n2\t허시드\t(주)허시드\t사무실 인테리어\tpublished\n3\tLAB543\t(주)LAB543\t크리에이티브 스튜디오\tpublished\n4\t필립스코리아\t필립스코리아(주)\t글로벌 기업 오피스\tpublished\n5\t페이퍼랩\t(주)페이퍼랩\t크리에이티브 오피스\tpublished\n6\t휴레이\t(주)휴레이\tIT 오피스\tpublished\n7\tHEAL\t(주)HEAL\t헬스케어 오피스\tpublished\n8\tSBA/SETEC\t서울산업진흥원(SBA)\t공공기관\tpublished\n9\t제조시설 리모델링\t비공개\t산업시설\tpublished\n",
+  "stderr": "",
+  "execution_time_ms": 1625
+}

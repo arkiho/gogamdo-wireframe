@@ -1,0 +1,265 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "activity_logs"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ai_redesigns"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ai_reports"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "announcements"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "attendance_records"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "chat_sessions"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "client_floor_plans"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "client_projects"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "clients_auth"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "company_survey_responses"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "company_wide_surveys"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "crm_activities"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "crm_clients"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "crm_deals"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "crm_interactions"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "deletion_logs"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "design_projects"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "detailed_estimates"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "download_logs"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "draft_images"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "drive_sync_log"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "estimates"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "floor_plans"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "inquiries"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "insight_articles"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "layout_options"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "lead_downloads"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "leave_requests"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "meeting_bookings"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "newsletter_campaigns"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "newsletter_subscribers"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "notifications"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "occupancy_events"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_approval_lines"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_approval_steps"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_camera_events"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_cameras"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_client_invites"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_contracts"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_cost_items"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_estimates"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_expenses"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_meeting_notes"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_notifications"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_projects"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_schedule_items"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_sub_evaluations"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_sub_invites"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_sub_quotes"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_sub_work_reports"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_subcontractors"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "ops_work_reports"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "partner_quotations"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "popups"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "portfolio_drafts"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "portfolio_reviews"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "proposals"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "purchase_orders"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "quotation_items"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "renderings"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "rfp_data"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "rfq_requests"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "sensor_api_keys"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "sensor_data"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "sensors"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "site_settings"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "space_analysis"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "space_projects"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "space_zones"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "staff_applications"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "staff_invitations"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "style_recommendations"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "sub_contracts"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "sub_registration_requests"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "subcontractor_trades"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "subscriber_segments"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "subscriber_tags"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "subscribers"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "tour_videos"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "trade_categories"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "trade_contract_templates"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "users"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "work_surveys"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP": "zone_occupancy_stats"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_inVH3wtLGFa5DdYEVu2HqP\n__drizzle_migrations\nactivity_logs\nai_redesigns\nai_reports\nannouncements\nattendance_records\nchat_sessions\nclient_floor_plans\nclient_projects\nclients_auth\ncompany_survey_responses\ncompany_wide_surveys\ncrm_activities\ncrm_clients\ncrm_deals\ncrm_interactions\ndeletion_logs\ndesign_projects\ndetailed_estimates\ndownload_logs\ndraft_images\ndrive_sync_log\nestimates\nfloor_plans\ninquiries\ninsight_articles\nlayout_options\nlead_downloads\nleave_requests\nmeeting_bookings\nnewsletter_campaigns\nnewsletter_subscribers\nnotifications\noccupancy_events\nops_approval_lines\nops_approval_steps\nops_camera_events\nops_cameras\nops_client_invites\nops_contracts\nops_cost_items\nops_estimates\nops_expenses\nops_meeting_notes\nops_notifications\nops_projects\nops_schedule_items\nops_sub_evaluations\nops_sub_invites\nops_sub_quotes\nops_sub_work_reports\nops_subcontractors\nops_work_reports\npartner_quotations\npopups\nportfolio_drafts\nportfolio_reviews\nproposals\npurchase_orders\nquotation_items\nrenderings\nrfp_data\nrfq_requests\nsensor_api_keys\nsensor_data\nsensors\nsite_settings\nspace_analysis\nspace_projects\nspace_zones\nstaff_applications\nstaff_invitations\nstyle_recommendations\nsub_contracts\nsub_registration_requests\nsubcontractor_trades\nsubscriber_segments\nsubscriber_tags\nsubscribers\ntour_videos\ntrade_categories\ntrade_contract_templates\nusers\nwork_surveys\nzone_occupancy_stats\n",
+  "stderr": "",
+  "execution_time_ms": 1595
+}

@@ -656,9 +656,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-40 bg-paper pt-20"
+            className="fixed inset-0 z-40 bg-paper pt-20 overflow-y-auto"
           >
-            <div className="container flex flex-col gap-1 pt-8">
+            <div className="container flex flex-col gap-1 pt-8 pb-12">
               {NAV_ITEMS.map((entry, i) =>
                 isGroup(entry) ? (
                   <MobileAccordion

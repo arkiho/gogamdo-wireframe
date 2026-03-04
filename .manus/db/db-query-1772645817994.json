@@ -1,0 +1,90 @@
+{
+  "query": "SELECT id, title, client, category, status, driveFolder FROM portfolio_drafts ORDER BY id LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, client, category, status, driveFolder FROM portfolio_drafts ORDER BY id LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "title": "휴시드 본사 리모델링",
+      "client": "(주)시드",
+      "category": "사무실 인테리어",
+      "status": "draft",
+      "driveFolder": "NULL"
+    },
+    {
+      "id": "2",
+      "title": "허시드",
+      "client": "(주)허시드",
+      "category": "사무실 인테리어",
+      "status": "published",
+      "driveFolder": "NULL"
+    },
+    {
+      "id": "3",
+      "title": "LAB543",
+      "client": "(주)LAB543",
+      "category": "크리에이티브 스튜디오",
+      "status": "published",
+      "driveFolder": "NULL"
+    },
+    {
+      "id": "4",
+      "title": "필립스코리아",
+      "client": "필립스코리아(주)",
+      "category": "글로벌 기업 오피스",
+      "status": "published",
+      "driveFolder": "NULL"
+    },
+    {
+      "id": "5",
+      "title": "페이퍼랩",
+      "client": "(주)페이퍼랩",
+      "category": "크리에이티브 오피스",
+      "status": "published",
+      "driveFolder": "NULL"
+    },
+    {
+      "id": "6",
+      "title": "휴레이",
+      "client": "(주)휴레이",
+      "category": "IT 오피스",
+      "status": "published",
+      "driveFolder": "NULL"
+    },
+    {
+      "id": "7",
+      "title": "HEAL",
+      "client": "(주)HEAL",
+      "category": "헬스케어 오피스",
+      "status": "published",
+      "driveFolder": "NULL"
+    },
+    {
+      "id": "8",
+      "title": "SBA/SETEC",
+      "client": "서울산업진흥원(SBA)",
+      "category": "공공기관",
+      "status": "published",
+      "driveFolder": "NULL"
+    },
+    {
+      "id": "9",
+      "title": "제조시설 리모델링",
+      "client": "비공개",
+      "category": "산업시설",
+      "status": "published",
+      "driveFolder": "NULL"
+    },
+    {
+      "id": "12",
+      "title": "허시드 본사 리모델링",
+      "client": "(주)허시드",
+      "category": "사무실 인테리어",
+      "status": "draft",
+      "driveFolder": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tclient\tcategory\tstatus\tdriveFolder\n1\t휴시드 본사 리모델링\t(주)시드\t사무실 인테리어\tdraft\tNULL\n2\t허시드\t(주)허시드\t사무실 인테리어\tpublished\tNULL\n3\tLAB543\t(주)LAB543\t크리에이티브 스튜디오\tpublished\tNULL\n4\t필립스코리아\t필립스코리아(주)\t글로벌 기업 오피스\tpublished\tNULL\n5\t페이퍼랩\t(주)페이퍼랩\t크리에이티브 오피스\tpublished\tNULL\n6\t휴레이\t(주)휴레이\tIT 오피스\tpublished\tNULL\n7\tHEAL\t(주)HEAL\t헬스케어 오피스\tpublished\tNULL\n8\tSBA/SETEC\t서울산업진흥원(SBA)\t공공기관\tpublished\tNULL\n9\t제조시설 리모델링\t비공개\t산업시설\tpublished\tNULL\n12\t허시드 본사 리모델링\t(주)허시드\t사무실 인테리어\tdraft\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1492
+}

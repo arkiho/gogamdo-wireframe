@@ -1,0 +1,16 @@
+{
+  "query": "SHOW TABLES LIKE '%portfolio%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SHOW TABLES LIKE '%portfolio%';",
+  "rows": [
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP (%portfolio%)": "portfolio_drafts"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP (%portfolio%)": "portfolio_reviews"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_inVH3wtLGFa5DdYEVu2HqP (%portfolio%)\nportfolio_drafts\nportfolio_reviews\n",
+  "stderr": "",
+  "execution_time_ms": 2679
+}
