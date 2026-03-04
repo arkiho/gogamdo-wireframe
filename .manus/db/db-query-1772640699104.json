@@ -1,0 +1,37 @@
+{
+  "query": "SELECT COUNT(*) as total FROM announcements; SELECT COUNT(*) as test_count FROM announcements WHERE title LIKE '%테스트%'; SELECT id, title, message FROM announcements LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT COUNT(*) as total FROM announcements; SELECT COUNT(*) as test_count FROM announcements WHERE title LIKE '%테스트%'; SELECT id, title, message FROM announcements LIMIT 5;",
+  "rows": [
+    {
+      "total": "137"
+    },
+    {
+      "total": "test_count"
+    },
+    {
+      "total": "136"
+    },
+    {
+      "total": "id\ttitle\tmessage"
+    },
+    {
+      "total": "1\t테스트 공지\t테스트 공지사항입니다"
+    },
+    {
+      "total": "2\t토글 테스트\t토글 테스트 메시지"
+    },
+    {
+      "total": "3\t삭제 테스트\t삭제 테스트 메시지"
+    },
+    {
+      "total": "4\t테스트 공지\t테스트 공지사항입니다"
+    },
+    {
+      "total": "5\t토글 테스트\t토글 테스트 메시지"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\n137\ntest_count\n136\nid\ttitle\tmessage\n1\t테스트 공지\t테스트 공지사항입니다\n2\t토글 테스트\t토글 테스트 메시지\n3\t삭제 테스트\t삭제 테스트 메시지\n4\t테스트 공지\t테스트 공지사항입니다\n5\t토글 테스트\t토글 테스트 메시지\n",
+  "stderr": "",
+  "execution_time_ms": 1987
+}

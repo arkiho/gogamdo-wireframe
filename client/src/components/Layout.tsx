@@ -41,6 +41,7 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 const BASE_NAV_ITEMS: NavEntry[] = [
   { label: "회사소개", href: "/about" },
   { label: "솔루션", href: "/solutions" },
+  { label: "프로세스", href: "/how-we-work" },
   { label: "고객 사례", href: "/portfolio" },
   { label: "인사이트", href: "/insights" },
 ];
@@ -78,9 +79,9 @@ function useNavItems(): NavEntry[] {
   const filteredAiGroup: NavGroup = { label: "AI 서비스", children: aiChildren };
   // Insert AI group before "인사이트"
   return [
-    ...BASE_NAV_ITEMS.slice(0, 3),
+    ...BASE_NAV_ITEMS.slice(0, 4),
     filteredAiGroup,
-    ...BASE_NAV_ITEMS.slice(3),
+    ...BASE_NAV_ITEMS.slice(4),
   ];
 }
 

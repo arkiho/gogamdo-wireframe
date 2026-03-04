@@ -1,0 +1,170 @@
+{
+  "query": "SELECT id, title, message, linkUrl, linkText, active FROM announcements WHERE active = 'yes' LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, message, linkUrl, linkText, active FROM announcements WHERE active = 'yes' LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "2",
+      "title": "토글 테스트",
+      "message": "토글 테스트 메시지",
+      "linkUrl": "NULL",
+      "linkText": "NULL",
+      "active": "yes"
+    },
+    {
+      "id": "3",
+      "title": "삭제 테스트",
+      "message": "삭제 테스트 메시지",
+      "linkUrl": "NULL",
+      "linkText": "NULL",
+      "active": "yes"
+    },
+    {
+      "id": "4",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "5",
+      "title": "토글 테스트",
+      "message": "토글 테스트 메시지",
+      "linkUrl": "NULL",
+      "linkText": "NULL",
+      "active": "yes"
+    },
+    {
+      "id": "6",
+      "title": "삭제 테스트",
+      "message": "삭제 테스트 메시지",
+      "linkUrl": "NULL",
+      "linkText": "NULL",
+      "active": "yes"
+    },
+    {
+      "id": "7",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "30001",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "30004",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "30007",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "30010",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "30013",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "30016",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "30019",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "60001",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "60004",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "60007",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "60010",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "90001",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    },
+    {
+      "id": "90004",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "active": "yes"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tmessage\tlinkUrl\tlinkText\tactive\n1\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n2\t토글 테스트\t토글 테스트 메시지\tNULL\tNULL\tyes\n3\t삭제 테스트\t삭제 테스트 메시지\tNULL\tNULL\tyes\n4\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n5\t토글 테스트\t토글 테스트 메시지\tNULL\tNULL\tyes\n6\t삭제 테스트\t삭제 테스트 메시지\tNULL\tNULL\tyes\n7\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n30001\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n30004\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n30007\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n30010\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n30013\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n30016\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n30019\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n60001\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n60004\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n60007\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n60010\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n90001\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n90004\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\tyes\n",
+  "stderr": "",
+  "execution_time_ms": 1605
+}

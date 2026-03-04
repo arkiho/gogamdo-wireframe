@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, companyName, contactName FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, companyName, contactName FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%';",
+  "rows": [
+    {
+      "id": "30004",
+      "companyName": "(주)테스트",
+      "contactName": "테스트 고객"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcompanyName\tcontactName\n30004\t(주)테스트\t테스트 고객\n",
+  "stderr": "",
+  "execution_time_ms": 1568
+}

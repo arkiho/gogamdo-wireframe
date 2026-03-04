@@ -37,6 +37,7 @@ import AIStyle from "./pages/AIStyle";
 import AIRedesign from "./pages/AIRedesign";
 import FAQ from "./pages/FAQ";
 import OpsXProcess from "./pages/OpsXProcess";
+import HowWeWork from "./pages/HowWeWork";
 import OpsHome from "./pages/ops/OpsHome";
 import OpsProjectDetail from "./pages/ops/OpsProjectDetail";
 import SubPortal from "./pages/ops/SubPortal";
@@ -86,6 +87,7 @@ function PublicRouter() {
         <Route path="/ai-style" component={AIStyle} />
         <Route path="/ai-redesign" component={AIRedesign} />
         <Route path="/faq" component={FAQ} />
+        <Route path="/how-we-work" component={HowWeWork} />
         <Route path="/opsx" component={OpsXProcess} />
         <Route path="/contact" component={Contact} />
         {/* 고객 포털 (로그인 필요) */}

@@ -1,0 +1,9 @@
+{
+  "query": "SET @test_client_ids = (SELECT GROUP_CONCAT(id) FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%');\nDELETE FROM crm_activities WHERE clientId IN (SELECT id FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%');\nDELETE FROM crm_interactions WHERE clientId IN (SELECT id FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%');\nDELETE FROM crm_deals WHERE clientId IN (SELECT id FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%');\nDELETE FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SET @test_client_ids = (SELECT GROUP_CONCAT(id) FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%');\nDELETE FROM crm_activities WHERE clientId IN (SELECT id FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%');\nDELETE FROM crm_interactions WHERE clientId IN (SELECT id FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%');\nDELETE FROM crm_deals WHERE clientId IN (SELECT id FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%');\nDELETE FROM crm_clients WHERE companyName LIKE '%테스트%' OR contactName LIKE '%테스트%';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2418
+}

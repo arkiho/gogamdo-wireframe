@@ -1,0 +1,22 @@
+{
+  "query": "SELECT 'announcements' as tbl, COUNT(*) as cnt FROM announcements\nUNION ALL SELECT 'popups', COUNT(*) FROM popups\nUNION ALL SELECT 'notifications', COUNT(*) FROM notifications;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT 'announcements' as tbl, COUNT(*) as cnt FROM announcements\nUNION ALL SELECT 'popups', COUNT(*) FROM popups\nUNION ALL SELECT 'notifications', COUNT(*) FROM notifications;",
+  "rows": [
+    {
+      "tbl": "popups",
+      "cnt": "0"
+    },
+    {
+      "tbl": "notifications",
+      "cnt": "3"
+    },
+    {
+      "tbl": "announcements",
+      "cnt": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "tbl\tcnt\npopups\t0\nnotifications\t3\nannouncements\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1600
+}
