@@ -70,24 +70,49 @@ async function requestNotificationPermission(): Promise<boolean> {
   return result === "granted";
 }
 
-// 브라우저 알림 표시
-function showBrowserNotification(title: string, body: string, link?: string) {
+// 브라우저 알림 표시 (PWA 환경에서는 ServiceWorkerRegistration.showNotification 사용)
+async function showBrowserNotification(title: string, body: string, link?: string) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const notification = new Notification(title, {
-    body,
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
-    tag: "ops-notification",
-    renotify: true,
-  });
-  if (link) {
-    notification.onclick = () => {
-      window.focus();
-      window.location.hash = link;
-      notification.close();
-    };
+
+  // PWA(서비스 워커 활성화) 환경에서는 new Notification()이 금지됨
+  // ServiceWorkerRegistration.showNotification()을 사용해야 함
+  if ("serviceWorker" in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, {
+        body,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        tag: "ops-notification",
+        renotify: true,
+        data: { url: link || "/ops" },
+      });
+      return;
+    } catch {
+      // 서비스 워커 알림 실패 시 아래 fallback으로
+    }
   }
-  setTimeout(() => notification.close(), 8000);
+
+  // Fallback: 서비스 워커가 없는 일반 브라우저 환경
+  try {
+    const notification = new Notification(title, {
+      body,
+      icon: "/favicon.ico",
+      badge: "/favicon.ico",
+      tag: "ops-notification",
+      renotify: true,
+    } as NotificationOptions);
+    if (link) {
+      notification.onclick = () => {
+        window.focus();
+        window.location.hash = link;
+        notification.close();
+      };
+    }
+    setTimeout(() => notification.close(), 8000);
+  } catch {
+    // 알림 생성 실패 시 무시 (일부 브라우저에서 new Notification 금지)
+  }
 }
 
 export default function NotificationBell() {

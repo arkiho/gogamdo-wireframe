@@ -854,3 +854,6 @@
 - [x] 향후 3D 디지털 트윈 확장 고려한 데이터 구조 설계 (pointCloudData, digitalTwinStatus 필드)
 - [x] 웹앱에 실측 도구 페이지 추가 (/ops/field-measure + OpsHome 바로가기)
 - [x] Vitest 테스트 21개 통과 (실측 세션 CRUD + 파노라마 관리 + 측정 데이터 + 보정 시스템 + 좌표 변환 + AI 보고서)
+
+### PWA 앱 설치 시 에러 수정
+- [x] ServiceWorkerRegistration.showNotification TypeError 에러 수정 (NotificationBell.tsx에서 new Notification() → ServiceWorkerRegistration.showNotification() 변경 + fallback 처리)
