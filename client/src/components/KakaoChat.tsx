@@ -66,7 +66,7 @@ export default function KakaoChat() {
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="bg-white shadow-lg border border-[#1A1A1A]/10 px-4 py-2.5 rounded-lg text-sm text-[#1A1A1A] max-w-[200px]"
+            className="bg-white shadow-lg border border-[#1A1A1A]/10 px-4 py-2.5 rounded-lg text-sm text-[#1A1A1A] max-w-[240px]"
           >
             <div className="relative">
               <p className="font-medium">궁금한 점이 있으신가요?</p>

@@ -1,0 +1,40 @@
+{
+  "query": "SELECT * FROM announcements WHERE active = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT * FROM announcements WHERE active = 1;",
+  "rows": [
+    {
+      "id": "660001",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "bgColor": "#111111",
+      "textColor": "#ffffff",
+      "active": "yes",
+      "priority": "0",
+      "startsAt": "NULL",
+      "endsAt": "NULL",
+      "createdAt": "2026-03-04 16:23:26",
+      "updatedAt": "2026-03-04 16:23:26"
+    },
+    {
+      "id": "660004",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다",
+      "linkUrl": "https://kokamdo.co.kr/contact",
+      "linkText": "자세히 보기",
+      "bgColor": "#111111",
+      "textColor": "#ffffff",
+      "active": "yes",
+      "priority": "0",
+      "startsAt": "NULL",
+      "endsAt": "NULL",
+      "createdAt": "2026-03-04 16:26:14",
+      "updatedAt": "2026-03-04 16:26:14"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tmessage\tlinkUrl\tlinkText\tbgColor\ttextColor\tactive\tpriority\tstartsAt\tendsAt\tcreatedAt\tupdatedAt\n660001\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\t#111111\t#ffffff\tyes\t0\tNULL\tNULL\t2026-03-04 16:23:26\t2026-03-04 16:23:26\n660004\t테스트 공지\t테스트 공지사항입니다\thttps://kokamdo.co.kr/contact\t자세히 보기\t#111111\t#ffffff\tyes\t0\tNULL\tNULL\t2026-03-04 16:26:14\t2026-03-04 16:26:14\n",
+  "stderr": "",
+  "execution_time_ms": 1563
+}

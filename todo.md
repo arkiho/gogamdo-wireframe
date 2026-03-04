@@ -887,3 +887,14 @@
 ### 우리가 일하는 방식 페이지
 - [x] "우리가 일하는 방식" 페이지 기획 및 구현 (Hero + 비교표 + 6단계 프로세스 + 기술 차별점 + 인용문 + CTA)
 - [x] 네비게이션 메뉴에 "프로세스" 메뉴 추가 (/how-we-work)
+
+### 홈페이지 전체 버그 테스트 및 수정
+- [x] 전체 페이지 순회 (9개 페이지) — 버그 7건 발견
+- [x] BUG-1: 테스트 공지 배너 잔존 → DB 삭제 + SW 캐시 버전 업데이트(v2→v3)
+- [x] BUG-2: Hero 배지 가독성 저하 → bg-black/40 backdrop-blur-sm 추가
+- [x] BUG-3: 카카오톡 말풍선 텍스트 잘림 → max-width 200px→240px 확대
+- [x] BUG-4: useCounter 훅 Rules of Hooks 위반 → StatItem 별도 컴포넌트 분리
+- [x] BUG-5: Hero 섹션 모바일 콘텐츠 잘림 → overflow-hidden→overflow-x-hidden
+- [x] BUG-6: HowWeWork 비교표 모바일 스크롤 힌트 → 안내 문구 + min-w 추가
+- [x] BUG-7: AI 섹션 빈 카드 표시 방지 → 개별 기능 플래그 추가 체크
+- [x] 수정 확인 및 체크포인트 저장

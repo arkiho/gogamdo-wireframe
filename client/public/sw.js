@@ -5,7 +5,7 @@
  * - 캐시 우선 전략 (정적 자산)
  */
 
-const CACHE_NAME = 'kokamdo-v2';
+const CACHE_NAME = 'kokamdo-v3';
 const OFFLINE_URL = '/offline';
 
 // 앱 셸 캐시 대상

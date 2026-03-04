@@ -289,8 +289,9 @@ export default function HowWeWork() {
           </FadeUp>
 
           <FadeUp delay={0.1}>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+            <p className="text-xs text-muted-foreground mb-2 lg:hidden">← 좌우로 스크롤하여 비교해 보세요</p>
+            <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+              <table className="w-full border-collapse min-w-[640px]">
                 <thead>
                   <tr>
                     <th className="text-left py-4 px-6 text-sm font-medium text-muted-foreground border-b border-border/50 w-1/4">

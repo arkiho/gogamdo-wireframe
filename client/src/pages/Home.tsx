@@ -138,6 +138,26 @@ const SOLUTIONS = [
   },
 ];
 
+// Individual stat item component to fix Rules of Hooks violation
+function StatItem({ stat, delay }: { stat: typeof STATS[number]; delay: number }) {
+  const counter = useCounter(stat.number);
+  return (
+    <FadeUp delay={delay}>
+      <div ref={counter.ref} className="text-center lg:text-left">
+        <div className="font-heading text-4xl lg:text-5xl font-extrabold text-ink tracking-tight">
+          {stat.number >= 10000
+            ? `${Math.floor(counter.count / 1000).toLocaleString()},${String(counter.count % 1000).padStart(3, "0")}`
+            : counter.count.toLocaleString()}
+          <span className="text-gold">{stat.suffix}</span>
+        </div>
+        <div className="mt-2 text-sm text-muted-foreground font-medium">
+          {stat.label}
+        </div>
+      </div>
+    </FadeUp>
+  );
+}
+
 const FEATURED_PROJECTS = [
   {
     slug: "huxeed",
@@ -199,7 +219,7 @@ export default function Home() {
     <>
       <SEOHead {...SEO_CONFIG.home} />
       {/* ==================== HERO SECTION ==================== */}
-      <section className="relative min-h-screen flex items-end pb-16 lg:pb-24 overflow-hidden">
+      <section className="relative min-h-screen flex items-end pb-16 lg:pb-24 overflow-x-hidden">
         {/* Background Video */}
         <HeroVideo />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10 z-[1]" />
@@ -220,10 +240,10 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="flex flex-wrap items-center gap-3 mb-6">
-                <span className="inline-block px-3 py-1 text-xs font-medium tracking-widest uppercase text-gold border border-gold/30">
+                <span className="inline-block px-3 py-1 text-xs font-medium tracking-widest uppercase text-gold border border-gold/30 bg-black/40 backdrop-blur-sm">
                   Office Interior Specialist
                 </span>
-                <span className="inline-block px-3 py-1 text-xs font-medium tracking-widest uppercase text-gold/80 border border-gold/20 bg-gold/5">
+                <span className="inline-block px-3 py-1 text-xs font-medium tracking-widest uppercase text-gold border border-gold/30 bg-black/40 backdrop-blur-sm">
                   여성기업 인증
                 </span>
               </div>
@@ -313,24 +333,9 @@ export default function Home() {
       <section className="py-20 lg:py-28">
         <div className="container">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-            {STATS.map((stat, i) => {
-              const counter = useCounter(stat.number);
-              return (
-                <FadeUp key={i} delay={i * 0.1}>
-                  <div ref={counter.ref} className="text-center lg:text-left">
-                    <div className="font-heading text-4xl lg:text-5xl font-extrabold text-ink tracking-tight">
-                      {stat.number >= 10000
-                        ? `${Math.floor(counter.count / 1000).toLocaleString()},${String(counter.count % 1000).padStart(3, "0")}`
-                        : counter.count.toLocaleString()}
-                      <span className="text-gold">{stat.suffix}</span>
-                    </div>
-                    <div className="mt-2 text-sm text-muted-foreground font-medium">
-                      {stat.label}
-                    </div>
-                  </div>
-                </FadeUp>
-              );
-            })}
+            {STATS.map((stat, i) => (
+              <StatItem key={i} stat={stat} delay={i * 0.1} />
+            ))}
           </div>
         </div>
       </section>
@@ -635,7 +640,7 @@ export default function Home() {
       ==================== */}
 
       {/* ==================== AI FEATURES (conditionally rendered) ==================== */}
-      {anyAiEnabled && <section className="py-20 lg:py-28 bg-ink text-white relative overflow-hidden">
+      {anyAiEnabled && (aiChat || aiStyle || aiEstimator) && <section className="py-20 lg:py-28 bg-ink text-white relative overflow-hidden">
         <div className="absolute top-8 right-8 lg:right-16 opacity-[0.04] select-none pointer-events-none">
           <span className="font-heading text-[10rem] lg:text-[16rem] font-extrabold leading-none">
             05

@@ -1,0 +1,20 @@
+{
+  "query": "SELECT id, title, message FROM announcements WHERE active = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, message FROM announcements WHERE active = 1;",
+  "rows": [
+    {
+      "id": "660001",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다"
+    },
+    {
+      "id": "660004",
+      "title": "테스트 공지",
+      "message": "테스트 공지사항입니다"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tmessage\n660001\t테스트 공지\t테스트 공지사항입니다\n660004\t테스트 공지\t테스트 공지사항입니다\n",
+  "stderr": "",
+  "execution_time_ms": 1560
+}

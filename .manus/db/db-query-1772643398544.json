@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, title, active FROM announcements ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, active FROM announcements ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "660005",
+      "title": "토글 테스트",
+      "active": "no"
+    },
+    {
+      "id": "660004",
+      "title": "테스트 공지",
+      "active": "no"
+    },
+    {
+      "id": "660002",
+      "title": "토글 테스트",
+      "active": "no"
+    },
+    {
+      "id": "660001",
+      "title": "테스트 공지",
+      "active": "no"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tactive\n660005\t토글 테스트\tno\n660004\t테스트 공지\tno\n660002\t토글 테스트\tno\n660001\t테스트 공지\tno\n",
+  "stderr": "",
+  "execution_time_ms": 1560
+}
