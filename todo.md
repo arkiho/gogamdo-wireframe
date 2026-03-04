@@ -865,3 +865,11 @@
 - [x] PWA 앱 아이콘 512x512 고해상도 교체 (32/180/192/512 세트 CDN 업로드 + manifest/index.html/sw.js 모두 교체)
 - [x] PWA 오프라인 전용 안내 페이지 구현 (Offline.tsx + /offline 라우트 + sw.js 오프라인 fallback 변경)
 - [x] PWA 설치 유도 배너 (PwaInstallBanner.tsx - beforeinstallprompt 감지, 7일 재표시 억제, 설치 프롬프트)
+
+### 포트폴리오 → 고객 사례 리브랜딩
+- [x] 네비게이션 메뉴 "포트폴리오" → "고객 사례" 변경 (Layout.tsx 상단/하단 네비 모두)
+- [x] 포트폴리오 페이지 제목/메타 → "고객 사례" 변경 (SEOHead + Portfolio.tsx 히어로)
+- [x] 보안 비공개 원칙 안내 문구 추가 (Shield 아이콘 + 안내 박스)
+- [x] 승인된 프로젝트만 공개한다는 안내 표시 (히어로 + 보안 안내 박스)
+- [x] 대면 상담 유도 CTA 추가 ("더 많은 사례가 궁금하신가요?" + 무료 상담 신청 버튼)
+- [x] 홈페이지 메인 섹션에서도 "포트폴리오" → "고객 사례" 텍스트 변경 (Home.tsx Featured Projects → Client Cases)

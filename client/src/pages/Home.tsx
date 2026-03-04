@@ -581,15 +581,15 @@ export default function Home() {
             <div className="flex items-end justify-between mb-12">
               <div>
                 <p className="text-xs font-medium tracking-widest uppercase text-gold mb-4">
-                  Featured Projects
+                  Client Cases
                 </p>
                 <h2 className="font-heading text-3xl lg:text-5xl font-bold text-ink leading-tight">
-                  이렇게 해결했습니다
+                  고객 사례
                 </h2>
               </div>
               <Link href="/portfolio">
                 <span className="hidden lg:inline-flex items-center gap-2 text-sm font-medium text-ink hover:text-gold transition-colors">
-                  전체 프로젝트 보기 <ArrowRight className="w-4 h-4" />
+                  고객 사례 보기 <ArrowRight className="w-4 h-4" />
                 </span>
               </Link>
             </div>
@@ -626,7 +626,7 @@ export default function Home() {
           <div className="lg:hidden mt-8 text-center">
             <Link href="/portfolio">
               <span className="inline-flex items-center gap-2 text-sm font-medium text-ink hover:text-gold transition-colors">
-                전체 프로젝트 보기 <ArrowRight className="w-4 h-4" />
+                고객 사례 보기 <ArrowRight className="w-4 h-4" />
               </span>
             </Link>
           </div>

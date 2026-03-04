@@ -9,7 +9,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUpRight, Building2, Store, HeartPulse, Factory } from "lucide-react";
+import { ArrowUpRight, Building2, Store, HeartPulse, Factory, Shield, Phone } from "lucide-react";
 import { PROJECTS, MAJOR_CATEGORIES, CATEGORY_MAP, type MajorCategory } from "@/lib/images";
 import { trpc } from "@/lib/trpc";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
@@ -38,7 +38,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 
 // 대분류별 설명 텍스트
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  "전체": "35년간 2,800건 이상의 프로젝트를 수행하며 쌓아온 경험과 노하우를 확인하세요.",
+  "전체": "고객사로부터 공개 승인을 받은 프로젝트만 선별하여 소개합니다.",
   "사무 공간": "스타트업부터 글로벌 기업까지, 업무 효율과 기업 문화를 반영한 맞춤형 오피스 인테리어",
   "상업 공간": "코워킹 스페이스, F&B, 리테일 등 고객 경험을 극대화하는 상업 공간 설계",
   "의료·복지": "환자와 이용자의 심리적 안정을 고려한 치유적 공간 디자인",
@@ -144,15 +144,33 @@ export default function Portfolio() {
         <div className="container">
           <FadeUp>
             <p className="text-xs font-medium tracking-widest uppercase text-gold mb-6">
-              Projects
+              Client Cases
             </p>
             <h1 className="font-heading text-4xl lg:text-6xl font-bold text-ink leading-tight mb-4 max-w-3xl">
-              35년, 2,800건 이상의
-              <br />프로젝트가 증명합니다
+              고객 사례
             </h1>
             <p className="text-muted-foreground max-w-xl text-base lg:text-lg leading-relaxed">
               {CATEGORY_DESCRIPTIONS[activeMajor]}
             </p>
+          </FadeUp>
+
+          {/* 보안 비공개 원칙 안내 */}
+          <FadeUp delay={0.15}>
+            <div className="mt-8 p-5 lg:p-6 border border-border/60 bg-paper-warm/50 max-w-2xl">
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-ink mb-1">
+                    고객사 보안 비공개 원칙
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    고감도는 고객사의 내부 공간 정보를 철저히 보호합니다.
+                    본 페이지에는 고객사로부터 공개 승인을 받은 프로젝트만 게재되어 있으며,
+                    더 많은 사례는 대면 상담 시 확인하실 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
           </FadeUp>
         </div>
       </section>
@@ -317,26 +335,33 @@ export default function Portfolio() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* 상담 유도 CTA */}
       <section className="py-20 lg:py-28 bg-ink text-white">
         <div className="container text-center">
           <FadeUp>
+            <Shield className="w-10 h-10 text-gold mx-auto mb-6" />
             <h2 className="font-heading text-3xl lg:text-5xl font-bold mb-6">
-              다음 프로젝트의 주인공이 되세요
+              더 많은 사례가 궁금하신가요?
             </h2>
-            <p className="text-white/50 mb-10 max-w-md mx-auto">
-              AI 견적으로 예상 비용을 확인하고, 전문 컨설턴트와 무료 상담을 시작하세요.
+            <p className="text-white/50 mb-4 max-w-lg mx-auto leading-relaxed">
+              고감도는 고객사의 보안을 최우선으로 하기에,
+              온라인에 공개할 수 있는 사례는 제한적입니다.
+            </p>
+            <p className="text-white/40 mb-10 max-w-lg mx-auto text-sm leading-relaxed">
+              대면 상담 시 고객사로부터 승인받은 다양한 프로젝트 사례를
+              직접 확인하실 수 있습니다.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/estimator">
+              <Link href="/contact">
                 <span className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
-                  AI 예상 견적 받기
-                  <ArrowUpRight className="w-4 h-4" />
+                  <Phone className="w-4 h-4" />
+                  무료 상담 신청
                 </span>
               </Link>
-              <Link href="/contact">
+              <Link href="/estimator">
                 <span className="inline-flex items-center gap-2 px-8 py-4 border border-white/30 text-white font-medium text-sm tracking-wide hover:bg-white/10 transition-all duration-300">
-                  무료 상담 신청
+                  AI 예상 견적 받기
+                  <ArrowUpRight className="w-4 h-4" />
                 </span>
               </Link>
             </div>

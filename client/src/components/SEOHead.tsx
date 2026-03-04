@@ -93,8 +93,8 @@ export const SEO_CONFIG = {
     path: "/opsx",
   },
   portfolio: {
-    title: "프로젝트",
-    description: "고감도가 완성한 사무실, 상업공간, 리모델링 프로젝트를 확인하세요. Before/After 비교와 상세 공사 개요를 제공합니다.",
+    title: "고객 사례",
+    description: "고감도는 고객사의 보안을 최우선으로 합니다. 고객사로부터 공개 승인을 받은 프로젝트만 선별하여 소개합니다.",
     path: "/portfolio",
   },
   estimator: {
