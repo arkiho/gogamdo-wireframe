@@ -9,7 +9,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, ArrowUpRight, MapPin, Calendar, Ruler, Building2, Clock,
-  SplitSquareHorizontal, Grid3X3, X, Star, MessageSquare, Quote,
+  SplitSquareHorizontal, Grid3X3, X, Star, MessageSquare, Quote, Shield,
 } from "lucide-react";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 
@@ -52,7 +52,7 @@ export default function PortfolioDbDetail() {
           <h1 className="font-heading text-2xl font-bold text-ink">프로젝트를 찾을 수 없습니다</h1>
           <Link href="/portfolio">
             <span className="inline-flex items-center gap-2 text-gold hover:underline">
-              <ArrowLeft className="w-4 h-4" /> 포트폴리오로 돌아가기
+              <ArrowLeft className="w-4 h-4" /> 고객 사례로 돌아가기
             </span>
           </Link>
         </div>
@@ -75,7 +75,7 @@ export default function PortfolioDbDetail() {
             <Link href="/portfolio">
               <span className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-ink transition-colors mb-8">
                 <ArrowLeft className="w-4 h-4" />
-                포트폴리오
+                고객 사례
               </span>
             </Link>
             <div className="flex items-center gap-3 mb-4">
@@ -193,6 +193,21 @@ export default function PortfolioDbDetail() {
                       </div>
                     </div>
                   )}
+                </div>
+              </FadeUp>
+
+              {/* 승인 안내 문구 */}
+              <FadeUp delay={0.2}>
+                <div className="mt-6 bg-ink/[0.03] border border-border/40 p-4 flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-ink">
+                      본 사례는 고객사의 승인 하에 공개되었습니다
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      고감도는 고객사의 내부 공간 정보를 철저히 보호합니다. 모든 프로젝트 사례는 해당 고객사의 사전 동의를 받은 경우에만 게재됩니다.
+                    </p>
+                  </div>
                 </div>
               </FadeUp>
             </div>
