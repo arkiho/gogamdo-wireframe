@@ -1,0 +1,19 @@
+{
+  "query": "SHOW TABLES LIKE '%survey%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SHOW TABLES LIKE '%survey%';",
+  "rows": [
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP (%survey%)": "company_survey_responses"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP (%survey%)": "company_wide_surveys"
+    },
+    {
+      "Tables_in_inVH3wtLGFa5DdYEVu2HqP (%survey%)": "work_surveys"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_inVH3wtLGFa5DdYEVu2HqP (%survey%)\ncompany_survey_responses\ncompany_wide_surveys\nwork_surveys\n",
+  "stderr": "",
+  "execution_time_ms": 1498
+}

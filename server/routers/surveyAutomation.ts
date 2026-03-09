@@ -3,6 +3,7 @@ import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "../_core/llm";
 import { notifyOwner } from "../_core/notification";
+import { sendSurveyReportEmail } from "../email";
 import {
   createSurveyTemplate, getSurveyTemplates, getSurveyTemplateById,
   createSurveyQuestion, getQuestionsByTemplate, updateSurveyQuestion, deleteSurveyQuestion,
@@ -11,6 +12,7 @@ import {
   createSurveyResponse, getResponsesByInstance,
   createSurveyAnalysisReport, getAnalysisReportsByProject, getAnalysisReportById,
   createAutoEmailLog, getEmailLogsByProject,
+  getClientProjectById,
 } from "../db";
 
 function generateToken() {
@@ -231,6 +233,7 @@ export const surveyAutomationRouter = router({
     .input(z.object({
       clientProjectId: z.number(),
       instanceId: z.number(),
+      origin: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const responses = await getResponsesByInstance(input.instanceId);
@@ -328,8 +331,48 @@ export const surveyAutomationRouter = router({
       
       // 인스턴스 상태를 completed로 업데이트
       await updateSurveyInstance(input.instanceId, { status: "completed" });
+
+      // ===== 자동 이메일 발송: 분석 보고서를 담당자에게 전송 =====
+      let emailSent = false;
+      try {
+        const project = await getClientProjectById(input.clientProjectId);
+        if (project && project.contactEmail) {
+          const emailResult = await sendSurveyReportEmail({
+            recipientEmail: project.contactEmail,
+            recipientName: project.contactName,
+            companyName: project.companyName,
+            projectId: input.clientProjectId,
+            reportSummary: analysisData.executiveSummary || "",
+            overallScore: analysisData.overallScore || 0,
+            categoryScores: analysisData.categoryScores || {},
+            painPoints: analysisData.painPoints || [],
+            recommendations: analysisData.recommendations || [],
+            origin: input.origin || "",
+          });
+          emailSent = emailResult.sent;
+
+          // 이메일 발송 로그 기록
+          await createAutoEmailLog({
+            clientProjectId: input.clientProjectId,
+            emailType: "analysis_report",
+            recipientEmail: project.contactEmail,
+            recipientName: project.contactName,
+            subject: `[고감도] ${project.companyName} 업무환경 진단 분석 보고서`,
+            status: emailSent ? "sent" : "failed",
+            metadata: JSON.stringify({ reportId: report.id }),
+          });
+        }
+      } catch (e) {
+        // 이메일 발송 실패해도 보고서 생성은 성공으로 처리
+        console.error("분석 보고서 이메일 자동 발송 실패:", e);
+      }
+
+      await notifyOwner({
+        title: "AI 분석 리포트 생성 완료",
+        content: `프로젝트 #${input.clientProjectId}의 AI 분석 리포트가 생성되었습니다. (점수: ${analysisData.overallScore}/100, 이메일 발송: ${emailSent ? "성공" : "실패/미발송"})`,
+      });
       
-      return { reportId: report.id, analysis: analysisData };
+      return { reportId: report.id, analysis: analysisData, emailSent };
     }),
 
   getAnalysisReports: protectedProcedure
@@ -427,5 +470,62 @@ export const surveyAutomationRouter = router({
     .input(z.object({ clientProjectId: z.number() }))
     .query(async ({ input }) => {
       return getEmailLogsByProject(input.clientProjectId);
+    }),
+
+  // ============ 전사 서베이 안내문 자동 생성 (AI) ============
+  generateSurveyGuide: protectedProcedure
+    .input(z.object({
+      companyName: z.string(),
+      contactName: z.string(),
+      surveyUrl: z.string(),
+      expiresDate: z.string(),
+      surveyTitle: z.string().optional(),
+      additionalContext: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const llmResponse = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content: `당신은 기업 내부 커뮤니케이션 전문가입니다. 전사 업무환경 설문조사를 직원들에게 안내하는 메시지를 작성합니다.
+
+다음 형식의 JSON을 반환하세요:
+{
+  "emailSubject": "이메일 제목",
+  "emailBody": "이메일 본문 (HTML 없이 순수 텍스트, 줄바꿈은 \\n 사용)",
+  "kakaoMessage": "카카오톡/메신저용 짧은 안내 메시지 (200자 이내)",
+  "slackMessage": "슬랙/팀즈용 안내 메시지 (300자 이내)"
+}
+
+톤: 친근하면서도 전문적, 참여를 독려하되 강제하지 않는 느낌
+핵심 포인트: 익명 보장, 소요 시간(3~5분), 실제 공간 개선에 반영됨, 마감일`,
+          },
+          {
+            role: "user",
+            content: `회사명: ${input.companyName}\n담당자: ${input.contactName}\n설문 제목: ${input.surveyTitle || "업무환경 설문조사"}\n설문 링크: ${input.surveyUrl}\n마감일: ${input.expiresDate}${input.additionalContext ? `\n추가 맥락: ${input.additionalContext}` : ""}`,
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "survey_guide",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                emailSubject: { type: "string" },
+                emailBody: { type: "string" },
+                kakaoMessage: { type: "string" },
+                slackMessage: { type: "string" },
+              },
+              required: ["emailSubject", "emailBody", "kakaoMessage", "slackMessage"],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      const guide = JSON.parse(llmResponse.choices[0].message.content || "{}");
+      return guide;
     }),
 });

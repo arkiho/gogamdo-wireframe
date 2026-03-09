@@ -179,6 +179,17 @@ export default function ClientProjectDetail() {
     onError: () => toast.error("서베이 생성에 실패했습니다."),
   });
 
+  // Survey guide generation
+  const [guideData, setGuideData] = useState<{ emailSubject: string; emailBody: string; kakaoMessage: string; slackMessage: string } | null>(null);
+  const [showGuide, setShowGuide] = useState<number | null>(null);
+  const generateGuide = trpc.surveyAuto.generateSurveyGuide.useMutation({
+    onSuccess: (data) => {
+      setGuideData(data as any);
+      toast.success("안내문이 생성되었습니다!");
+    },
+    onError: () => toast.error("안내문 생성에 실패했습니다."),
+  });
+
   // Meeting booking
   const [meetingForm, setMeetingForm] = useState({
     requestedDate: "", requestedTime: "", meetingType: "office" as any,
@@ -747,7 +758,7 @@ export default function ClientProjectDetail() {
                             {cs.expiresAt && ` · 만료: ${new Date(cs.expiresAt).toLocaleDateString("ko-KR")}`}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Button
                             size="sm"
                             variant="outline"
@@ -760,6 +771,29 @@ export default function ClientProjectDetail() {
                           >
                             <Copy className="w-3 h-3" /> 링크 복사
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => {
+                              if (showGuide === cs.id && guideData) {
+                                setShowGuide(null);
+                                return;
+                              }
+                              setShowGuide(cs.id);
+                              generateGuide.mutate({
+                                companyName: p.companyName,
+                                contactName: p.contactName,
+                                surveyUrl: `${window.location.origin}/survey/${cs.token}`,
+                                expiresDate: cs.expiresAt ? new Date(cs.expiresAt).toLocaleDateString("ko-KR") : "14일 후",
+                                surveyTitle: cs.title || undefined,
+                              });
+                            }}
+                            disabled={generateGuide.isPending}
+                          >
+                            {generateGuide.isPending && showGuide === cs.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                            안내문 생성
+                          </Button>
                           <KakaoShareButton
                             type="survey"
                             surveyParams={{
@@ -771,6 +805,48 @@ export default function ClientProjectDetail() {
                             label="카카오톡 공유"
                           />
                         </div>
+                        {/* AI 생성 안내문 표시 영역 */}
+                        {showGuide === cs.id && guideData && (
+                          <div className="mt-4 border-t pt-4 space-y-4">
+                            <h5 className="font-semibold text-sm text-ink flex items-center gap-1">
+                              <Mail className="w-4 h-4 text-gold" /> 직원 안내문 (AI 생성)
+                            </h5>
+                            {/* 이메일용 */}
+                            <div className="bg-white border rounded-lg p-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-muted-foreground">이메일용</span>
+                                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => {
+                                  navigator.clipboard.writeText(`제목: ${guideData.emailSubject}\n\n${guideData.emailBody}`);
+                                  toast.success("이메일 안내문이 복사되었습니다!");
+                                }}><Copy className="w-3 h-3" /> 복사</Button>
+                              </div>
+                              <p className="text-sm font-medium text-ink">제목: {guideData.emailSubject}</p>
+                              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{guideData.emailBody}</p>
+                            </div>
+                            {/* 카카오톡/메신저용 */}
+                            <div className="bg-white border rounded-lg p-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-muted-foreground">카카오톡 / 메신저용</span>
+                                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => {
+                                  navigator.clipboard.writeText(guideData.kakaoMessage);
+                                  toast.success("메신저 안내문이 복사되었습니다!");
+                                }}><Copy className="w-3 h-3" /> 복사</Button>
+                              </div>
+                              <p className="text-sm text-muted-foreground whitespace-pre-line">{guideData.kakaoMessage}</p>
+                            </div>
+                            {/* 슬랙/팀즈용 */}
+                            <div className="bg-white border rounded-lg p-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-muted-foreground">슬랙 / 팀즈용</span>
+                                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => {
+                                  navigator.clipboard.writeText(guideData.slackMessage);
+                                  toast.success("슬랙 안내문이 복사되었습니다!");
+                                }}><Copy className="w-3 h-3" /> 복사</Button>
+                              </div>
+                              <p className="text-sm text-muted-foreground whitespace-pre-line">{guideData.slackMessage}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
