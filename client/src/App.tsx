@@ -64,6 +64,9 @@ import AdminPipelineOverview from "./pages/AdminPipelineOverview";
 import PartnerPortal from "./pages/PartnerPortal";
 import StaffJoin from "./pages/StaffJoin";
 import OpsFieldMeasure from "./pages/ops/OpsFieldMeasure";
+import OpsProjects from "./pages/ops/OpsProjects";
+import OpsSchedule from "./pages/ops/OpsSchedule";
+import OpsApproval from "./pages/ops/OpsApproval";
 import Offline from "./pages/Offline";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 
@@ -126,6 +129,9 @@ function Router() {
       <Route path="/ops/staff-dashboard" component={OpsStaffDashboard} />
       <Route path="/ops/cameras" component={OpsCameras} />
       <Route path="/ops/field-measure" component={OpsFieldMeasure} />
+      <Route path="/ops/projects" component={OpsProjects} />
+      <Route path="/ops/schedule" component={OpsSchedule} />
+      <Route path="/ops/approval" component={OpsApproval} />
       {/* 협력업체 포털 */}
       <Route path="/partner-portal" component={PartnerPortal} />
       {/* 직원 가입 신청 */}

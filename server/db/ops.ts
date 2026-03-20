@@ -77,6 +77,53 @@ export async function deleteScheduleItem(id: number) {
   await db.delete(opsScheduleItems).where(eq(opsScheduleItems.id, id));
 }
 
+// ============ ALL SCHEDULE ITEMS (cross-project) ============
+export async function listAllScheduleItems() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: opsScheduleItems.id,
+    projectId: opsScheduleItems.projectId,
+    name: opsScheduleItems.name,
+    category: opsScheduleItems.category,
+    startDate: opsScheduleItems.startDate,
+    endDate: opsScheduleItems.endDate,
+    progress: opsScheduleItems.progress,
+    status: opsScheduleItems.status,
+    assignedTo: opsScheduleItems.assignedTo,
+    projectName: opsProjects.name,
+    projectCode: opsProjects.code,
+    projectStatus: opsProjects.status,
+  }).from(opsScheduleItems)
+    .leftJoin(opsProjects, eq(opsScheduleItems.projectId, opsProjects.id))
+    .orderBy(desc(opsScheduleItems.createdAt));
+}
+
+// ============ ALL EXPENSES (cross-project) ============
+export async function listAllExpenses() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: opsExpenses.id,
+    projectId: opsExpenses.projectId,
+    authorId: opsExpenses.authorId,
+    expenseNumber: opsExpenses.expenseNumber,
+    title: opsExpenses.title,
+    category: opsExpenses.category,
+    totalAmount: opsExpenses.totalAmount,
+    status: opsExpenses.status,
+    submittedAt: opsExpenses.submittedAt,
+    approvedAt: opsExpenses.approvedAt,
+    createdAt: opsExpenses.createdAt,
+    projectName: opsProjects.name,
+    projectCode: opsProjects.code,
+    authorName: users.name,
+  }).from(opsExpenses)
+    .leftJoin(opsProjects, eq(opsExpenses.projectId, opsProjects.id))
+    .leftJoin(users, eq(opsExpenses.authorId, users.id))
+    .orderBy(desc(opsExpenses.createdAt));
+}
+
 // ============ WORK REPORTS ============
 export async function createWorkReport(data: InsertOpsWorkReport) {
   const db = await getDb();

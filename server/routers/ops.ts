@@ -12,11 +12,11 @@ import {
 import { sendReviewRequestEmail } from "../email";
 import {
   createOpsProject, listOpsProjects, getOpsProject, updateOpsProject, deleteOpsProject,
-  createScheduleItem, listScheduleItems, updateScheduleItem, deleteScheduleItem,
+  createScheduleItem, listScheduleItems, listAllScheduleItems, updateScheduleItem, deleteScheduleItem,
   createWorkReport, listWorkReports, getWorkReport, updateWorkReport, deleteWorkReport,
   createMeetingNote, listMeetingNotes, getMeetingNote, updateMeetingNote, deleteMeetingNote,
   createApprovalLine, listApprovalLines, getApprovalLine, updateApprovalLine, deleteApprovalLine,
-  createExpense, listExpenses, getExpense, updateExpense, deleteExpense,
+  createExpense, listExpenses, listAllExpenses, getExpense, updateExpense, deleteExpense,
   createApprovalStep, listApprovalSteps, updateApprovalStep,
   createSubcontractor, listSubcontractors, getSubcontractor, updateSubcontractor, deleteSubcontractor,
   createSubInvite, getSubInviteByToken, listSubInvites,
@@ -2167,5 +2167,13 @@ export const opsRouter = router({
         });
         return { success: true };
       }),
+  }),
+
+  // ============ CROSS-PROJECT VIEWS ============
+  allSchedules: staffProcedure.query(async () => {
+    return listAllScheduleItems();
+  }),
+  allExpenses: staffProcedure.query(async () => {
+    return listAllExpenses();
   }),
 });
