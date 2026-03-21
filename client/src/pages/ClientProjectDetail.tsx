@@ -255,35 +255,113 @@ export default function ClientProjectDetail() {
           <Badge className="text-sm">{STATUS_STEP[p.status] || 1}단계</Badge>
         </div>
 
-        {/* Progress Steps */}
+        {/* Progress Timeline */}
         <Card className="mb-8">
-          <CardContent className="py-6">
-            <div className="flex items-center justify-between gap-2">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-heading text-base flex items-center gap-2">
+                <Clock className="w-4 h-4 text-gold" /> 프로젝트 진행 현황
+              </CardTitle>
+              <span className="text-xs text-muted-foreground">
+                {currentStep >= 10 ? "완료" : `${currentStep}/10 단계 진행 중`}
+              </span>
+            </div>
+            {/* Overall progress bar */}
+            <div className="w-full h-2 bg-gray-100 rounded-full mt-3 overflow-hidden">
+              <div
+                className="h-full bg-gold rounded-full transition-all duration-700"
+                style={{ width: `${Math.min(currentStep * 10, 100)}%` }}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {/* Compact horizontal stepper for desktop */}
+            <div className="hidden md:flex items-center justify-between gap-1">
               {[
-                { step: 1, label: "프로젝트", icon: Building2 },
-                { step: 2, label: "도면", icon: FileText },
-                { step: 3, label: "서베이", icon: ClipboardList },
-                { step: 4, label: "보고서", icon: BarChart3 },
-                { step: 6, label: "전사 서베이", icon: Users },
-                { step: 8, label: "미팅", icon: Calendar },
+                { step: 1, label: "프로젝트\n생성", icon: Building2 },
+                { step: 2, label: "도면\n업로드", icon: FileText },
+                { step: 3, label: "서베이\n완료", icon: ClipboardList },
+                { step: 4, label: "AI 보고서\n생성", icon: BarChart3 },
+                { step: 5, label: "보고서\n발송", icon: Send },
+                { step: 6, label: "전사 서베이\n공유", icon: Users },
+                { step: 7, label: "전사 서베이\n완료", icon: CheckCircle2 },
+                { step: 8, label: "미팅\n요청", icon: Calendar },
+                { step: 9, label: "미팅\n확정", icon: CheckCircle2 },
+                { step: 10, label: "프로젝트\n완료", icon: Star },
               ].map((s, i, arr) => (
-                <div key={s.step} className="flex items-center gap-2 flex-1">
-                  <div className={`flex flex-col items-center gap-1 flex-shrink-0 ${currentStep >= s.step ? "text-gold" : "text-muted-foreground"}`}>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                <div key={s.step} className="flex items-center gap-0.5 flex-1">
+                  <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                       currentStep > s.step ? "bg-gold text-ink" :
-                      currentStep === s.step ? "bg-gold/20 text-gold border-2 border-gold" :
+                      currentStep === s.step ? "bg-gold/20 text-gold border-2 border-gold shadow-sm shadow-gold/30" :
                       "bg-gray-100 text-gray-400"
                     }`}>
-                      {currentStep > s.step ? <CheckCircle2 className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
+                      {currentStep > s.step ? <CheckCircle2 className="w-4 h-4" /> : <s.icon className="w-3.5 h-3.5" />}
                     </div>
-                    <span className="text-[10px] font-medium whitespace-nowrap">{s.label}</span>
+                    <span className={`text-[9px] font-medium text-center whitespace-pre-line leading-tight ${
+                      currentStep >= s.step ? "text-ink" : "text-muted-foreground"
+                    }`}>{s.label}</span>
                   </div>
                   {i < arr.length - 1 && (
-                    <div className={`h-0.5 flex-1 rounded ${currentStep > s.step ? "bg-gold" : "bg-gray-100"}`} />
+                    <div className={`h-0.5 flex-1 rounded mx-0.5 ${
+                      currentStep > s.step ? "bg-gold" : "bg-gray-100"
+                    }`} />
                   )}
                 </div>
               ))}
             </div>
+            {/* Mobile: vertical timeline */}
+            <div className="md:hidden space-y-0">
+              {[
+                { step: 1, label: "프로젝트 생성", desc: "기본 정보 등록 완료" },
+                { step: 2, label: "도면 업로드", desc: "도면 파일 업로드 및 AI 분석" },
+                { step: 3, label: "서베이 완료", desc: "업무환경 서베이 응답 완료" },
+                { step: 4, label: "AI 보고서 생성", desc: "데이터 기반 분석 보고서" },
+                { step: 5, label: "보고서 발송", desc: "이메일로 보고서 전달" },
+                { step: 6, label: "전사 서베이 공유", desc: "직원 대상 서베이 링크 배포" },
+                { step: 7, label: "전사 서베이 완료", desc: "직원 응답 수집 완료" },
+                { step: 8, label: "미팅 요청", desc: "전문 컨설턴트 미팅 예약" },
+                { step: 9, label: "미팅 확정", desc: "미팅 일정 확정" },
+                { step: 10, label: "프로젝트 완료", desc: "모든 절차 완료" },
+              ].map((s, i, arr) => (
+                <div key={s.step} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                      currentStep > s.step ? "bg-gold text-ink" :
+                      currentStep === s.step ? "bg-gold/20 text-gold border-2 border-gold" :
+                      "bg-gray-100 text-gray-400"
+                    }`}>
+                      {currentStep > s.step ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.step}
+                    </div>
+                    {i < arr.length - 1 && (
+                      <div className={`w-0.5 h-6 ${
+                        currentStep > s.step ? "bg-gold" : "bg-gray-100"
+                      }`} />
+                    )}
+                  </div>
+                  <div className="pb-4">
+                    <p className={`text-xs font-semibold ${
+                      currentStep >= s.step ? "text-ink" : "text-muted-foreground"
+                    }`}>{s.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{s.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Current step highlight */}
+            {currentStep < 10 && (
+              <div className="mt-4 p-3 bg-gold/5 border border-gold/20 rounded-lg">
+                <p className="text-xs font-semibold text-ink flex items-center gap-1.5">
+                  <ChevronRight className="w-3.5 h-3.5 text-gold" />
+                  다음 단계: {[
+                    "", "도면을 업로드해 주세요", "업무환경 서베이를 작성해 주세요",
+                    "AI 보고서를 생성해 주세요", "보고서가 이메일로 발송됩니다",
+                    "전사 서베이 링크를 직원에게 공유해 주세요", "직원 응답을 기다리고 있습니다",
+                    "미팅을 예약해 주세요", "미팅 일정이 확정되면 안내드립니다", "프로젝트가 곧 완료됩니다"
+                  ][currentStep] || ""}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -857,81 +935,174 @@ export default function ClientProjectDetail() {
 
           {/* ===== TAB 5: Meeting Booking ===== */}
           <TabsContent value="meeting">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-lg flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-gold" /> 미팅 예약
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <p className="text-sm text-muted-foreground">
-                  고감도 전문 컨설턴트와의 미팅을 예약하세요. 분석 보고서를 바탕으로 구체적인 프로젝트 논의를 진행합니다.
-                </p>
-
-                <div className="border rounded-lg p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><Label>희망 날짜 *</Label><Input type="date" value={meetingForm.requestedDate} onChange={e => setMeetingForm(f => ({ ...f, requestedDate: e.target.value }))} /></div>
-                    <div><Label>희망 시간 *</Label><Input type="time" value={meetingForm.requestedTime} onChange={e => setMeetingForm(f => ({ ...f, requestedTime: e.target.value }))} /></div>
+            <div className="space-y-6">
+              {/* 확정된 미팅 알림 배너 */}
+              {meetings.data?.some((m: any) => m.status === "confirmed") && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-green-800">확정된 미팅이 있습니다</p>
+                      {meetings.data?.filter((m: any) => m.status === "confirmed").map((m: any) => (
+                        <p key={m.id} className="text-sm text-green-700">
+                          {m.confirmedDate || m.requestedDate} {m.confirmedTime || m.requestedTime}
+                          {" · "}
+                          {m.meetingType === "office" ? "고감도 사무실" : m.meetingType === "visit" ? "현장 방문" : "온라인"}
+                        </p>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-green-300 text-green-700 hover:bg-green-100"
+                      onClick={() => {
+                        const cm = meetings.data?.find((m: any) => m.status === "confirmed");
+                        if (!cm) return;
+                        const d = (cm.confirmedDate || cm.requestedDate).replace(/-/g, "");
+                        const t = (cm.confirmedTime || cm.requestedTime).replace(/:/g, "") + "00";
+                        const endH = String(parseInt((cm.confirmedTime || cm.requestedTime).split(":")[0]) + 1).padStart(2, "0");
+                        const endT = endH + (cm.confirmedTime || cm.requestedTime).split(":")[1] + "00";
+                        const loc = cm.meetingType === "office" ? "서울특별시 서초구 서초대로 398, 4층 고감도" : cm.meetingType === "visit" ? (cm.location || "") : "온라인 미팅";
+                        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("[고감도] 인테리어 컨설팅 미팅")}&dates=${d}T${t}/${d}T${endT}&details=${encodeURIComponent(cm.agenda || "고감도 인테리어 컨설팅 미팅")}&location=${encodeURIComponent(loc)}`;
+                        window.open(url, "_blank");
+                      }}
+                    >
+                      <Calendar className="w-4 h-4 mr-1" />
+                      캘린더에 추가
+                    </Button>
                   </div>
-                  <div>
-                    <Label>미팅 방식</Label>
-                    <Select value={meetingForm.meetingType} onValueChange={v => setMeetingForm(f => ({ ...f, meetingType: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="office">고감도 사무실 방문</SelectItem>
-                        <SelectItem value="visit">현장 방문</SelectItem>
-                        <SelectItem value="online">온라인 (Zoom/Teams)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {meetingForm.meetingType === "visit" && (
-                    <div><Label>방문 주소</Label><Input value={meetingForm.location} onChange={e => setMeetingForm(f => ({ ...f, location: e.target.value }))} placeholder="방문 주소를 입력하세요" /></div>
-                  )}
-                  <div><Label>미팅 안건</Label><Textarea value={meetingForm.agenda} onChange={e => setMeetingForm(f => ({ ...f, agenda: e.target.value }))} placeholder="논의하고 싶은 내용을 간략히 적어주세요" rows={3} /></div>
-                  <Button
-                    className="w-full bg-gold text-ink hover:bg-gold-light font-semibold gap-2"
-                    onClick={() => {
-                      if (!meetingForm.requestedDate || !meetingForm.requestedTime) {
-                        toast.error("날짜와 시간을 선택해주세요.");
-                        return;
-                      }
-                      requestMeeting.mutate({ projectId, ...meetingForm });
-                    }}
-                    disabled={requestMeeting.isPending}
-                  >
-                    {requestMeeting.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
-                    미팅 요청
-                  </Button>
                 </div>
+              )}
 
-                {/* Existing meetings */}
-                {(meetings.data?.length ?? 0) > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-ink">미팅 이력</h4>
-                    {meetings.data?.map((m: any) => (
-                      <div key={m.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-ink">{m.requestedDate} {m.requestedTime}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {m.meetingType === "office" ? "사무실 방문" : m.meetingType === "visit" ? "현장 방문" : "온라인"}
-                            {m.agenda && ` · ${m.agenda.substring(0, 50)}`}
-                          </p>
-                        </div>
-                        <Badge className={
-                          m.status === "confirmed" ? "bg-green-100 text-green-700" :
-                          m.status === "requested" ? "bg-amber-100 text-amber-700" :
-                          m.status === "completed" ? "bg-blue-100 text-blue-700" :
-                          m.status === "cancelled" ? "bg-red-100 text-red-700" :
-                          "bg-gray-100 text-gray-700"
-                        }>
-                          {m.status === "requested" ? "요청됨" : m.status === "confirmed" ? "확정" : m.status === "completed" ? "완료" : m.status === "cancelled" ? "취소" : m.status}
-                        </Badge>
-                      </div>
-                    ))}
+              {/* 미팅 예약 폼 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-heading text-lg flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-gold" /> 미팅 예약
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <p className="text-sm text-muted-foreground">
+                    고감도 전문 컨설턴트와의 미팅을 예약하세요. 분석 보고서를 바탕으로 구체적인 프로젝트 논의를 진행합니다.
+                  </p>
+
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><Label>희망 날짜 *</Label><Input type="date" value={meetingForm.requestedDate} onChange={e => setMeetingForm(f => ({ ...f, requestedDate: e.target.value }))} min={new Date().toISOString().split("T")[0]} /></div>
+                      <div><Label>희망 시간 *</Label><Input type="time" value={meetingForm.requestedTime} onChange={e => setMeetingForm(f => ({ ...f, requestedTime: e.target.value }))} /></div>
+                    </div>
+                    <div>
+                      <Label>미팅 방식</Label>
+                      <Select value={meetingForm.meetingType} onValueChange={v => setMeetingForm(f => ({ ...f, meetingType: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="office">고감도 사무실 방문</SelectItem>
+                          <SelectItem value="visit">현장 방문</SelectItem>
+                          <SelectItem value="online">온라인 (Zoom/Teams)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {meetingForm.meetingType === "visit" && (
+                      <div><Label>방문 주소</Label><Input value={meetingForm.location} onChange={e => setMeetingForm(f => ({ ...f, location: e.target.value }))} placeholder="방문 주소를 입력하세요" /></div>
+                    )}
+                    <div><Label>미팅 안건</Label><Textarea value={meetingForm.agenda} onChange={e => setMeetingForm(f => ({ ...f, agenda: e.target.value }))} placeholder="논의하고 싶은 내용을 간략히 적어주세요" rows={3} /></div>
+                    <Button
+                      className="w-full bg-gold text-ink hover:bg-gold-light font-semibold gap-2"
+                      onClick={() => {
+                        if (!meetingForm.requestedDate || !meetingForm.requestedTime) {
+                          toast.error("날짜와 시간을 선택해주세요.");
+                          return;
+                        }
+                        requestMeeting.mutate({ projectId, ...meetingForm });
+                      }}
+                      disabled={requestMeeting.isPending}
+                    >
+                      {requestMeeting.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                      미팅 요청
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* 미팅 이력 — 타임라인 형태 */}
+              {(meetings.data?.length ?? 0) > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-heading text-lg">미팅 이력</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="relative">
+                      <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
+                      <div className="space-y-6">
+                        {meetings.data?.map((m: any, idx: number) => {
+                          const isConfirmed = m.status === "confirmed";
+                          const isCompleted = m.status === "completed";
+                          const isCancelled = m.status === "cancelled";
+                          const dotColor = isConfirmed ? "bg-green-500" : isCompleted ? "bg-blue-500" : isCancelled ? "bg-red-400" : "bg-amber-400";
+                          return (
+                            <div key={m.id} className="relative pl-10">
+                              <div className={`absolute left-2.5 top-1.5 w-3 h-3 rounded-full ${dotColor} ring-2 ring-white`} />
+                              <div className={`p-4 rounded-lg border ${
+                                isConfirmed ? "border-green-200 bg-green-50/50" :
+                                isCompleted ? "border-blue-200 bg-blue-50/50" :
+                                isCancelled ? "border-red-200 bg-red-50/30" :
+                                "border-border bg-muted/30"
+                              }`}>
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="space-y-1">
+                                    <p className="font-semibold text-ink">
+                                      {isConfirmed && m.confirmedDate ? m.confirmedDate : m.requestedDate}
+                                      {" "}
+                                      {isConfirmed && m.confirmedTime ? m.confirmedTime : m.requestedTime}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {m.meetingType === "office" ? "고감도 사무실 방문" : m.meetingType === "visit" ? `현장 방문${m.location ? " · " + m.location : ""}` : "온라인 (Zoom/Teams)"}
+                                    </p>
+                                    {m.agenda && <p className="text-sm text-muted-foreground mt-1">{m.agenda}</p>}
+                                    {isConfirmed && m.adminNote && <p className="text-sm text-green-700 mt-1 font-medium">담당자 메모: {m.adminNote}</p>}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={
+                                      isConfirmed ? "bg-green-100 text-green-700" :
+                                      m.status === "requested" ? "bg-amber-100 text-amber-700" :
+                                      isCompleted ? "bg-blue-100 text-blue-700" :
+                                      isCancelled ? "bg-red-100 text-red-700" :
+                                      "bg-gray-100 text-gray-700"
+                                    }>
+                                      {m.status === "requested" ? "요청됨" : isConfirmed ? "확정" : isCompleted ? "완료" : isCancelled ? "취소" : m.status}
+                                    </Badge>
+                                    {isConfirmed && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 px-2"
+                                        onClick={() => {
+                                          const d = (m.confirmedDate || m.requestedDate).replace(/-/g, "");
+                                          const t = (m.confirmedTime || m.requestedTime).replace(/:/g, "") + "00";
+                                          const endH = String(parseInt((m.confirmedTime || m.requestedTime).split(":")[0]) + 1).padStart(2, "0");
+                                          const endT = endH + (m.confirmedTime || m.requestedTime).split(":")[1] + "00";
+                                          const loc = m.meetingType === "office" ? "서울특별시 서초구 서초대로 398, 4층 고감도" : m.meetingType === "visit" ? (m.location || "") : "온라인 미팅";
+                                          const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("[고감도] 인테리어 컨설팅 미팅")}&dates=${d}T${t}/${d}T${endT}&details=${encodeURIComponent(m.agenda || "고감도 인테리어 컨설팅 미팅")}&location=${encodeURIComponent(loc)}`;
+                                          window.open(url, "_blank");
+                                        }}
+                                      >
+                                        <Calendar className="w-3.5 h-3.5" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
 
           {/* ===== TAB: 부동산 매칭 ===== */}

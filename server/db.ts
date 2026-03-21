@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent, attendanceRecords, type InsertAttendanceRecord, leaveRequests, type InsertLeaveRequest, fieldMeasurementSessions, type InsertFieldMeasurementSession, panoramaImages, type InsertPanoramaImage, fieldMeasurements, type InsertFieldMeasurement, measurementReports, type InsertMeasurementReport } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent, attendanceRecords, type InsertAttendanceRecord, leaveRequests, type InsertLeaveRequest, fieldMeasurementSessions, type InsertFieldMeasurementSession, panoramaImages, type InsertPanoramaImage, fieldMeasurements, type InsertFieldMeasurement, measurementReports, type InsertMeasurementReport, clientNotifications, type InsertClientNotification } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -3374,4 +3374,48 @@ export async function getMeasurementReport(sessionId: number) {
 export async function updateMeasurementReport(id: number, data: Partial<InsertMeasurementReport>) {
   const db = await getDb();
   await db.update(measurementReports).set(data).where(eq(measurementReports.id, id));
+}
+
+// ===== Client Notification Queries =====
+
+export async function createClientNotification(data: InsertClientNotification) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(clientNotifications).values(data);
+  return { success: true };
+}
+
+export async function listClientNotifications(clientId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clientNotifications)
+    .where(eq(clientNotifications.clientId, clientId))
+    .orderBy(desc(clientNotifications.createdAt));
+}
+
+export async function getUnreadClientNotificationCount(clientId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const [row] = await db.select({ count: count() }).from(clientNotifications)
+    .where(and(eq(clientNotifications.clientId, clientId), eq(clientNotifications.isRead, "no")));
+  return row?.count ?? 0;
+}
+
+export async function markClientNotificationRead(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(clientNotifications).set({ isRead: "yes" }).where(eq(clientNotifications.id, id));
+}
+
+export async function markAllClientNotificationsRead(clientId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(clientNotifications).set({ isRead: "yes" })
+    .where(and(eq(clientNotifications.clientId, clientId), eq(clientNotifications.isRead, "no")));
+}
+
+export async function deleteClientNotification(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(clientNotifications).where(eq(clientNotifications.id, id));
 }

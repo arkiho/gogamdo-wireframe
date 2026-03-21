@@ -15,7 +15,10 @@ import {
   createCompanySurveyResponse, getResponsesBySurvey, getSurveyResponseStats,
   createAiReport, getReportsByProject, markReportSent,
   createMeetingBooking, getMeetingsByProject, getAllMeetings, updateMeetingStatus,
+  createClientNotification, listClientNotifications, getUnreadClientNotificationCount,
+  markClientNotificationRead, markAllClientNotificationsRead,
 } from "../db";
+import { sendProjectStatusEmail } from "../email";
 
 function generateToken() {
   return Array.from(crypto.getRandomValues(new Uint8Array(32)))
@@ -664,6 +667,91 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== "admin" && ctx.user.role !== "master") throw new TRPCError({ code: "FORBIDDEN" });
       await updateClientProjectStatus(input.id, input.status);
+      // 고객 알림 자동 생성
+      try {
+        const project = await getClientProjectById(input.id);
+        if (project?.clientId) {
+          const STATUS_LABELS: Record<string, string> = {
+            inquiry: "문의 접수", consulting: "상담 진행", survey: "서베이 진행",
+            analysis: "분석 중", design: "설계 진행", proposal: "제안서 작성",
+            contract: "계약 진행", construction: "시공 중", inspection: "검수", completed: "완료",
+          };
+          const label = STATUS_LABELS[input.status] || input.status;
+          await createClientNotification({
+            clientId: project.clientId,
+            projectId: input.id,
+            type: "status_change",
+            title: `프로젝트 상태 변경: ${label}`,
+            message: `"${project.projectName || '프로젝트'}"의 상태가 "${label}"(으)로 변경되었습니다.`,
+            linkUrl: `/my/project/${input.id}`,
+          });
+          if (project.contactEmail) {
+            try {
+              await sendProjectStatusEmail({
+                to: project.contactEmail,
+                projectName: project.projectName || '프로젝트',
+                newStatus: label,
+                clientName: project.contactName || '고객',
+              });
+            } catch (e) { console.warn("[Email] Status notification failed:", e); }
+          }
+        }
+      } catch (e) { console.warn("[Notification] Failed:", e); }
+      return { success: true };
+    }),
+
+  // ===== 고객 알림 API =====
+  listNotifications: protectedProcedure
+    .input(z.object({ clientId: z.number() }))
+    .query(async ({ input }) => listClientNotifications(input.clientId)),
+
+  getUnreadCount: protectedProcedure
+    .input(z.object({ clientId: z.number() }))
+    .query(async ({ input }) => getUnreadClientNotificationCount(input.clientId)),
+
+  markNotificationRead: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await markClientNotificationRead(input.id);
+      return { success: true };
+    }),
+
+  markAllNotificationsRead: protectedProcedure
+    .input(z.object({ clientId: z.number() }))
+    .mutation(async ({ input }) => {
+      await markAllClientNotificationsRead(input.clientId);
+      return { success: true };
+    }),
+
+  adminUpdateMeetingWithNotification: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      status: z.enum(["requested", "confirmed", "rescheduled", "cancelled", "completed"]),
+      adminNotes: z.string().optional(),
+      confirmedDate: z.string().optional(),
+      confirmedTime: z.string().optional(),
+      clientId: z.number(),
+      projectId: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin" && ctx.user.role !== "master") throw new TRPCError({ code: "FORBIDDEN" });
+      await updateMeetingStatus(input.id, input.status, input.adminNotes, input.confirmedDate, input.confirmedTime);
+      const typeMap: Record<string, "meeting_confirmed" | "meeting_cancelled"> = {
+        confirmed: "meeting_confirmed", cancelled: "meeting_cancelled",
+      };
+      const notiType = typeMap[input.status];
+      if (notiType) {
+        const titleMap = { confirmed: "미팅이 확정되었습니다", cancelled: "미팅이 취소되었습니다" };
+        const dateInfo = input.confirmedDate ? ` (${input.confirmedDate} ${input.confirmedTime || ''})` : '';
+        await createClientNotification({
+          clientId: input.clientId,
+          projectId: input.projectId,
+          type: notiType,
+          title: titleMap[input.status as 'confirmed' | 'cancelled'] || '미팅 상태 변경',
+          message: `미팅 상태가 변경되었습니다${dateInfo}. ${input.adminNotes || ''}`.trim(),
+          linkUrl: input.projectId ? `/my/project/${input.projectId}` : undefined,
+        });
+      }
       return { success: true };
     }),
 });

@@ -600,3 +600,56 @@ export async function sendCompanySurveyInviteEmail(data: CompanySurveyInviteEmai
 
   return result;
 }
+
+
+/**
+ * 프로젝트 상태 변경 알림 이메일
+ */
+interface ProjectStatusEmailData {
+  to: string;
+  projectName: string;
+  newStatus: string;
+  clientName: string;
+}
+
+export async function sendProjectStatusEmail(data: ProjectStatusEmailData): Promise<EmailResult> {
+  const html = emailWrapper(`
+    <h1 style="font-size:20px;color:#1a1a1a;margin:0 0 8px 0;font-weight:700;">
+      프로젝트 상태가 업데이트되었습니다
+    </h1>
+    <p style="font-size:14px;color:#666;margin:0 0 24px 0;line-height:1.6;">
+      안녕하세요, <strong>${data.clientName}</strong>님.<br>
+      프로젝트 진행 상황을 알려드립니다.
+    </p>
+    
+    <div style="background-color:#f8f6f0;border-left:4px solid #c8a97e;padding:20px 24px;margin:0 0 24px 0;">
+      <p style="margin:0 0 4px;color:#999;font-size:12px;">프로젝트</p>
+      <p style="margin:0 0 12px;color:#1a1a1a;font-size:16px;font-weight:600;">${data.projectName}</p>
+      <p style="margin:0 0 4px;color:#999;font-size:12px;">현재 상태</p>
+      <p style="margin:0;color:#c8a97e;font-size:18px;font-weight:700;">${data.newStatus}</p>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0;">
+      <tr>
+        <td align="center">
+          <a href="https://kokamdo.co.kr/portal" 
+             style="display:inline-block;background-color:#c8a97e;color:#1a1a1a;text-decoration:none;padding:14px 32px;font-size:14px;font-weight:700;letter-spacing:0.5px;">
+            포털에서 확인하기
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <div style="border-top:1px solid #eee;padding-top:16px;margin-top:16px;">
+      <p style="font-size:12px;color:#999;margin:0;line-height:1.5;">
+        본 메일은 (주)고감도 고객 포털에서 자동 발송되었습니다.
+      </p>
+    </div>
+  `);
+
+  return sendViaResend({
+    to: data.to,
+    subject: `[고감도] ${data.projectName} - 상태 업데이트: ${data.newStatus}`,
+    html,
+  });
+}

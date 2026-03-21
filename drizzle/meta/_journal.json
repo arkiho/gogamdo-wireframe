@@ -57,6 +57,13 @@
       "when": 1772569185282,
       "tag": "0007_wakeful_lizard",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1774044894811,
+      "tag": "0008_brief_lyja",
+      "breakpoints": true
     }
   ]
 }

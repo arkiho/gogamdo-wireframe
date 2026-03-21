@@ -3332,3 +3332,29 @@ export const measurementReports = mysqlTable("measurement_reports", {
 });
 export type MeasurementReport = typeof measurementReports.$inferSelect;
 export type InsertMeasurementReport = typeof measurementReports.$inferInsert;
+
+/**
+ * 고객 포털 알림 (Client Notifications)
+ * 프로젝트 상태 변경, 미팅 확정 등 고객에게 전달되는 알림
+ */
+export const clientNotifications = mysqlTable("client_notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: int("clientId").notNull(),
+  projectId: int("projectId"),
+  type: mysqlEnum("type", [
+    "status_change",
+    "meeting_confirmed",
+    "meeting_cancelled",
+    "report_ready",
+    "survey_complete",
+    "system",
+  ]).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  message: text("message").notNull(),
+  linkUrl: varchar("linkUrl", { length: 500 }),
+  metadata: json("metadata"),
+  isRead: mysqlEnum("isRead", ["yes", "no"]).default("no").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ClientNotification = typeof clientNotifications.$inferSelect;
+export type InsertClientNotification = typeof clientNotifications.$inferInsert;

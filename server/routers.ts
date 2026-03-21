@@ -52,6 +52,8 @@ import {
   clockIn, clockOut, getActiveAttendance, listMyAttendance, listAllAttendance,
   createLeaveRequest, listMyLeaves, listAllLeaves, updateLeaveStatus, cancelLeave,
   listRfqsBySubcontractorEmail,
+  createClientNotification, listClientNotifications, getUnreadClientNotificationCount,
+  markClientNotificationRead, markAllClientNotificationsRead, deleteClientNotification,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
@@ -3005,6 +3007,61 @@ ${topicPrompt}
 
       return { zones, stats, heatmap };
     }),
+  }),
+
+  // ===== 고객 알림 (Client Notifications) =====
+  clientNotification: router({
+    // 고객: 내 알림 목록
+    list: publicProcedure.query(async ({ ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const { jwtVerify } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      return listClientNotifications(payload.clientId as number);
+    }),
+    // 고객: 읽지 않은 알림 수
+    unreadCount: publicProcedure.query(async ({ ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) return 0;
+      try {
+        const { jwtVerify } = await import("jose");
+        const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+        const { payload } = await jwtVerify(token, secret);
+        if (payload.type !== "client" || !payload.clientId) return 0;
+        return getUnreadClientNotificationCount(payload.clientId as number);
+      } catch { return 0; }
+    }),
+    // 고객: 알림 읽음 처리
+    markRead: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const token = ctx.req.cookies?.client_token;
+        if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+        await markClientNotificationRead(input.id);
+        return { success: true };
+      }),
+    // 고객: 모두 읽음 처리
+    markAllRead: publicProcedure.mutation(async ({ ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const { jwtVerify } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      await markAllClientNotificationsRead(payload.clientId as number);
+      return { success: true };
+    }),
+    // 고객: 알림 삭제
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const token = ctx.req.cookies?.client_token;
+        if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+        await deleteClientNotification(input.id);
+        return { success: true };
+      }),
   }),
 
   // ===== 사이트 설정 (Site Settings) =====

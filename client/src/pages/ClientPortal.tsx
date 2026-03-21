@@ -24,6 +24,7 @@ import {
   Plus, Building2, FileText, ClipboardList, BarChart3, Calendar,
   ChevronRight, Loader2, CheckCircle2, Clock, ArrowRight,
 } from "lucide-react";
+import ClientNotificationBell from "@/components/ClientNotificationBell";
 
 const STATUS_LABELS: Record<string, { label: string; color: string; step: number }> = {
   created: { label: "프로젝트 생성", color: "bg-gray-100 text-gray-700", step: 1 },
@@ -124,12 +125,14 @@ export default function ClientPortal() {
             <h1 className="font-heading text-3xl lg:text-4xl font-bold text-ink">내 프로젝트</h1>
             <p className="text-muted-foreground mt-2">도면 업로드부터 맞춤 제안서까지, 원스톱으로 진행하세요.</p>
           </div>
-          <Dialog open={showCreate} onOpenChange={setShowCreate}>
-            <DialogTrigger asChild>
-              <Button className="bg-gold text-ink hover:bg-gold-light font-semibold gap-2">
-                <Plus className="w-4 h-4" /> 새 프로젝트
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-3">
+            <ClientNotificationBell />
+            <Dialog open={showCreate} onOpenChange={setShowCreate}>
+              <DialogTrigger asChild>
+                <Button className="bg-gold text-ink hover:bg-gold-light font-semibold gap-2">
+                  <Plus className="w-4 h-4" /> 새 프로젝트
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle className="font-heading text-xl">새 프로젝트 시작</DialogTitle>
@@ -195,6 +198,7 @@ export default function ClientPortal() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Pipeline Guide */}

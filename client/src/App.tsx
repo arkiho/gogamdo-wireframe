@@ -68,6 +68,8 @@ import OpsProjects from "./pages/ops/OpsProjects";
 import OpsSchedule from "./pages/ops/OpsSchedule";
 import OpsApproval from "./pages/ops/OpsApproval";
 import Offline from "./pages/Offline";
+import ClientForgotPassword from "./pages/ClientForgotPassword";
+import ClientResetPassword from "./pages/ClientResetPassword";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 
 function PublicRouter() {
@@ -116,6 +118,8 @@ function Router() {
       <Route path="/client/register" component={ClientRegister} />
       <Route path="/client/login" component={ClientLogin} />
       <Route path="/client/verify-email" component={ClientVerifyEmail} />
+      <Route path="/client/forgot-password" component={ClientForgotPassword} />
+      <Route path="/client/reset-password" component={ClientResetPassword} />
       <Route path="/client/dashboard" component={ClientSpaceDashboard} />
       {/* 개발자 문서 */}
       <Route path="/developer/sensor-api" component={SensorApiDocs} />
