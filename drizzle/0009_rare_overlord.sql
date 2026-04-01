@@ -1,0 +1,1 @@
+ALTER TABLE `clients_auth` ADD `userType` enum('client','staff','partner') DEFAULT 'client' NOT NULL;

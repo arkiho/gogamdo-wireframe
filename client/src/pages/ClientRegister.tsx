@@ -16,6 +16,7 @@ export default function ClientRegister() {
     name: "",
     company: "",
     phone: "",
+    userType: "client" as const,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -55,6 +56,7 @@ export default function ClientRegister() {
       name: form.name,
       company: form.company || undefined,
       phone: form.phone || undefined,
+      userType: form.userType,
     });
   };
 
@@ -188,6 +190,45 @@ export default function ClientRegister() {
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   placeholder="010-1234-5678"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>가입 유형 *</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, userType: "client" })}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      form.userType === "client"
+                        ? "border-gold bg-gold/10 text-ink font-semibold"
+                        : "border-border hover:border-gold/50 text-muted-foreground"
+                    }`}
+                  >
+                    고객
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, userType: "staff" })}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      form.userType === "staff"
+                        ? "border-gold bg-gold/10 text-ink font-semibold"
+                        : "border-border hover:border-gold/50 text-muted-foreground"
+                    }`}
+                  >
+                    직원
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, userType: "partner" })}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      form.userType === "partner"
+                        ? "border-gold bg-gold/10 text-ink font-semibold"
+                        : "border-border hover:border-gold/50 text-muted-foreground"
+                    }`}
+                  >
+                    협력사
+                  </button>
+                </div>
               </div>
 
               {error && (
