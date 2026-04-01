@@ -133,71 +133,71 @@ export default function ClientPortal() {
                   <Plus className="w-4 h-4" /> 새 프로젝트
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="font-heading text-xl">새 프로젝트 시작</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>회사명 *</Label>
-                      <Input value={form.companyName} onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))} placeholder="(주)회사명" />
-                    </div>
-                    <div>
-                      <Label>담당자명 *</Label>
-                      <Input value={form.contactName} onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))} placeholder="홍길동" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>이메일 *</Label>
-                      <Input type="email" value={form.contactEmail} onChange={e => setForm(f => ({ ...f, contactEmail: e.target.value }))} placeholder="email@company.com" />
-                    </div>
-                    <div>
-                      <Label>연락처</Label>
-                      <Input value={form.contactPhone} onChange={e => setForm(f => ({ ...f, contactPhone: e.target.value }))} placeholder="010-0000-0000" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>직원 수</Label>
-                      <Input type="number" value={form.employeeCount} onChange={e => setForm(f => ({ ...f, employeeCount: e.target.value }))} placeholder="50" />
-                    </div>
-                    <div>
-                      <Label>예산 범위</Label>
-                      <Select value={form.budgetRange} onValueChange={v => setForm(f => ({ ...f, budgetRange: v }))}>
-                        <SelectTrigger><SelectValue placeholder="선택" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="3000만원 이하">3,000만원 이하</SelectItem>
-                          <SelectItem value="3000~5000만원">3,000~5,000만원</SelectItem>
-                          <SelectItem value="5000만원~1억">5,000만원~1억</SelectItem>
-                          <SelectItem value="1~3억">1~3억</SelectItem>
-                          <SelectItem value="3~5억">3~5억</SelectItem>
-                          <SelectItem value="5억 이상">5억 이상</SelectItem>
-                          <SelectItem value="미정">미정</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="font-heading text-xl">새 프로젝트 시작</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>회사명 *</Label>
+                    <Input value={form.companyName} onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))} placeholder="(주)회사명" />
                   </div>
                   <div>
-                    <Label>현재 주소</Label>
-                    <Input value={form.currentAddress} onChange={e => setForm(f => ({ ...f, currentAddress: e.target.value }))} placeholder="서울시 강남구..." />
+                    <Label>담당자명 *</Label>
+                    <Input value={form.contactName} onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))} placeholder="홍길동" />
                   </div>
-                  <div>
-                    <Label>희망 이전일</Label>
-                    <Input type="date" value={form.desiredMoveDate} onChange={e => setForm(f => ({ ...f, desiredMoveDate: e.target.value }))} />
-                  </div>
-                  <Button
-                    className="w-full bg-gold text-ink hover:bg-gold-light font-semibold"
-                    onClick={handleSubmit}
-                    disabled={createProject.isPending}
-                  >
-                    {createProject.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    프로젝트 생성
-                  </Button>
                 </div>
-              </DialogContent>
-            </Dialog>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>이메일 *</Label>
+                    <Input type="email" value={form.contactEmail} onChange={e => setForm(f => ({ ...f, contactEmail: e.target.value }))} placeholder="email@company.com" />
+                  </div>
+                  <div>
+                    <Label>연락처</Label>
+                    <Input value={form.contactPhone} onChange={e => setForm(f => ({ ...f, contactPhone: e.target.value }))} placeholder="010-0000-0000" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>직원 수</Label>
+                    <Input type="number" value={form.employeeCount} onChange={e => setForm(f => ({ ...f, employeeCount: e.target.value }))} placeholder="50" />
+                  </div>
+                  <div>
+                    <Label>예산 범위</Label>
+                    <Select value={form.budgetRange} onValueChange={v => setForm(f => ({ ...f, budgetRange: v }))}>
+                      <SelectTrigger><SelectValue placeholder="선택" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3000만원 이하">3,000만원 이하</SelectItem>
+                        <SelectItem value="3000~5000만원">3,000~5,000만원</SelectItem>
+                        <SelectItem value="5000만원~1억">5,000만원~1억</SelectItem>
+                        <SelectItem value="1~3억">1~3억</SelectItem>
+                        <SelectItem value="3~5억">3~5억</SelectItem>
+                        <SelectItem value="5억 이상">5억 이상</SelectItem>
+                        <SelectItem value="미정">미정</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label>현재 주소</Label>
+                  <Input value={form.currentAddress} onChange={e => setForm(f => ({ ...f, currentAddress: e.target.value }))} placeholder="서울시 강남구..." />
+                </div>
+                <div>
+                  <Label>희망 이전일</Label>
+                  <Input type="date" value={form.desiredMoveDate} onChange={e => setForm(f => ({ ...f, desiredMoveDate: e.target.value }))} />
+                </div>
+                <Button
+                  className="w-full bg-gold text-ink hover:bg-gold-light font-semibold"
+                  onClick={handleSubmit}
+                  disabled={createProject.isPending}
+                >
+                  {createProject.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  프로젝트 생성
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           </div>
         </div>
 

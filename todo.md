@@ -938,13 +938,8 @@
 - [x] A3: 미팅 일정 확인 + 캘린더 연동 (미팅 확정 상태 실시간 확인)
 - [x] A4: 비밀번호 재설정 플로우 (이메일 토큰 기반 재설정 + 비밀번호 찾기/재설정 페이지)
 - [x] A 그룹 통합 Vitest 테스트 작성 (19개 테스트 통과: 고객 인증 5개 + 비밀번호 재설정 5개 + 알림 시스템 6개 + 관리자 고객관리 1개 + 이메일 인증 1개 + 로그인 1개)
-- [ ] 사용자 유형별 리다이렉트 로직 (DB userType 필드 추가 + 가입 폼 UI + 이메일 인증 후 자동 리다이렉트)
-  - [x] clients_auth 테이블에 userType 필드 추가 (client/staff/partner)
-  - [x] DB 마이그레이션 완료
-  - [x] clientAuth.register 프로시저에 userType 파라미터 추가
-  - [x] ClientRegister.tsx에 사용자 유형 선택 UI 추가 (3개 버튼: 고객/직원/협력사)
-  - [x] clientAuth.verifyEmail 프로시저에 userType 정보 반환 추가
-  - [x] ClientVerifyEmail.tsx에 userType별 자동 리다이렉트 로직 추가 (3초 후 자동 이동)
-  - [ ] 직원 승인 대기 페이지 (/staff/pending-approval) 구현
-  - [ ] 협력사 포털 로그인 페이지 (/partner/login) 구현
-  - [ ] Vitest 테스트 작성 (userType별 리다이렉트 로직)
+- [x] 사용자 유형별 리다이렉트 로직 (DB userType 필드 추가 + 가입 폼 UI + 자동 리다이렉트)
+- [x] 직원 승인 대기 페이지 (/staff/pending-approval) 구현
+- [x] 협력사 포털 로그인 페이지 (/partner/login) 구현
+- [x] App.tsx 라우트 등록 (3개 새 페이지)
+- [x] Vitest 테스트 15개 추가 (사용자 유형별 리다이렉트 로직 검증)

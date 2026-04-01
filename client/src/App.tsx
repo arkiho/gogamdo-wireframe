@@ -70,6 +70,8 @@ import OpsApproval from "./pages/ops/OpsApproval";
 import Offline from "./pages/Offline";
 import ClientForgotPassword from "./pages/ClientForgotPassword";
 import ClientResetPassword from "./pages/ClientResetPassword";
+import StaffPendingApproval from "./pages/StaffPendingApproval";
+import PartnerLogin from "./pages/PartnerLogin";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 
 function PublicRouter() {
@@ -121,6 +123,9 @@ function Router() {
       <Route path="/client/forgot-password" component={ClientForgotPassword} />
       <Route path="/client/reset-password" component={ClientResetPassword} />
       <Route path="/client/dashboard" component={ClientSpaceDashboard} />
+      {/* 직원 및 협력사 인증 */}
+      <Route path="/staff/pending-approval" component={StaffPendingApproval} />
+      <Route path="/partner/login" component={PartnerLogin} />
       {/* 개발자 문서 */}
       <Route path="/developer/sensor-api" component={SensorApiDocs} />
       {/* OpsX 직원 대시보드 */}

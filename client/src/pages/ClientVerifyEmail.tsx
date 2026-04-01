@@ -8,22 +8,11 @@ import { CheckCircle2, XCircle, Loader2, ArrowLeft } from "lucide-react";
 export default function ClientVerifyEmail() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
-  const [userType, setUserType] = useState<"client" | "staff" | "partner" | null>(null);
 
   const verifyMutation = trpc.clientAuth.verifyEmail.useMutation({
     onSuccess: (data) => {
       setStatus("success");
       setMessage(data.message);
-      setUserType(data.userType);
-      setTimeout(() => {
-        if (data.userType === "client") {
-          window.location.href = "/client/login";
-        } else if (data.userType === "staff") {
-          window.location.href = "/staff/pending-approval";
-        } else if (data.userType === "partner") {
-          window.location.href = "/partner/login";
-        }
-      }, 3000);
     },
     onError: (err) => {
       setStatus("error");
@@ -72,10 +61,9 @@ export default function ClientVerifyEmail() {
                 </div>
                 <h2 className="text-2xl font-bold mb-2">이메일 인증 완료!</h2>
                 <p className="text-muted-foreground mb-6">{message}</p>
-                <p className="text-sm text-muted-foreground mb-4">3초 후 자동으로 이동됩니다...</p>
-                <Link href={userType === "staff" ? "/staff/pending-approval" : userType === "partner" ? "/partner/login" : "/client/login"}>
+                <Link href="/client/login">
                   <Button className="w-full bg-gold hover:bg-gold-light text-ink">
-                    지금 이동하기
+                    로그인 하기
                   </Button>
                 </Link>
               </>

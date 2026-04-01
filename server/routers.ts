@@ -2524,7 +2524,6 @@ ${topicPrompt}
       name: z.string().min(1).max(100),
       company: z.string().max(200).optional(),
       phone: z.string().max(20).optional(),
-      userType: z.enum(["client", "staff", "partner"]).default("client"),
     })).mutation(async ({ input, ctx }) => {
       const existing = await getClientByEmail(input.email);
       if (existing) {
@@ -2539,7 +2538,6 @@ ${topicPrompt}
         name: input.name,
         company: input.company ?? null,
         phone: input.phone ?? null,
-        userType: input.userType,
         emailVerifyToken,
         emailVerifyExpires,
         status: "pending", // 이메일 인증 전까지 pending
@@ -2692,7 +2690,7 @@ ${topicPrompt}
         emailVerifyExpires: null,
         status: "active",
       });
-      return { success: true, message: "이메일 인증이 완료되었습니다. 로그인해주세요.", userType: client.userType };
+      return { success: true, message: "이메일 인증이 완료되었습니다. 로그인해주세요." };
     }),
 
     resendVerification: publicProcedure.input(z.object({

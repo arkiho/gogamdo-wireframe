@@ -1845,8 +1845,6 @@ export const clients = mysqlTable("clients_auth", {
   /** 비밀번호 재설정 */
   passwordResetToken: varchar("passwordResetToken", { length: 64 }),
   passwordResetExpires: timestamp("passwordResetExpires"),
-  /** 사용자 유형: client(고객), staff(직원 신청), partner(협력사) */
-  userType: mysqlEnum("userType", ["client", "staff", "partner"]).default("client").notNull(),
   /** 상태 */
   status: mysqlEnum("status", ["active", "suspended", "pending"]).default("pending").notNull(),
   /** 프로젝트 접근 권한 (JSON 배열) */
@@ -1857,7 +1855,6 @@ export const clients = mysqlTable("clients_auth", {
 });
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = typeof clients.$inferInsert;
-export type UserType = "client" | "staff" | "partner";
 
 
 /**
