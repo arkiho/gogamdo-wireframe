@@ -1,0 +1,1 @@
+ALTER TABLE `workspace_journeys` ADD `interviewResponses` json;

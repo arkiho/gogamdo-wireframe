@@ -1,6 +1,6 @@
 import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent, attendanceRecords, type InsertAttendanceRecord, leaveRequests, type InsertLeaveRequest, fieldMeasurementSessions, type InsertFieldMeasurementSession, panoramaImages, type InsertPanoramaImage, fieldMeasurements, type InsertFieldMeasurement, measurementReports, type InsertMeasurementReport, clientNotifications, type InsertClientNotification } from "../drizzle/schema";
+import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent, attendanceRecords, type InsertAttendanceRecord, leaveRequests, type InsertLeaveRequest, fieldMeasurementSessions, type InsertFieldMeasurementSession, panoramaImages, type InsertPanoramaImage, fieldMeasurements, type InsertFieldMeasurement, measurementReports, type InsertMeasurementReport, clientNotifications, type InsertClientNotification, workspaceJourneys, type InsertWorkspaceJourney, type WorkspaceJourney } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -3418,4 +3418,47 @@ export async function deleteClientNotification(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(clientNotifications).where(eq(clientNotifications.id, id));
+}
+
+// ===== Workspace Journey (고객 여정) =====
+
+export async function createWorkspaceJourney(data: InsertWorkspaceJourney) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(workspaceJourneys).values(data);
+  return { success: true };
+}
+
+export async function getWorkspaceJourneyBySession(sessionId: string): Promise<WorkspaceJourney | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(workspaceJourneys).where(eq(workspaceJourneys.sessionId, sessionId)).limit(1);
+  return rows[0];
+}
+
+export async function updateWorkspaceJourney(sessionId: string, data: Partial<InsertWorkspaceJourney>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(workspaceJourneys).set(data).where(eq(workspaceJourneys.sessionId, sessionId));
+  return { success: true };
+}
+
+export async function getWorkspaceJourneyByReportToken(token: string): Promise<WorkspaceJourney | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(workspaceJourneys).where(eq(workspaceJourneys.reportToken, token)).limit(1);
+  return rows[0];
+}
+
+export async function getWorkspaceJourneyBySurveyToken(token: string): Promise<WorkspaceJourney | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(workspaceJourneys).where(eq(workspaceJourneys.companySurveyToken, token)).limit(1);
+  return rows[0];
+}
+
+export async function listWorkspaceJourneys() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workspaceJourneys).orderBy(desc(workspaceJourneys.createdAt));
 }

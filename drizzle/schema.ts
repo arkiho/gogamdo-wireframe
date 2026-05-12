@@ -3358,3 +3358,106 @@ export const clientNotifications = mysqlTable("client_notifications", {
 });
 export type ClientNotification = typeof clientNotifications.$inferSelect;
 export type InsertClientNotification = typeof clientNotifications.$inferInsert;
+
+/**
+ * 고객 여정 (Workspace Journeys)
+ * 홈페이지 → 담당자 설문 → 도면 업로드 → AI 인터뷰 질문 생성 → 회원가입 유도
+ * 로그인 없이 세션 기반으로 진행되는 고객 여정 데이터
+ */
+export const workspaceJourneys = mysqlTable("workspace_journeys", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: varchar("sessionId", { length: 64 }).notNull().unique(),
+  
+  // 현재 진행 단계
+  currentStep: mysqlEnum("currentStep", [
+    "survey",         // 1. 담당자 설문 진행 중
+    "floor_plan",     // 2. 도면 업로드
+    "generating",     // 3. AI 분석 중
+    "report_ready",   // 4. 보고서 완성
+    "signup_prompted", // 5. 회원가입 유도됨
+    "converted",      // 6. 회원가입 완료
+  ]).default("survey").notNull(),
+  
+  // === 단계 1: 담당자 설문 데이터 ===
+  companyName: varchar("companyName", { length: 200 }),
+  contactName: varchar("contactName", { length: 100 }),
+  contactEmail: varchar("contactEmail", { length: 320 }),
+  contactPhone: varchar("contactPhone", { length: 50 }),
+  employeeCount: int("employeeCount"),
+  officeSizePyeong: int("officeSizePyeong"),
+  
+  // 업무 스타일
+  workStyle: mysqlEnum("workStyle", ["collaborative", "focused", "hybrid", "flexible"]),
+  remoteWorkRatio: int("remoteWorkRatio"),
+  meetingFrequency: mysqlEnum("meetingFrequency", ["rarely", "few_weekly", "daily", "very_frequent"]),
+  
+  // 불편사항 및 요구사항
+  painPoints: json("painPoints").$type<string[]>(),
+  desiredSpaces: json("desiredSpaces").$type<string[]>(),
+  designStyle: mysqlEnum("designStyle", ["modern", "minimal", "warm", "industrial", "natural", "luxury", "creative"]),
+  budgetRange: varchar("budgetRange", { length: 50 }),
+  priority: mysqlEnum("priority", ["design", "functionality", "cost", "balanced"]),
+  timelineUrgency: mysqlEnum("timelineUrgency", ["flexible", "within_6months", "within_3months", "urgent"]),
+  additionalNotes: text("additionalNotes"),
+  
+  surveyCompletedAt: timestamp("surveyCompletedAt"),
+  
+  // === 단계 2: 도면 업로드 데이터 ===
+  floorPlanType: mysqlEnum("floorPlanType", ["blank_template", "existing_upload", "skipped"]),
+  floorPlanFileKey: varchar("floorPlanFileKey", { length: 500 }),
+  floorPlanFileUrl: varchar("floorPlanFileUrl", { length: 1000 }),
+  floorPlanFileName: varchar("floorPlanFileName", { length: 300 }),
+  blankTemplateType: varchar("blankTemplateType", { length: 50 }),
+  floorPlanAnalysis: json("floorPlanAnalysis").$type<{
+    estimatedArea?: string;
+    roomCount?: string;
+    structuralNotes?: string;
+    spaceAnalysis?: string;
+  }>(),
+  
+  floorPlanUploadedAt: timestamp("floorPlanUploadedAt"),
+  
+  // === 단계 3: AI 인터뷰 질문 생성 ===
+  interviewQuestions: json("interviewQuestions").$type<Array<{
+    id: number;
+    category: string;
+    question: string;
+    questionType: "text" | "single_choice" | "multiple_choice" | "scale";
+    options?: string[];
+  }>>(),
+  analysisSummary: text("analysisSummary"),
+  
+  aiGeneratedAt: timestamp("aiGeneratedAt"),
+  
+  // === 단계 4: 보고서 ===
+  reportToken: varchar("reportToken", { length: 64 }),
+  reportPdfKey: varchar("reportPdfKey", { length: 500 }),
+  reportPdfUrl: varchar("reportPdfUrl", { length: 1000 }),
+  reportEmailSentAt: timestamp("reportEmailSentAt"),
+  reportViewedAt: timestamp("reportViewedAt"),
+  
+  // === 단계 5: 전사 인터뷰 설문 ===
+  companySurveyToken: varchar("companySurveyToken", { length: 64 }),
+  companySurveyResponseCount: int("companySurveyResponseCount").default(0),
+  interviewResponses: json("interviewResponses").$type<Array<{
+    respondentName: string;
+    respondentDept: string;
+    answers: Array<{ questionId: number; answer: string }>;
+    submittedAt: string;
+  }>>(),
+  
+  // === 회원가입 연결 ===
+  clientId: int("clientId"),
+  convertedAt: timestamp("convertedAt"),
+  
+  // 메타
+  utmSource: varchar("utmSource", { length: 100 }),
+  utmMedium: varchar("utmMedium", { length: 100 }),
+  utmCampaign: varchar("utmCampaign", { length: 100 }),
+  referrer: varchar("referrer", { length: 500 }),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type WorkspaceJourney = typeof workspaceJourneys.$inferSelect;
+export type InsertWorkspaceJourney = typeof workspaceJourneys.$inferInsert;

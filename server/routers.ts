@@ -54,6 +54,8 @@ import {
   listRfqsBySubcontractorEmail,
   createClientNotification, listClientNotifications, getUnreadClientNotificationCount,
   markClientNotificationRead, markAllClientNotificationsRead, deleteClientNotification,
+  createWorkspaceJourney, getWorkspaceJourneyBySession, updateWorkspaceJourney,
+  getWorkspaceJourneyByReportToken, getWorkspaceJourneyBySurveyToken, listWorkspaceJourneys,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
@@ -3571,6 +3573,298 @@ ${topicPrompt}
     myRfqs: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user.email) return [];
       return listRfqsBySubcontractorEmail(ctx.user.email);
+    }),
+  }),
+
+  // ===== 고객 여정 (Workspace Journey) — 공개 접근 =====
+  workspaceJourney: router({
+    // 설문 제출 (세션 기반, 로그인 불필요)
+    submitSurvey: publicProcedure
+      .input(z.object({
+        sessionId: z.string().min(1),
+        companyName: z.string().min(1),
+        contactName: z.string().min(1),
+        contactEmail: z.string().email(),
+        contactPhone: z.string().optional(),
+        employeeCount: z.number().min(0),
+        officeSizePyeong: z.number().min(0).optional(),
+        workStyle: z.enum(["collaborative", "focused", "hybrid", "flexible"]).optional(),
+        remoteWorkRatio: z.number().min(0).max(100).optional(),
+        meetingFrequency: z.enum(["rarely", "few_weekly", "daily", "very_frequent"]).optional(),
+        painPoints: z.array(z.string()).optional(),
+        desiredSpaces: z.array(z.string()).optional(),
+        designStyle: z.enum(["modern", "minimal", "warm", "industrial", "natural", "luxury", "creative"]).optional(),
+        budgetRange: z.string().optional(),
+        priority: z.enum(["design", "functionality", "cost", "balanced"]).optional(),
+        timelineUrgency: z.enum(["flexible", "within_6months", "within_3months", "urgent"]).optional(),
+        additionalNotes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await getWorkspaceJourneyBySession(input.sessionId);
+        if (existing) {
+          // 기존 세션 업데이트
+          await updateWorkspaceJourney(input.sessionId, {
+            companyName: input.companyName,
+            contactName: input.contactName,
+            contactEmail: input.contactEmail,
+            contactPhone: input.contactPhone || null,
+            employeeCount: input.employeeCount,
+            officeSizePyeong: input.officeSizePyeong || null,
+            workStyle: input.workStyle || null,
+            remoteWorkRatio: input.remoteWorkRatio ?? 20,
+            meetingFrequency: input.meetingFrequency || null,
+            painPoints: input.painPoints || [],
+            desiredSpaces: input.desiredSpaces || [],
+            designStyle: input.designStyle || null,
+            budgetRange: input.budgetRange || null,
+            priority: input.priority || null,
+            timelineUrgency: input.timelineUrgency || null,
+            additionalNotes: input.additionalNotes || null,
+            currentStep: "floor_plan",
+            surveyCompletedAt: new Date(),
+          });
+        } else {
+          // 새 여정 생성
+          await createWorkspaceJourney({
+            sessionId: input.sessionId,
+            companyName: input.companyName,
+            contactName: input.contactName,
+            contactEmail: input.contactEmail,
+            contactPhone: input.contactPhone || null,
+            employeeCount: input.employeeCount,
+            officeSizePyeong: input.officeSizePyeong || null,
+            workStyle: input.workStyle || null,
+            remoteWorkRatio: input.remoteWorkRatio ?? 20,
+            meetingFrequency: input.meetingFrequency || null,
+            painPoints: input.painPoints || [],
+            desiredSpaces: input.desiredSpaces || [],
+            designStyle: input.designStyle || null,
+            budgetRange: input.budgetRange || null,
+            priority: input.priority || null,
+            timelineUrgency: input.timelineUrgency || null,
+            additionalNotes: input.additionalNotes || null,
+            currentStep: "floor_plan",
+            surveyCompletedAt: new Date(),
+          });
+        }
+
+        // CRM 자동 연동
+        try {
+          let existingClient = await findCrmClientByEmail(input.contactEmail);
+          if (!existingClient) {
+            await createCrmClient({
+              companyName: input.companyName,
+              contactName: input.contactName,
+              email: input.contactEmail,
+              phone: input.contactPhone || undefined,
+              source: "workspace_survey",
+              notes: `업무환경 서베이를 통해 자동 생성\n직원수: ${input.employeeCount}명\n면적: ${input.officeSizePyeong || "미입력"}평`,
+            });
+          }
+        } catch (e) {
+          console.error("[WorkspaceJourney] CRM auto-link failed:", e);
+        }
+
+        return { success: true, nextStep: "floor_plan" };
+      }),
+
+    // 현재 여정 상태 조회
+    getStatus: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .query(async ({ input }) => {
+        const journey = await getWorkspaceJourneyBySession(input.sessionId);
+        if (!journey) return null;
+        return {
+          currentStep: journey.currentStep,
+          companyName: journey.companyName,
+          contactName: journey.contactName,
+          surveyCompletedAt: journey.surveyCompletedAt,
+          floorPlanUploadedAt: journey.floorPlanUploadedAt,
+          aiGeneratedAt: journey.aiGeneratedAt,
+          reportToken: journey.reportToken,
+          companySurveyToken: journey.companySurveyToken,
+        };
+      }),
+
+    // 도면 업로드 완료
+    uploadFloorPlan: publicProcedure
+      .input(z.object({
+        sessionId: z.string(),
+        floorPlanType: z.enum(["blank_template", "existing_upload", "skipped"]),
+        fileKey: z.string().optional(),
+        fileUrl: z.string().optional(),
+        fileName: z.string().optional(),
+        blankTemplateType: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await updateWorkspaceJourney(input.sessionId, {
+          floorPlanType: input.floorPlanType,
+          floorPlanFileKey: input.fileKey || null,
+          floorPlanFileUrl: input.fileUrl || null,
+          floorPlanFileName: input.fileName || null,
+          blankTemplateType: input.blankTemplateType || null,
+          floorPlanUploadedAt: new Date(),
+          currentStep: "generating",
+        });
+        return { success: true, nextStep: "generating" };
+      }),
+
+    // AI 분석 및 인터뷰 질문 생성
+    generateInterviewQuestions: publicProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .mutation(async ({ input }) => {
+        const journey = await getWorkspaceJourneyBySession(input.sessionId);
+        if (!journey) throw new TRPCError({ code: "NOT_FOUND", message: "여정을 찾을 수 없습니다." });
+
+        // LLM으로 인터뷰 질문 생성
+        const prompt = `당신은 사무환경 전문 컨설턴트입니다. 아래 담당자 설문 결과를 바탕으로, 전 직원 대상 업무환경 인터뷰 질문 15~20개를 생성해주세요.
+
+[담당자 설문 결과]
+- 회사명: ${journey.companyName}
+- 직원수: ${journey.employeeCount}명
+- 사무실 면적: ${journey.officeSizePyeong || "미입력"}평
+- 업무 스타일: ${journey.workStyle}
+- 재택근무 비율: ${journey.remoteWorkRatio}%
+- 회의 빈도: ${journey.meetingFrequency}
+- 불편사항: ${JSON.stringify(journey.painPoints)}
+- 희망 공간: ${JSON.stringify(journey.desiredSpaces)}
+- 디자인 스타일: ${journey.designStyle}
+- 예산: ${journey.budgetRange}
+- 우선순위: ${journey.priority}
+- 일정: ${journey.timelineUrgency}
+- 추가사항: ${journey.additionalNotes || "없음"}
+
+질문은 다음 5개 카테고리로 분류해주세요:
+1. 업무 환경 만족도
+2. 공간 활용 패턴
+3. 협업 및 커뮤니케이션
+4. 건강 및 웰빙
+5. 희망 사항
+
+각 질문은 JSON 형식으로 반환해주세요.`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "사무환경 전문 컨설턴트로서 전사 인터뷰 질문을 생성합니다. JSON 형식으로만 응답하세요." },
+            { role: "user", content: prompt },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "interview_questions",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  questions: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "integer" },
+                        category: { type: "string" },
+                        question: { type: "string" },
+                        questionType: { type: "string", enum: ["text", "single_choice", "multiple_choice", "scale"] },
+                        options: { type: "array", items: { type: "string" } },
+                      },
+                      required: ["id", "category", "question", "questionType", "options"],
+                      additionalProperties: false,
+                    },
+                  },
+                  summary: { type: "string" },
+                },
+                required: ["questions", "summary"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        const parsed = JSON.parse(response.choices[0].message.content || "{}");
+        const reportToken = randomBytes(32).toString("hex");
+        const companySurveyToken = randomBytes(32).toString("hex");
+
+        await updateWorkspaceJourney(input.sessionId, {
+          interviewQuestions: parsed.questions || [],
+          analysisSummary: parsed.summary || "",
+          aiGeneratedAt: new Date(),
+          reportToken,
+          companySurveyToken,
+          currentStep: "report_ready",
+        });
+
+        return {
+          success: true,
+          questionsCount: parsed.questions?.length || 0,
+          reportToken,
+          companySurveyToken,
+          nextStep: "report_ready",
+        };
+      }),
+
+    // 보고서 조회 (토큰 기반)
+    getReport: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const journey = await getWorkspaceJourneyByReportToken(input.token);
+        if (!journey) throw new TRPCError({ code: "NOT_FOUND", message: "보고서를 찾을 수 없습니다." });
+
+        // 최초 조회 시 viewedAt 기록
+        if (!journey.reportViewedAt) {
+          await updateWorkspaceJourney(journey.sessionId, { reportViewedAt: new Date() });
+        }
+
+        return {
+          companyName: journey.companyName,
+          contactName: journey.contactName,
+          employeeCount: journey.employeeCount,
+          officeSizePyeong: journey.officeSizePyeong,
+          workStyle: journey.workStyle,
+          painPoints: journey.painPoints,
+          desiredSpaces: journey.desiredSpaces,
+          designStyle: journey.designStyle,
+          interviewQuestions: journey.interviewQuestions,
+          analysisSummary: journey.analysisSummary,
+          companySurveyToken: journey.companySurveyToken,
+          floorPlanAnalysis: journey.floorPlanAnalysis,
+        };
+      }),
+
+    // 전사 인터뷰 응답 제출
+    submitInterviewResponse: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        respondentName: z.string(),
+        respondentDept: z.string(),
+        answers: z.array(z.object({
+          questionId: z.number(),
+          answer: z.string(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const journey = await getWorkspaceJourneyByReportToken(input.token);
+        if (!journey) throw new TRPCError({ code: "NOT_FOUND", message: "보고서를 찾을 수 없습니다." });
+
+        // 기존 응답 배열에 추가
+        const existingResponses = (journey.interviewResponses as any[]) || [];
+        const newResponse = {
+          respondentName: input.respondentName,
+          respondentDept: input.respondentDept,
+          answers: input.answers,
+          submittedAt: new Date().toISOString(),
+        };
+        existingResponses.push(newResponse);
+
+        await updateWorkspaceJourney(journey.sessionId, {
+          interviewResponses: existingResponses,
+        });
+
+        return { success: true, responseCount: existingResponses.length };
+      }),
+
+    // 관리자: 전체 여정 목록
+    listAll: adminProcedure.query(async () => {
+      return listWorkspaceJourneys();
     }),
   }),
 });

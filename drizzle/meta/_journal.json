@@ -64,6 +64,20 @@
       "when": 1774044894811,
       "tag": "0008_brief_lyja",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1778551184812,
+      "tag": "0009_abandoned_silver_sable",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1778552361074,
+      "tag": "0010_dapper_wallop",
+      "breakpoints": true
     }
   ]
 }

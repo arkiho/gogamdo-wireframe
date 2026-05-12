@@ -943,3 +943,13 @@
 - [x] 협력사 포털 로그인 페이지 (/partner/login) 구현
 - [x] App.tsx 라우트 등록 (3개 새 페이지)
 - [x] Vitest 테스트 15개 추가 (사용자 유형별 리다이렉트 로직 검증)
+
+## 업무 환경 서베이 시스템 구축 (2026-05-12)
+- [x] DB 스키마 추가: workspaceJourneys 테이블 (46개 컬럼) + interviewResponses JSON 필드
+- [x] 담당자 설문 페이지 구현 (/survey/workspace) — 토스 스타일 스텝 방식 UX
+- [x] 서버 tRPC 라우터 구현 (workspaceJourney: submitSurvey, uploadFloorPlan, generateInterviewQuestions, getReport, submitInterviewResponse, listAll)
+- [x] AI 인터뷰 질문 생성 로직 (LLM + JSON 스키마 기반 구조화 응답, 5개 카테고리 15-20개 질문)
+- [x] 전사 인터뷰 설문 페이지 구현 (/survey/interview) — 토큰 기반 공개 접근
+- [x] 보고서 열람 페이지 구현 (/survey/report) — 토큰 기반, 전사 인터뷰 링크 복사, 회원가입 CTA
+- [x] App.tsx 라우트 등록 (3개 새 페이지: /survey/workspace, /survey/interview, /survey/report)
+- [x] Vitest 테스트 18개 통과 (세션 생성, 설문 제출, 도면 업로드, AI 질문 생성, 보고서 조회, 인터뷰 응답, 전체 플로우)

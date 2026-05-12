@@ -72,6 +72,9 @@ import ClientForgotPassword from "./pages/ClientForgotPassword";
 import ClientResetPassword from "./pages/ClientResetPassword";
 import StaffPendingApproval from "./pages/StaffPendingApproval";
 import PartnerLogin from "./pages/PartnerLogin";
+import WorkspaceSurvey from "./pages/WorkspaceSurvey";
+import WorkspaceInterview from "./pages/WorkspaceInterview";
+import WorkspaceReport from "./pages/WorkspaceReport";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 
 function PublicRouter() {
@@ -123,6 +126,10 @@ function Router() {
       <Route path="/client/forgot-password" component={ClientForgotPassword} />
       <Route path="/client/reset-password" component={ClientResetPassword} />
       <Route path="/client/dashboard" component={ClientSpaceDashboard} />
+      {/* 고객 여정 서베이 (공개 접근) */}
+      <Route path="/survey/workspace" component={WorkspaceSurvey} />
+      <Route path="/survey/interview" component={WorkspaceInterview} />
+      <Route path="/survey/report" component={WorkspaceReport} />
       {/* 직원 및 협력사 인증 */}
       <Route path="/staff/pending-approval" component={StaffPendingApproval} />
       <Route path="/partner/login" component={PartnerLogin} />
