@@ -75,6 +75,7 @@ import PartnerLogin from "./pages/PartnerLogin";
 import WorkspaceSurvey from "./pages/WorkspaceSurvey";
 import WorkspaceInterview from "./pages/WorkspaceInterview";
 import WorkspaceReport from "./pages/WorkspaceReport";
+import AdminJourneyAnalytics from "./pages/AdminJourneyAnalytics";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 
 function PublicRouter() {
@@ -174,6 +175,7 @@ function Router() {
       <Route path="/admin/employee" component={EmployeeDashboard} />
       <Route path="/admin/kpi-okr" component={AdminKpiOkr} />
       <Route path="/admin/pipeline" component={AdminPipelineOverview} />
+      <Route path="/admin/journey-analytics" component={AdminJourneyAnalytics} />
       <Route component={PublicRouter} />
     </Switch>
   );

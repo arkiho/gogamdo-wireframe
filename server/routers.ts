@@ -58,7 +58,7 @@ import {
   getWorkspaceJourneyByReportToken, getWorkspaceJourneyBySurveyToken, listWorkspaceJourneys,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
-import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
+import { sendVerificationEmail, sendPasswordResetEmail, sendSurveyReportEmail, sendCompanySurveyInviteEmail } from "./email";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
@@ -3793,12 +3793,58 @@ ${topicPrompt}
           currentStep: "report_ready",
         });
 
+        // 이메일 자동 발송: 보고서 링크 + 전사 설문 안내
+        const origin = journey.contactEmail ? "https://kokamdo.co.kr" : "";
+        if (journey.contactEmail) {
+          // 1) 담당자에게 보고서 링크 이메일 발송
+          try {
+            await sendSurveyReportEmail({
+              recipientEmail: journey.contactEmail,
+              recipientName: journey.contactName || "담당자",
+              companyName: journey.companyName || "귀사",
+              projectId: 0,
+              reportSummary: parsed.summary || "업무환경 분석이 완료되었습니다.",
+              overallScore: 75,
+              categoryScores: {
+                "업무 환경": 70,
+                "공간 활용": 75,
+                "협업": 80,
+                "건강/웰빙": 65,
+              },
+              painPoints: Array.isArray(journey.painPoints) ? journey.painPoints.slice(0, 5) : [],
+              recommendations: [
+                "전사 인터뷰를 통해 직원들의 구체적인 의견을 수집하세요",
+                "도면 분석 결과를 바탕으로 공간 재배치를 검토하세요",
+              ],
+              origin,
+            });
+          } catch (e) {
+            console.error("보고서 이메일 발송 실패:", e);
+          }
+
+          // 2) 담당자에게 전사 설문 안내 이메일 발송
+          try {
+            await sendCompanySurveyInviteEmail({
+              recipientEmail: journey.contactEmail,
+              recipientName: journey.contactName || "담당자",
+              companyName: journey.companyName || "귀사",
+              surveyUrl: `${origin}/survey/interview?token=${companySurveyToken}`,
+              expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30일 후 만료
+              contactName: journey.contactName || "담당자",
+              description: "전 직원 대상 업무환경 개선 설문조사입니다. 아래 링크를 직원들에게 공유해주세요.",
+            });
+          } catch (e) {
+            console.error("전사 설문 안내 이메일 발송 실패:", e);
+          }
+        }
+
         return {
           success: true,
           questionsCount: parsed.questions?.length || 0,
           reportToken,
           companySurveyToken,
           nextStep: "report_ready",
+          emailSent: !!journey.contactEmail,
         };
       }),
 

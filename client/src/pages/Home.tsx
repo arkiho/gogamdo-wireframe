@@ -291,6 +291,12 @@ export default function Home() {
                   </span>
                 </Link>
               )}
+              <Link href="/survey/workspace" onClick={() => analytics.ctaClick("업무환경 진단", "hero")}>
+                <span className="inline-flex items-center gap-2 px-7 py-3.5 border border-gold/60 text-gold font-semibold text-sm tracking-wide hover:bg-gold/10 transition-all duration-300">
+                  업무환경 진단
+                  <BarChart3 className="w-4 h-4" />
+                </span>
+              </Link>
               <Link href="/solutions" onClick={() => analytics.ctaClick("솔루션", "hero")}>
                 <span className="inline-flex items-center gap-2 px-7 py-3.5 border border-white/30 text-white font-medium text-sm tracking-wide hover:bg-white/10 transition-all duration-300">
                   솔루션 보기
@@ -743,6 +749,12 @@ export default function Home() {
                   </span>
                 </Link>
               )}
+              <Link href="/survey/workspace">
+                <span className="inline-flex items-center gap-2 px-8 py-4 border border-gold/60 text-gold font-semibold text-sm tracking-wide hover:bg-gold/10 transition-all duration-300">
+                  업무환경 진단
+                  <BarChart3 className="w-4 h-4" />
+                </span>
+              </Link>
               <Link href="/contact">
                 <span className={`inline-flex items-center gap-2 px-8 py-4 font-medium text-sm tracking-wide transition-all duration-300 ${aiEnabled ? "bg-ink text-white hover:bg-ink/90" : "bg-gold text-ink font-semibold hover:bg-gold-light"}`}>
                   무료 상담 신청

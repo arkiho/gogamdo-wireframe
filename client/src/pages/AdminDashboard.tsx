@@ -549,6 +549,21 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
+            {/* 고객 여정 분석 바로가기 */}
+            <Card className="border-violet-300/30 bg-gradient-to-r from-violet-50/50 to-transparent cursor-pointer hover:border-violet-400/50 transition-colors" onClick={() => navigate("/admin/journey-analytics")}>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-violet-100 flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6 text-violet-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-ink">고객 여정 분석</h3>
+                    <p className="text-xs text-muted-foreground">업무환경 진단 설문 → 보고서 → 전환 퍼널 분석</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
             {/* E2E 파이프라인 현황판 바로가기 */}
             <Card className="border-gold/30 bg-gradient-to-r from-gold/5 to-transparent cursor-pointer hover:border-gold/50 transition-colors" onClick={() => navigate("/admin/pipeline")}>
               <CardContent className="py-6 flex items-center justify-between">

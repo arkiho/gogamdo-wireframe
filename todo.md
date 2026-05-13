@@ -953,3 +953,10 @@
 - [x] 보고서 열람 페이지 구현 (/survey/report) — 토큰 기반, 전사 인터뷰 링크 복사, 회원가입 CTA
 - [x] App.tsx 라우트 등록 (3개 새 페이지: /survey/workspace, /survey/interview, /survey/report)
 - [x] Vitest 테스트 18개 통과 (세션 생성, 설문 제출, 도면 업로드, AI 질문 생성, 보고서 조회, 인터뷰 응답, 전체 플로우)
+
+## 서베이 시스템 후속 작업 (2026-05-13)
+- [x] 홈페이지 CTA '업무환경 진단' 버튼 추가 (/survey/workspace 유입 경로)
+- [x] 설문 완료 후 이메일 자동 발송 (Resend 연동 — 보고서 링크 + 전사 인터뷰 안내 이메일)
+- [x] 관리자 대시보드 여정 분석 (/admin/journey-analytics — 퍼널 통계, 검색/필터, 상세 보기, 보고서/인터뷰 링크 복사)
+- [x] AdminDashboard.tsx에 고객 여정 분석 바로가기 카드 추가
+- [x] Vitest 테스트 14개 추가 (서베이 후속 작업 — CTA, 이메일, 여정 분석 대시보드)
