@@ -1,0 +1,1 @@
+ALTER TABLE `portfolio_drafts` ADD `sortOrder` int DEFAULT 0 NOT NULL;

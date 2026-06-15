@@ -1,7 +1,23 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortablePortfolioCard } from "@/components/SortablePortfolioCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +130,18 @@ export default function AdminPortfolios() {
   const generateDesc = trpc.portfolio.generateDescription.useMutation({
     onSuccess: () => utils.portfolio.list.invalidate(),
   });
+  const reorderDrafts = trpc.portfolio.reorder.useMutation({
+    onSuccess: () => utils.portfolio.list.invalidate(),
+  });
+
+  // DnD state
+  const [orderedItems, setOrderedItems] = useState<any[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   // Handlers
   const handleCreate = () => {
@@ -236,7 +264,7 @@ export default function AdminPortfolios() {
   }, []);
 
   // Filter
-  const filteredDrafts = (drafts.data || []).filter(d => {
+  const filteredDrafts = useMemo(() => (drafts.data || []).filter(d => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
@@ -247,7 +275,31 @@ export default function AdminPortfolios() {
       );
     }
     return true;
-  });
+  }), [drafts.data, searchQuery]);
+
+  // Sync orderedItems with filteredDrafts
+  useEffect(() => {
+    setOrderedItems(filteredDrafts);
+  }, [filteredDrafts]);
+
+  const sortableIds = useMemo(() => orderedItems.map(d => d.id), [orderedItems]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setIsDragging(false);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = orderedItems.findIndex(d => d.id === active.id);
+    const newIndex = orderedItems.findIndex(d => d.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(orderedItems, oldIndex, newIndex);
+    setOrderedItems(newOrder);
+
+    // Save new order to backend
+    const items = newOrder.map((d, i) => ({ id: d.id, sortOrder: i }));
+    reorderDrafts.mutate({ items });
+  }, [orderedItems, reorderDrafts]);
 
   // Auth guard
   if (loading) {
@@ -330,7 +382,7 @@ export default function AdminPortfolios() {
           <div className="flex justify-center py-20">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        ) : filteredDrafts.length === 0 ? (
+        ) : orderedItems.length === 0 ? (
           <div className="text-center py-20">
             <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
             <p className="text-muted-foreground">포트폴리오가 없습니다.</p>
@@ -340,17 +392,29 @@ export default function AdminPortfolios() {
             </Button>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {filteredDrafts.map((draft) => {
-              const status = STATUS_MAP[draft.status] || STATUS_MAP.draft;
-              const isEditing = editingId === draft.id;
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={() => setIsDragging(true)}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              <div className="grid gap-4">
+                {reorderDrafts.isPending && (
+                  <div className="text-xs text-muted-foreground text-center py-1">
+                    순서 저장 중...
+                  </div>
+                )}
+                {orderedItems.map((draft) => {
+                  const status = STATUS_MAP[draft.status] || STATUS_MAP.draft;
+                  const isEditing = editingId === draft.id;
 
-              return (
-                <Card key={draft.id} className={isEditing ? "ring-2 ring-gold" : ""}>
-                  <CardContent className="p-5">
-                    {isEditing ? (
-                      /* ===== Edit Mode ===== */
-                      <div className="space-y-4">
+                  return (
+                    <SortablePortfolioCard key={draft.id} id={draft.id} isEditing={isEditing}>
+                      <CardContent className="p-5">
+                        {isEditing ? (
+                          /* ===== Edit Mode ===== */
+                          <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold text-foreground">포트폴리오 수정</h3>
                           <Button variant="ghost" size="sm" onClick={() => { setEditingId(null); setForm(EMPTY_FORM); }}>
@@ -512,12 +576,14 @@ export default function AdminPortfolios() {
                           </div>
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                        )}
+                      </CardContent>
+                    </SortablePortfolioCard>
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

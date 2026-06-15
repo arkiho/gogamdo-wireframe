@@ -85,6 +85,13 @@
       "when": 1781491548813,
       "tag": "0011_tan_champions",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1781498306910,
+      "tag": "0012_damp_riptide",
+      "breakpoints": true
     }
   ]
 }

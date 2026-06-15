@@ -303,9 +303,9 @@ export async function listPortfolioDrafts(status?: string) {
   if (status) {
     return db.select().from(portfolioDrafts)
       .where(eq(portfolioDrafts.status, status as any))
-      .orderBy(desc(portfolioDrafts.updatedAt));
+      .orderBy(portfolioDrafts.sortOrder, desc(portfolioDrafts.updatedAt));
   }
-  return db.select().from(portfolioDrafts).orderBy(desc(portfolioDrafts.updatedAt));
+  return db.select().from(portfolioDrafts).orderBy(portfolioDrafts.sortOrder, desc(portfolioDrafts.updatedAt));
 }
 
 export async function getPortfolioDraft(id: number) {
@@ -341,6 +341,17 @@ export async function deletePortfolioDraft(id: number) {
   if (!db) throw new Error("Database not available");
   await db.delete(draftImages).where(eq(draftImages.draftId, id));
   await db.delete(portfolioDrafts).where(eq(portfolioDrafts.id, id));
+  return { success: true };
+}
+
+export async function reorderPortfolioDrafts(items: { id: number; sortOrder: number }[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  for (const item of items) {
+    await db.update(portfolioDrafts)
+      .set({ sortOrder: item.sortOrder })
+      .where(eq(portfolioDrafts.id, item.id));
+  }
   return { success: true };
 }
 
@@ -419,7 +430,7 @@ export async function getPublishedPortfolios() {
   if (!db) return [];
   const drafts = await db.select().from(portfolioDrafts)
     .where(eq(portfolioDrafts.status, "published"))
-    .orderBy(desc(portfolioDrafts.publishedAt));
+    .orderBy(portfolioDrafts.sortOrder, desc(portfolioDrafts.publishedAt));
   // Attach cover image for each draft
   const result = [];
   for (const draft of drafts) {

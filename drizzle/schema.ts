@@ -187,6 +187,7 @@ export const portfolioDrafts = mysqlTable("portfolio_drafts", {
   description: text("description"),
   aiDescription: text("aiDescription"),
   tags: json("tags").$type<string[]>(),
+  sortOrder: int("sortOrder").default(0).notNull(),
   status: mysqlEnum("status", ["draft", "review", "published", "archived"]).default("draft").notNull(),
   driveFolder: varchar("driveFolder", { length: 500 }),
   driveFolderId: varchar("driveFolderId", { length: 200 }),

@@ -56,6 +56,7 @@ import {
   markClientNotificationRead, markAllClientNotificationsRead, deleteClientNotification,
   createWorkspaceJourney, getWorkspaceJourneyBySession, updateWorkspaceJourney,
   getWorkspaceJourneyByReportToken, getWorkspaceJourneyBySurveyToken, listWorkspaceJourneys,
+  reorderPortfolioDrafts,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
 import { sendVerificationEmail, sendPasswordResetEmail, sendSurveyReportEmail, sendCompanySurveyInviteEmail } from "./email";
@@ -815,6 +816,14 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return deletePortfolioDraft(input.id);
+      }),
+    // 관리자: 순서 변경 (드래그 앤 드롭)
+    reorder: adminProcedure
+      .input(z.object({
+        items: z.array(z.object({ id: z.number(), sortOrder: z.number() })),
+      }))
+      .mutation(async ({ input }) => {
+        return reorderPortfolioDrafts(input.items);
       }),
     // 관리자: AI 설명 생성
     generateDescription: adminProcedure
