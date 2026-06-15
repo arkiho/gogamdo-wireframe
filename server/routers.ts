@@ -47,7 +47,7 @@ import {
   softDeleteRecord, bulkSoftDeleteRecords, listDeletionLogs, restoreDeletedRecord, getDeletionLogStats,
   createStaffApplication, listStaffApplications, reviewStaffApplication, getStaffApplicationById, getStaffApplicationByEmail,
   createStaffInvitation, listStaffInvitations, getStaffInvitationByToken, acceptStaffInvitation, cancelStaffInvitation,
-  deactivateStaffMember,
+  deactivateStaffMember, reactivateStaffMember,
   listCameras, createCamera, updateCamera, deleteCamera, getCameraById, listCameraEvents, createCameraEvent,
   clockIn, clockOut, getActiveAttendance, listMyAttendance, listAllAttendance,
   createLeaveRequest, listMyLeaves, listAllLeaves, updateLeaveStatus, cancelLeave,
@@ -3362,6 +3362,25 @@ ${topicPrompt}
           throw new TRPCError({ code: "BAD_REQUEST", message: "자기 자신은 비활성화할 수 없습니다." });
         }
         await deactivateStaffMember(input.userId);
+        return { success: true };
+      }),
+
+    // Admin: 직원 비활성화 (프론트엔드 호환용 별칭)
+    deactivateStaff: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (input.userId === ctx.user.id) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "자기 자신은 비활성화할 수 없습니다." });
+        }
+        await deactivateStaffMember(input.userId);
+        return { success: true };
+      }),
+
+    // Admin: 직원 재활성화
+    reactivateStaff: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        await reactivateStaffMember(input.userId);
         return { success: true };
       }),
 

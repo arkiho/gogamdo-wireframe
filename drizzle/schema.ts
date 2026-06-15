@@ -27,6 +27,7 @@ export const users = mysqlTable("users", {
     "staff",         // 일반 직원
   ]).default("staff"),
   phone: varchar("phone", { length: 20 }),
+  isActive: tinyint("isActive").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

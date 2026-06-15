@@ -3041,11 +3041,16 @@ export async function cancelStaffInvitation(id: number) {
 export async function deactivateStaffMember(userId: number) {
   const db = await getDb();
   if (!db) return;
-  // 부서를 none으로, opsRole을 staff로 변경하여 접근 차단
   await db.update(users).set({
-    department: "none",
-    opsRole: "staff",
-    role: "user",
+    isActive: 0,
+  }).where(eq(users.id, userId));
+}
+
+export async function reactivateStaffMember(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({
+    isActive: 1,
   }).where(eq(users.id, userId));
 }
 

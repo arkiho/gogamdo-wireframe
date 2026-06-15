@@ -78,6 +78,13 @@
       "when": 1778552361074,
       "tag": "0010_dapper_wallop",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1781491548813,
+      "tag": "0011_tan_champions",
+      "breakpoints": true
     }
   ]
 }

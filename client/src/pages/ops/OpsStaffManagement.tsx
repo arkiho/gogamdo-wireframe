@@ -339,9 +339,9 @@ export default function OpsStaffManagement() {
                               </Button>
                               <Button
                                 size="sm"
-                                variant={m.isActive === false ? "outline" : "destructive"}
+                                variant={!m.isActive || m.isActive === 0 ? "outline" : "destructive"}
                                 onClick={() => {
-                                  if (m.isActive === false) {
+                                  if (!m.isActive || m.isActive === 0) {
                                     if (confirm(`${m.name}님을 재활성화하시겠습니까?`)) {
                                       reactivateStaff.mutate({ userId: m.id });
                                     }
@@ -353,7 +353,7 @@ export default function OpsStaffManagement() {
                                 }}
                               >
                                 <UserMinus className="w-3 h-3 mr-1" />
-                                {m.isActive === false ? "재활성화" : "비활성화"}
+                                {!m.isActive || m.isActive === 0 ? "재활성화" : "비활성화"}
                               </Button>
                               </>
                             )}

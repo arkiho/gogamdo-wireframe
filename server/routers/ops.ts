@@ -1413,6 +1413,7 @@ export const opsRouter = router({
         department: (m as any).department ?? "none",
         opsRole: (m as any).opsRole ?? "staff",
         phone: (m as any).phone ?? null,
+        isActive: (m as any).isActive ?? 1,
         lastSignedIn: m.lastSignedIn,
         createdAt: m.createdAt,
       }));

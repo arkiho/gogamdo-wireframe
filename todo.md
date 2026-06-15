@@ -960,3 +960,12 @@
 - [x] 관리자 대시보드 여정 분석 (/admin/journey-analytics — 퍼널 통계, 검색/필터, 상세 보기, 보고서/인터뷰 링크 복사)
 - [x] AdminDashboard.tsx에 고객 여정 분석 바로가기 카드 추가
 - [x] Vitest 테스트 14개 추가 (서베이 후속 작업 — CTA, 이메일, 여정 분석 대시보드)
+
+## 버그 수정 (2026-06-15)
+- [x] 직원관리 비활성화 기능 버그 수정 (비활성화 동작하지 않는 문제)
+  - users 테이블에 isActive 컬럼 추가 (tinyint, 기본값 1)
+  - deactivateStaffMember: isActive=0 설정으로 변경
+  - reactivateStaffMember 함수 신규 추가 (isActive=1 복원)
+  - staffManagement 라우터에 deactivateStaff/reactivateStaff 프로시저 추가
+  - ops.staff.list에 isActive 필드 반환 추가
+  - 프론트엔드 isActive 비교 로직 수정 (false → 0/falsy 체크)
