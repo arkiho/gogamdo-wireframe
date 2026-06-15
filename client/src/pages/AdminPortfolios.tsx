@@ -38,8 +38,7 @@ function formatDate(d: Date | string | null) {
 }
 
 const CATEGORY_OPTIONS = [
-  "사무실 인테리어", "크리에이티브 오피스", "크리에이티브 스튜디오",
-  "글로벌 기업 오피스", "공공기관", "헬스케어 오피스", "IT 오피스", "산업시설", "기타",
+  "오피스", "산업시설", "병원", "관급공사", "리테일",
 ];
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -80,6 +79,8 @@ export default function AdminPortfolios() {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [imageUploadDraftId, setImageUploadDraftId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const createFileInputRef = useRef<HTMLInputElement>(null);
+  const [createPreviewImages, setCreatePreviewImages] = useState<{ file: File; url: string }[]>([]);
 
   // Queries
   const drafts = trpc.portfolio.list.useQuery(
@@ -127,6 +128,29 @@ export default function AdminPortfolios() {
       duration: form.duration || undefined,
       description: form.description || undefined,
       tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
+    }, {
+      onSuccess: (data: any) => {
+        // 생성 후 미리보기 이미지들을 업로드
+        if (createPreviewImages.length > 0 && data?.id) {
+          createPreviewImages.forEach((img, i) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const base64 = (reader.result as string).split(",")[1];
+              uploadImage.mutate({
+                draftId: data.id,
+                fileName: img.file.name,
+                fileBase64: base64,
+                fileType: img.file.type,
+                sortOrder: i,
+              });
+            };
+            reader.readAsDataURL(img.file);
+          });
+          // cleanup preview URLs
+          createPreviewImages.forEach(img => URL.revokeObjectURL(img.url));
+          setCreatePreviewImages([]);
+        }
+      },
     });
   };
 
@@ -186,6 +210,30 @@ export default function AdminPortfolios() {
     }
     e.target.value = "";
   }, [imageUploadDraftId, uploadImage]);
+
+  const handleCreatePreviewUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newPreviews: { file: File; url: string }[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`${file.name}: 10MB 이하의 파일만 업로드 가능합니다.`);
+        continue;
+      }
+      newPreviews.push({ file, url: URL.createObjectURL(file) });
+    }
+    setCreatePreviewImages(prev => [...prev, ...newPreviews]);
+    e.target.value = "";
+  }, []);
+
+  const removeCreatePreview = useCallback((index: number) => {
+    setCreatePreviewImages(prev => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed.url);
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
 
   // Filter
   const filteredDrafts = (drafts.data || []).filter(d => {
@@ -533,8 +581,42 @@ export default function AdminPortfolios() {
             <Label>설명</Label>
             <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="프로젝트 설명" />
           </div>
+          {/* 이미지 업로드 & 미리보기 */}
+          <div className="space-y-2">
+            <Label>이미지</Label>
+            <div className="flex flex-wrap gap-3">
+              {createPreviewImages.map((img, i) => (
+                <div key={i} className="relative w-24 h-24 rounded-md overflow-hidden border border-border group">
+                  <img src={img.url} alt={img.file.name} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeCreatePreview(i)}
+                    className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => createFileInputRef.current?.click()}
+                className="w-24 h-24 rounded-md border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:border-gold hover:text-gold transition-colors"
+              >
+                <Upload className="w-5 h-5 mb-1" />
+                <span className="text-xs">사진 추가</span>
+              </button>
+            </div>
+            <input
+              ref={createFileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleCreatePreviewUpload}
+            />
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>취소</Button>
+            <Button variant="outline" onClick={() => { setShowCreateDialog(false); createPreviewImages.forEach(img => URL.revokeObjectURL(img.url)); setCreatePreviewImages([]); }}>취소</Button>
             <Button onClick={handleCreate} disabled={createDraft.isPending || !form.title.trim()}>
               {createDraft.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               생성

@@ -30,19 +30,21 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
 
 // 대분류 아이콘 매핑
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  "사무 공간": <Building2 className="w-4 h-4" />,
-  "상업 공간": <Store className="w-4 h-4" />,
-  "의료·복지": <HeartPulse className="w-4 h-4" />,
-  "산업·공공": <Factory className="w-4 h-4" />,
+  "오피스": <Building2 className="w-4 h-4" />,
+  "산업시설": <Factory className="w-4 h-4" />,
+  "병원": <HeartPulse className="w-4 h-4" />,
+  "관급공사": <Shield className="w-4 h-4" />,
+  "리테일": <Store className="w-4 h-4" />,
 };
 
 // 대분류별 설명 텍스트
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   "전체": "고객사로부터 공개 승인을 받은 프로젝트만 선별하여 소개합니다.",
-  "사무 공간": "스타트업부터 글로벌 기업까지, 업무 효율과 기업 문화를 반영한 맞춤형 오피스 인테리어",
-  "상업 공간": "코워킹 스페이스, F&B, 리테일 등 고객 경험을 극대화하는 상업 공간 설계",
-  "의료·복지": "환자와 이용자의 심리적 안정을 고려한 치유적 공간 디자인",
-  "산업·공공": "공공기관, 산업시설, 교육시설 등 공공성과 기능성을 겸비한 공간 설계",
+  "오피스": "스타트업부터 글로벌 기업까지, 업무 효율과 기업 문화를 반영한 맞춤형 오피스 인테리어",
+  "산업시설": "제조 시설, 스마트 팩토리 등 산업 공간의 효율성과 안전성을 극대화하는 설계",
+  "병원": "환자와 이용자의 심리적 안정을 고려한 치유적 의료 공간 디자인",
+  "관급공사": "공공기관, 교육시설 등 공공성과 기능성을 겸비한 공간 설계",
+  "리테일": "매장, F&B, 코워킹 등 고객 경험을 극대화하는 상업 공간 설계",
 };
 
 // Unified project type for display

@@ -1547,8 +1547,7 @@ const DRAFT_STATUS_MAP: Record<string, { label: string; variant: "default" | "se
 };
 
 const CATEGORY_OPTIONS = [
-  "사무실 인테리어", "크리에이티브 오피스", "크리에이티브 스튜디오",
-  "글로벌 기업 오피스", "공공기관", "헬스케어 오피스", "IT 오피스", "산업시설", "기타",
+  "오피스", "산업시설", "병원", "관급공사", "리테일",
 ];
 
 function PortfolioTab() {

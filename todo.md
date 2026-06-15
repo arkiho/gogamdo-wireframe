@@ -969,3 +969,8 @@
   - staffManagement 라우터에 deactivateStaff/reactivateStaff 프로시저 추가
   - ops.staff.list에 isActive 필드 반환 추가
   - 프론트엔드 isActive 비교 로직 수정 (false → 0/falsy 체크)
+
+## 포트폴리오 관리 개선 (2026-06-15)
+- [x] 포트폴리오 카테고리 변경 (오피스/산업시설/병원/관급공사/리테일)
+- [x] 포트폴리오 사진 업로드 시 미리보기 기능 추가
+- [x] 실제 6개 프로젝트만 유지 (DB 6개 + 정적 PROJECTS 6개)
