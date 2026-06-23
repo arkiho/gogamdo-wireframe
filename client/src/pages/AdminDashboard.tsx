@@ -755,7 +755,7 @@ export default function AdminDashboard() {
                             </SelectContent>
                           </Select>
                           <a
-                            href={`mailto:${inq.email}?subject=${encodeURIComponent(`[${"\uACE0\uAC10\uB3C4"}] ${inq.name}\uB2D8 \uBB38\uC758 \uD68C\uC2E0`)}&body=${encodeURIComponent(`${inq.name}\uB2D8 \uC548\uB155\uD558\uC138\uC694,\n\n\uACE0\uAC10\uB3C4\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC154\uC11C \uAC10\uC0AC\uD569\uB2C8\uB2E4.\n\n---\n\uACE0\uAC10\uB3C4 \uB300\uD45C\uC804\uD654: 02-6952-3111\nhttps://kokamdo.co.kr`)}`}
+                            href={`mailto:${inq.email}?subject=${encodeURIComponent(`[${"\uACE0\uAC10\uB3C4"}] ${inq.name}\uB2D8 \uBB38\uC758 \uD68C\uC2E0`)}&body=${encodeURIComponent(`${inq.name}\uB2D8 \uC548\uB155\uD558\uC138\uC694,\n\n\uACE0\uAC10\uB3C4\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC154\uC11C \uAC10\uC0AC\uD569\uB2C8\uB2E4.\n\n---\n\uACE0\uAC10\uB3C4 \uB300\uD45C\uC804\uD654: 02-3487-6133\nhttps://kokamdo.co.kr`)}`}
                             className="inline-flex items-center gap-1 px-3 py-1.5 bg-gold/10 text-gold text-xs font-medium rounded hover:bg-gold/20 transition-colors"
                           >
                             <Send className="w-3 h-3" /> 이메일 회신

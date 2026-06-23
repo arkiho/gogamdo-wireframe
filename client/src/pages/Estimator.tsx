@@ -701,8 +701,8 @@ export default function Estimator() {
                   <div className="bg-ink/5 p-4 mb-6 text-center rounded">
                     <p className="text-xs text-muted-foreground mb-1">직접 상담을 원하시면</p>
                     <div className="flex items-center justify-center gap-4">
-                      <a href="tel:02-6952-3111" className="text-sm font-medium text-ink hover:text-gold transition-colors">
-                        02-6952-3111
+                      <a href="tel:02-3487-6133" className="text-sm font-medium text-ink hover:text-gold transition-colors">
+                        02-3487-6133
                       </a>
                       <span className="text-border">|</span>
                       <a href="mailto:contact@kokamdo.co.kr" className="text-sm font-medium text-ink hover:text-gold transition-colors">

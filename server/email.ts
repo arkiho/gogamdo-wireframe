@@ -129,7 +129,7 @@ function emailWrapper(bodyContent: string): string {
                 (주)고감도 | 서울특별시 서초구 서초대로 398, 4층
               </p>
               <p style="font-size:11px;color:#999;margin:0;">
-                02-6952-3111 | contact@kokamdo.co.kr
+                02-3487-6133 | contact@kokamdo.co.kr
               </p>
             </td>
           </tr>

@@ -156,8 +156,8 @@ export default function Contact() {
                     <div className="bg-ink/5 p-4 mb-6 text-center">
                       <p className="text-xs text-muted-foreground mb-1">급한 문의는 직접 연락해 주세요</p>
                       <div className="flex items-center justify-center gap-4">
-                        <a href="tel:02-6952-3111" className="text-sm font-medium text-ink hover:text-gold transition-colors flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5" /> 02-6952-3111
+                        <a href="tel:02-3487-6133" className="text-sm font-medium text-ink hover:text-gold transition-colors flex items-center gap-1">
+                          <Phone className="w-3.5 h-3.5" /> 02-3487-6133
                         </a>
                         <a href="mailto:contact@kokamdo.co.kr" className="text-sm font-medium text-ink hover:text-gold transition-colors flex items-center gap-1">
                           <Mail className="w-3.5 h-3.5" /> contact@kokamdo.co.kr

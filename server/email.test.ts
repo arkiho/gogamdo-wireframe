@@ -66,7 +66,7 @@ describe("이메일 발송 유틸리티", () => {
 
     it("연락처 정보가 포함되어야 한다", () => {
       const html = generateReviewEmailHtml(baseData);
-      expect(html).toContain("02-6952-3111");
+      expect(html).toContain("02-3487-6133");
       expect(html).toContain("contact@kokamdo.co.kr");
     });
 
