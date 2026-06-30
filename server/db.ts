@@ -300,12 +300,37 @@ export async function createPortfolioDraft(data: InsertPortfolioDraft) {
 export async function listPortfolioDrafts(status?: string) {
   const db = await getDb();
   if (!db) return [];
+  let drafts;
   if (status) {
-    return db.select().from(portfolioDrafts)
+    drafts = await db.select().from(portfolioDrafts)
       .where(eq(portfolioDrafts.status, status as any))
       .orderBy(portfolioDrafts.sortOrder, desc(portfolioDrafts.updatedAt));
+  } else {
+    drafts = await db.select().from(portfolioDrafts).orderBy(portfolioDrafts.sortOrder, desc(portfolioDrafts.updatedAt));
   }
-  return db.select().from(portfolioDrafts).orderBy(portfolioDrafts.sortOrder, desc(portfolioDrafts.updatedAt));
+  // Attach cover image URL for each draft
+  const result = [];
+  for (const draft of drafts) {
+    const images = await db.select().from(draftImages)
+      .where(eq(draftImages.draftId, draft.id))
+      .orderBy(draftImages.sortOrder);
+    const cover = images.find(img => img.isCover === "yes") || images[0];
+    result.push({
+      ...draft,
+      coverImageUrl: cover?.processedUrl || cover?.originalUrl || null,
+      imageCount: images.length,
+      images: images.map(img => ({
+        id: img.id,
+        originalUrl: img.originalUrl,
+        processedUrl: img.processedUrl,
+        thumbnailUrl: img.thumbnailUrl,
+        isCover: img.isCover,
+        sortOrder: img.sortOrder,
+        caption: img.caption,
+      })),
+    });
+  }
+  return result;
 }
 
 export async function getPortfolioDraft(id: number) {

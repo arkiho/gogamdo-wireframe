@@ -107,7 +107,7 @@ export default function AdminPortfolios() {
   // Mutations
   const utils = trpc.useUtils();
   const createDraft = trpc.portfolio.create.useMutation({
-    onSuccess: () => { utils.portfolio.list.invalidate(); setShowCreateDialog(false); setForm(EMPTY_FORM); },
+    onSuccess: () => { utils.portfolio.list.invalidate(); },
   });
   const updateDraft = trpc.portfolio.update.useMutation({
     onSuccess: () => { utils.portfolio.list.invalidate(); setEditingId(null); setForm(EMPTY_FORM); },
@@ -158,14 +158,15 @@ export default function AdminPortfolios() {
       tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
     }, {
       onSuccess: (data: any) => {
+        const newId = data?.id;
         // 생성 후 미리보기 이미지들을 업로드
-        if (createPreviewImages.length > 0 && data?.id) {
+        if (createPreviewImages.length > 0 && newId) {
           createPreviewImages.forEach((img, i) => {
             const reader = new FileReader();
             reader.onload = () => {
               const base64 = (reader.result as string).split(",")[1];
               uploadImage.mutate({
-                draftId: data.id,
+                draftId: newId,
                 fileName: img.file.name,
                 fileBase64: base64,
                 fileType: img.file.type,
@@ -177,6 +178,12 @@ export default function AdminPortfolios() {
           // cleanup preview URLs
           createPreviewImages.forEach(img => URL.revokeObjectURL(img.url));
           setCreatePreviewImages([]);
+        }
+        // 생성 완료 후 상세 페이지로 이동
+        setShowCreateDialog(false);
+        setForm(EMPTY_FORM);
+        if (newId) {
+          navigate(`/admin/portfolio/${newId}`);
         }
       },
     });
@@ -464,6 +471,41 @@ export default function AdminPortfolios() {
                           <Label>설명</Label>
                           <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="프로젝트 설명" />
                         </div>
+                        {/* 이미지 갤러리 */}
+                        <div className="space-y-2">
+                          <Label>이미지 ({draft.images?.length || 0}장)</Label>
+                          <div className="flex flex-wrap gap-3">
+                            {(draft.images || []).map((img: any) => (
+                              <div key={img.id} className="relative w-24 h-24 rounded-md overflow-hidden border border-border group">
+                                <img
+                                  src={img.processedUrl || img.originalUrl}
+                                  alt={img.caption || '포트폴리오 이미지'}
+                                  className="w-full h-full object-cover"
+                                />
+                                {img.isCover === 'yes' && (
+                                  <div className="absolute top-1 left-1 bg-gold text-ink text-[10px] px-1 rounded">
+                                    <Star className="w-3 h-3 inline" />
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => deleteImage.mutate({ imageId: img.id })}
+                                  className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => { setImageUploadDraftId(draft.id); fileInputRef.current?.click(); }}
+                              className="w-24 h-24 rounded-md border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:border-gold hover:text-gold transition-colors"
+                            >
+                              <Upload className="w-5 h-5 mb-1" />
+                              <span className="text-xs">사진 추가</span>
+                            </button>
+                          </div>
+                        </div>
                         <div className="flex gap-2 justify-end">
                           <Button variant="outline" onClick={() => { setEditingId(null); setForm(EMPTY_FORM); }}>취소</Button>
                           <Button onClick={handleUpdate} disabled={updateDraft.isPending || !form.title.trim()}>
@@ -599,11 +641,12 @@ export default function AdminPortfolios() {
 
       {/* Create Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>새 포트폴리오 생성</DialogTitle>
             <DialogDescription>프로젝트 정보를 입력하세요. 이미지는 생성 후 추가할 수 있습니다.</DialogDescription>
           </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>프로젝트 제목 *</Label>
@@ -681,7 +724,8 @@ export default function AdminPortfolios() {
               onChange={handleCreatePreviewUpload}
             />
           </div>
-          <DialogFooter>
+          </div>
+          <DialogFooter className="border-t pt-4 mt-2">
             <Button variant="outline" onClick={() => { setShowCreateDialog(false); createPreviewImages.forEach(img => URL.revokeObjectURL(img.url)); setCreatePreviewImages([]); }}>취소</Button>
             <Button onClick={handleCreate} disabled={createDraft.isPending || !form.title.trim()}>
               {createDraft.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

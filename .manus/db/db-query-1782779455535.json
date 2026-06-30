@@ -1,0 +1,58 @@
+{
+  "query": "SELECT di.id, di.draftId, di.originalUrl, di.processedUrl, di.isCover, pd.title FROM draft_images di JOIN portfolio_drafts pd ON di.draftId = pd.id LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT di.id, di.draftId, di.originalUrl, di.processedUrl, di.isCover, pd.title FROM draft_images di JOIN portfolio_drafts pd ON di.draftId = pd.id LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "draftId": "2",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/iEiqKawRfDmpqSwx.jpg",
+      "processedUrl": "NULL",
+      "isCover": "yes",
+      "title": "휴시드"
+    },
+    {
+      "id": "2",
+      "draftId": "3",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/SWMSkdiFxTRjCDUm.jpg",
+      "processedUrl": "NULL",
+      "isCover": "yes",
+      "title": "LAB543"
+    },
+    {
+      "id": "4",
+      "draftId": "5",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/rHfjyFTDcSrkgatl.jpg",
+      "processedUrl": "NULL",
+      "isCover": "yes",
+      "title": "페이퍼랩"
+    },
+    {
+      "id": "5",
+      "draftId": "6",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/hMQXezzhPfqUsbIv.jpg",
+      "processedUrl": "NULL",
+      "isCover": "yes",
+      "title": "휴레이"
+    },
+    {
+      "id": "7",
+      "draftId": "8",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/lKcbAotDgZZIksHh.jpeg",
+      "processedUrl": "NULL",
+      "isCover": "yes",
+      "title": "SBA/SETEC"
+    },
+    {
+      "id": "8",
+      "draftId": "9",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/jgSrGNTlWYkscMMF.jpg",
+      "processedUrl": "NULL",
+      "isCover": "yes",
+      "title": "제조시설 리모델링"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdraftId\toriginalUrl\tprocessedUrl\tisCover\ttitle\n1\t2\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/iEiqKawRfDmpqSwx.jpg\tNULL\tyes\t휴시드\n2\t3\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/SWMSkdiFxTRjCDUm.jpg\tNULL\tyes\tLAB543\n4\t5\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/rHfjyFTDcSrkgatl.jpg\tNULL\tyes\t페이퍼랩\n5\t6\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/hMQXezzhPfqUsbIv.jpg\tNULL\tyes\t휴레이\n7\t8\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/lKcbAotDgZZIksHh.jpeg\tNULL\tyes\tSBA/SETEC\n8\t9\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/jgSrGNTlWYkscMMF.jpg\tNULL\tyes\t제조시설 리모델링\n",
+  "stderr": "",
+  "execution_time_ms": 1900
+}
