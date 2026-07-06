@@ -115,6 +115,10 @@ function PublicRouter() {
 function Router() {
   return (
     <Switch>
+      {/* 고객 여정 서베이 (공개 접근) - 정적 경로를 :token 동적 경로보다 먼저 배치 */}
+      <Route path="/survey/workspace" component={WorkspaceSurvey} />
+      <Route path="/survey/interview" component={WorkspaceInterview} />
+      <Route path="/survey/report" component={WorkspaceReport} />
       {/* 전사 서베이 - Layout 없이 독립 페이지 */}
       <Route path="/survey/:token" component={CompanySurvey} />
       <Route path="/survey-response/:token" component={SurveyResponse} />
@@ -127,10 +131,6 @@ function Router() {
       <Route path="/client/forgot-password" component={ClientForgotPassword} />
       <Route path="/client/reset-password" component={ClientResetPassword} />
       <Route path="/client/dashboard" component={ClientSpaceDashboard} />
-      {/* 고객 여정 서베이 (공개 접근) */}
-      <Route path="/survey/workspace" component={WorkspaceSurvey} />
-      <Route path="/survey/interview" component={WorkspaceInterview} />
-      <Route path="/survey/report" component={WorkspaceReport} />
       {/* 직원 및 협력사 인증 */}
       <Route path="/staff/pending-approval" component={StaffPendingApproval} />
       <Route path="/partner/login" component={PartnerLogin} />
