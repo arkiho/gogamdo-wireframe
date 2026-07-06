@@ -489,7 +489,7 @@ export default function AdminPortfolios() {
                                 )}
                                 <button
                                   type="button"
-                                  onClick={() => deleteImage.mutate({ imageId: img.id })}
+                                  onClick={() => { if (confirm("이 이미지를 삭제하시겠습니까?")) deleteImage.mutate({ id: img.id }); }}
                                   className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                   <X className="w-3 h-3" />
