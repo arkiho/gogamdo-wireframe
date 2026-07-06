@@ -1,0 +1,378 @@
+{
+  "query": "DESCRIBE workspace_journeys;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute DESCRIBE workspace_journeys;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "sessionId",
+      "Type": "varchar(64)",
+      "Null": "NO",
+      "Key": "UNI",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "currentStep",
+      "Type": "enum('survey','floor_plan','generating','report_ready','signup_prompted','converted')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "survey",
+      "Extra": ""
+    },
+    {
+      "Field": "companyName",
+      "Type": "varchar(200)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "contactName",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "contactEmail",
+      "Type": "varchar(320)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "contactPhone",
+      "Type": "varchar(50)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "employeeCount",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "officeSizePyeong",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "workStyle",
+      "Type": "enum('collaborative','focused','hybrid','flexible')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "remoteWorkRatio",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "meetingFrequency",
+      "Type": "enum('rarely','few_weekly','daily','very_frequent')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "painPoints",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "desiredSpaces",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "designStyle",
+      "Type": "enum('modern','minimal','warm','industrial','natural','luxury','creative')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "budgetRange",
+      "Type": "varchar(50)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "priority",
+      "Type": "enum('design','functionality','cost','balanced')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "timelineUrgency",
+      "Type": "enum('flexible','within_6months','within_3months','urgent')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "additionalNotes",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "surveyCompletedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "floorPlanType",
+      "Type": "enum('blank_template','existing_upload','skipped')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "floorPlanFileKey",
+      "Type": "varchar(500)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "floorPlanFileUrl",
+      "Type": "varchar(1000)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "floorPlanFileName",
+      "Type": "varchar(300)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "blankTemplateType",
+      "Type": "varchar(50)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "floorPlanAnalysis",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "floorPlanUploadedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "interviewQuestions",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "analysisSummary",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "aiGeneratedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "reportToken",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "reportPdfKey",
+      "Type": "varchar(500)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "reportPdfUrl",
+      "Type": "varchar(1000)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "reportEmailSentAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "reportViewedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "companySurveyToken",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "companySurveyResponseCount",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "clientId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "convertedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "utmSource",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "utmMedium",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "utmCampaign",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "referrer",
+      "Type": "varchar(500)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "interviewResponses",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nsessionId\tvarchar(64)\tNO\tUNI\tNULL\t\ncurrentStep\tenum('survey','floor_plan','generating','report_ready','signup_prompted','converted')\tNO\t\tsurvey\t\ncompanyName\tvarchar(200)\tYES\t\tNULL\t\ncontactName\tvarchar(100)\tYES\t\tNULL\t\ncontactEmail\tvarchar(320)\tYES\t\tNULL\t\ncontactPhone\tvarchar(50)\tYES\t\tNULL\t\nemployeeCount\tint\tYES\t\tNULL\t\nofficeSizePyeong\tint\tYES\t\tNULL\t\nworkStyle\tenum('collaborative','focused','hybrid','flexible')\tYES\t\tNULL\t\nremoteWorkRatio\tint\tYES\t\tNULL\t\nmeetingFrequency\tenum('rarely','few_weekly','daily','very_frequent')\tYES\t\tNULL\t\npainPoints\tjson\tYES\t\tNULL\t\ndesiredSpaces\tjson\tYES\t\tNULL\t\ndesignStyle\tenum('modern','minimal','warm','industrial','natural','luxury','creative')\tYES\t\tNULL\t\nbudgetRange\tvarchar(50)\tYES\t\tNULL\t\npriority\tenum('design','functionality','cost','balanced')\tYES\t\tNULL\t\ntimelineUrgency\tenum('flexible','within_6months','within_3months','urgent')\tYES\t\tNULL\t\nadditionalNotes\ttext\tYES\t\tNULL\t\nsurveyCompletedAt\ttimestamp\tYES\t\tNULL\t\nfloorPlanType\tenum('blank_template','existing_upload','skipped')\tYES\t\tNULL\t\nfloorPlanFileKey\tvarchar(500)\tYES\t\tNULL\t\nfloorPlanFileUrl\tvarchar(1000)\tYES\t\tNULL\t\nfloorPlanFileName\tvarchar(300)\tYES\t\tNULL\t\nblankTemplateType\tvarchar(50)\tYES\t\tNULL\t\nfloorPlanAnalysis\tjson\tYES\t\tNULL\t\nfloorPlanUploadedAt\ttimestamp\tYES\t\tNULL\t\ninterviewQuestions\tjson\tYES\t\tNULL\t\nanalysisSummary\ttext\tYES\t\tNULL\t\naiGeneratedAt\ttimestamp\tYES\t\tNULL\t\nreportToken\tvarchar(64)\tYES\t\tNULL\t\nreportPdfKey\tvarchar(500)\tYES\t\tNULL\t\nreportPdfUrl\tvarchar(1000)\tYES\t\tNULL\t\nreportEmailSentAt\ttimestamp\tYES\t\tNULL\t\nreportViewedAt\ttimestamp\tYES\t\tNULL\t\ncompanySurveyToken\tvarchar(64)\tYES\t\tNULL\t\ncompanySurveyResponseCount\tint\tYES\t\t0\t\nclientId\tint\tYES\t\tNULL\t\nconvertedAt\ttimestamp\tYES\t\tNULL\t\nutmSource\tvarchar(100)\tYES\t\tNULL\t\nutmMedium\tvarchar(100)\tYES\t\tNULL\t\nutmCampaign\tvarchar(100)\tYES\t\tNULL\t\nreferrer\tvarchar(500)\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\ninterviewResponses\tjson\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 1882
+}

@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { compressImage } from "@/lib/imageCompressor";
 import { getLoginUrl } from "@/const";
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -121,7 +122,16 @@ export default function AdminPortfolioDetail() {
     setUploading(true);
     try {
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        let file = files[i];
+        // 10MB 초과 시 자동 압축
+        if (file.size > 10 * 1024 * 1024) {
+          try {
+            file = await compressImage(file);
+          } catch (err) {
+            alert(`${file.name}: 이미지 압축에 실패했습니다.`);
+            continue;
+          }
+        }
         const reader = new FileReader();
         const base64 = await new Promise<string>((resolve) => {
           reader.onload = () => {

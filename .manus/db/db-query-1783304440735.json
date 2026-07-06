@@ -1,0 +1,35 @@
+{
+  "query": "SELECT * FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT * FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "533432",
+      "hash": "0002_illegal_molecule_man",
+      "created_at": "20260228153337"
+    },
+    {
+      "id": "503432",
+      "hash": "16e1feefc7b13d1436093aa564751631b0dc8f47cb1c6d9c80d21f223f4233af",
+      "created_at": "1771864275641"
+    },
+    {
+      "id": "473437",
+      "hash": "0000_sad_eddie_brock",
+      "created_at": "1771178355000"
+    },
+    {
+      "id": "473436",
+      "hash": "0000_majestic_nico_minoru",
+      "created_at": "1771174038518"
+    },
+    {
+      "id": "473435",
+      "hash": "1c05ffdb26bd26590684cf976546c2160dcabdd2fb853ee503750795a8ff57fe",
+      "created_at": "1771161436835"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\thash\tcreated_at\n533432\t0002_illegal_molecule_man\t20260228153337\n503432\t16e1feefc7b13d1436093aa564751631b0dc8f47cb1c6d9c80d21f223f4233af\t1771864275641\n473437\t0000_sad_eddie_brock\t1771178355000\n473436\t0000_majestic_nico_minoru\t1771174038518\n473435\t1c05ffdb26bd26590684cf976546c2160dcabdd2fb853ee503750795a8ff57fe\t1771161436835\n",
+  "stderr": "",
+  "execution_time_ms": 2481
+}

@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE `workspace_journeys` ADD COLUMN `interviewResponses` json;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute ALTER TABLE `workspace_journeys` ADD COLUMN `interviewResponses` json;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1969
+}

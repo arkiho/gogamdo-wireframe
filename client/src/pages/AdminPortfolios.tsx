@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import Logo from "@/components/Logo";
+import { compressImage } from "@/lib/imageCompressor";
 
 function formatDate(d: Date | string | null) {
   if (!d) return "-";
@@ -225,10 +226,15 @@ export default function AdminPortfolios() {
     if (!files || !imageUploadDraftId) return;
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+      let file = files[i];
+      // 10MB 초과 시 자동 압축
       if (file.size > 10 * 1024 * 1024) {
-        alert(`${file.name}: 10MB 이하의 파일만 업로드 가능합니다.`);
-        continue;
+        try {
+          file = await compressImage(file);
+        } catch (err) {
+          alert(`${file.name}: 이미지 압축에 실패했습니다.`);
+          continue;
+        }
       }
       const reader = new FileReader();
       reader.onload = () => {
@@ -246,15 +252,20 @@ export default function AdminPortfolios() {
     e.target.value = "";
   }, [imageUploadDraftId, uploadImage]);
 
-  const handleCreatePreviewUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCreatePreviewUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     const newPreviews: { file: File; url: string }[] = [];
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+      let file = files[i];
+      // 10MB 초과 시 자동 압축
       if (file.size > 10 * 1024 * 1024) {
-        alert(`${file.name}: 10MB 이하의 파일만 업로드 가능합니다.`);
-        continue;
+        try {
+          file = await compressImage(file);
+        } catch (err) {
+          alert(`${file.name}: 이미지 압축에 실패했습니다.`);
+          continue;
+        }
       }
       newPreviews.push({ file, url: URL.createObjectURL(file) });
     }
