@@ -2126,6 +2126,9 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         const catLabel = categoryLabels[category] || "인테리어";
         const audience = input.targetAudience || "사무실 인테리어를 계획 중인 기업 담당자";
 
+        const seoKeywords = ["사무실 인테리어", "오피스 리모델링", "사무공간 설계", "기업 인테리어", "업무환경 개선"];
+        const selectedKeywords = seoKeywords.sort(() => Math.random() - 0.5).slice(0, 3);
+
         const topicPrompt = input.topic
           ? `주제: ${input.topic}`
           : `${catLabel} 분야에서 ${audience}에게 유용한 최신 주제를 선정해주세요.`;
@@ -2134,7 +2137,30 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
           messages: [
             {
               role: "system",
-              content: `당신은 고감도 인테리어의 전문 콘텐츠 에디터입니다. 사무실 인테리어, 상업공간 디자인, 공간 최적화 분야의 전문가입니다. B2B 독자를 위한 전문적이면서도 읽기 쉬운 아티클을 작성합니다. 마크다운 형식으로 작성하되, 소제목(##), 불릿 포인트, 강조(**) 등을 활용하여 가독성을 높여주세요. 분량은 1500~2500자 정도로 작성합니다.`,
+              content: `당신은 (주)고감도 인테리어(kokamdo.co.kr)의 전문 콘텐츠 에디터입니다.
+
+[역할]
+- 사무실 인테리어, 상업공간 디자인, 공간 최적화 분야의 전문 콘텐츠를 작성합니다.
+- B2B 독자(${audience})를 위한 전문적이면서도 읽기 쉬운 아티클을 작성합니다.
+
+[SEO/AEO/GEO 최적화 지침]
+- 핵심 키워드를 자연스럽게 본문에 3~5회 포함시키세요: ${selectedKeywords.join(", ")}
+- 제목(H1)에 핵심 키워드를 반드시 포함하세요.
+- 소제목(H2, H3)에도 관련 키워드를 배치하세요.
+- 첫 문단에 핵심 키워드와 주제를 명확히 제시하세요.
+- FAQ 형식의 섹션을 1~2개 포함하여 AEO(답변엔진최적화)에 대응하세요.
+- 구체적인 수치, 통계, 사례를 포함하여 신뢰도를 높이세요.
+- 내부 링크 유도: 글 말미에 "고감도 인테리어에서 무료 상담을 받아보세요" 등의 CTA를 자연스럽게 포함하세요.
+- metaTitle은 60자 이내, metaDescription은 155자 이내로 작성하세요.
+
+[콘텐츠 목적]
+- 리드 생성: 잠재 고객이 검색을 통해 유입되어 상담 문의로 전환되도록 합니다.
+- 전문성 어필: 고감도의 인테리어 전문성과 경험(150건+ 프로젝트, 12년 업력)을 자연스럽게 녹여내세요.
+
+[형식]
+- 마크다운 형식으로 작성하되, 소제목(##), 불릿 포인트, 강조(**) 등을 활용하여 가독성을 높여주세요.
+- 분량은 1500~2500자 정도로 작성합니다.
+- 회사명 "(주)고감도" 또는 "고감도 인테리어"를 1~2회 자연스럽게 언급하세요.`,
             },
             {
               role: "user",
@@ -2142,16 +2168,19 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
 
 카테고리: ${catLabel}
 대상 독자: ${audience}
+SEO 핵심 키워드: ${selectedKeywords.join(", ")}
 ${topicPrompt}
 
 반드시 아래 JSON 형식으로 응답해주세요:
 {
-  "title": "아티클 제목",
+  "title": "아티클 제목 (핵심 키워드 포함, 60자 이내)",
   "subtitle": "부제목",
-  "excerpt": "2~3문장 요약",
-  "content": "마크다운 본문 (1500~2500자)",
-  "tags": ["태그1", "태그2", "태그3"],
-  "readTimeMinutes": 숫자
+  "excerpt": "2~3문장 요약 (검색 결과에 표시될 내용)",
+  "content": "마크다운 본문 (1500~2500자, FAQ 섹션 포함)",
+  "tags": ["태그1", "태그2", "태그3", "태그4", "태그5"],
+  "readTimeMinutes": 숫자,
+  "metaTitle": "SEO 메타 타이틀 (60자 이내, 핵심 키워드 포함)",
+  "metaDescription": "SEO 메타 디스크립션 (155자 이내, 행동 유도 문구 포함)"
 }`,
             },
           ],
@@ -2169,8 +2198,10 @@ ${topicPrompt}
                   content: { type: "string", description: "마크다운 본문" },
                   tags: { type: "array", items: { type: "string" }, description: "태그 목록" },
                   readTimeMinutes: { type: "integer", description: "예상 읽기 시간(분)" },
+                  metaTitle: { type: "string", description: "SEO 메타 타이틀" },
+                  metaDescription: { type: "string", description: "SEO 메타 디스크립션" },
                 },
-                required: ["title", "subtitle", "excerpt", "content", "tags", "readTimeMinutes"],
+                required: ["title", "subtitle", "excerpt", "content", "tags", "readTimeMinutes", "metaTitle", "metaDescription"],
                 additionalProperties: false,
               },
             },
@@ -2210,6 +2241,9 @@ ${topicPrompt}
           author: "고감도 AI 에디터",
           readTimeMinutes: parsed.readTimeMinutes || 5,
           tags: parsed.tags || [],
+          metaTitle: parsed.metaTitle || null,
+          metaDescription: parsed.metaDescription || null,
+          isAiGenerated: true,
           featured: false,
           status: "draft",
         } as any);

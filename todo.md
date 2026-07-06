@@ -991,3 +991,15 @@
 
 ## 포트폴리오 이미지 자동 압축 (2026-07-06)
 - [x] 10MB 초과 이미지 업로드 시 자동 압축하여 10MB 미만으로 다운사이징 후 업로드
+
+## 인사이트 자동 콘텐츠 생성 시스템 (2026-07-06)
+- [x] DB 스키마: insight_articles 테이블 (초안/승인/게시 상태 관리) - 이미 존재
+- [x] 서버: AGENT cron 콜백 핸들러 (/api/scheduled/generateInsight)
+- [x] 서버: LLM 기반 콘텐츠 생성 로직 (SEO/AEO/GEO 키워드 최적화)
+- [x] 서버: AI 이미지 생성 연동 (커버 이미지 자동 생성)
+- [x] 관리자 UI: 초안 목록/미리보기/승인/반려/수정 페이지 - 이미 존재
+- [x] 공개 인사이트 페이지: 승인된 콘텐츠만 표시 + SEO 메타태그 - 이미 존재
+- [x] §5c 패치 적용 (manusTypes.ts + sdk.ts cron 인증 지원)
+- [x] aiGenerate 프롬프트 SEO/AEO/GEO 강화 (metaTitle, metaDescription, FAQ, CTA)
+- [x] Vitest 테스트 25개 통과
+- [ ] AGENT cron 등록: 화/금 주 2회 스케줄 (KST 기준) - 배포 후 등록 예정
