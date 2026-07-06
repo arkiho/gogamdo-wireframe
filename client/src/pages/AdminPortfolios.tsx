@@ -462,8 +462,27 @@ export default function AdminPortfolios() {
                             <Input value={form.client} onChange={e => setForm(f => ({ ...f, client: e.target.value }))} placeholder="고객사명" />
                           </div>
                           <div className="space-y-2">
-                            <Label>면적</Label>
-                            <Input value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))} placeholder="예: 330㎡" />
+                            <Label>면적 (평 입력)</Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                value={form.area ? (form.area.match(/(\d+)평/) ? form.area.match(/(\d+)평/)![1] : form.area.replace(/[^0-9.]/g, '')) : ''}
+                                onChange={e => {
+                                  const pyeong = e.target.value;
+                                  if (!pyeong || pyeong === '0') {
+                                    setForm(f => ({ ...f, area: '' }));
+                                  } else {
+                                    const py = parseFloat(pyeong);
+                                    const sqm = Math.round(py * 3.3058);
+                                    setForm(f => ({ ...f, area: `${sqm}m² (${Math.round(py)}평)` }));
+                                  }
+                                }}
+                                placeholder="평수 입력"
+                                className="w-24"
+                              />
+                              <span className="text-sm text-muted-foreground">평</span>
+                              {form.area && <span className="text-sm text-ink font-medium">→ {form.area}</span>}
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label>위치</Label>

@@ -1002,4 +1002,7 @@
 - [x] §5c 패치 적용 (manusTypes.ts + sdk.ts cron 인증 지원)
 - [x] aiGenerate 프롬프트 SEO/AEO/GEO 강화 (metaTitle, metaDescription, FAQ, CTA)
 - [x] Vitest 테스트 25개 통과
-- [ ] AGENT cron 등록: 화/금 주 2회 스케줄 (KST 기준) - 배포 후 등록 예정
+- [ ] AGENT cron 등록: 화/금 주 2회 스케줄 (KST 기준) - 협업 세션에서는 등록 불가, 독립 태스크에서 등록 필요
+
+## 포트폴리오 면적 입력 개선 (2026-07-06)
+- [x] 포트폴리오 생성/수정 시 면적을 평 단위로 입력하면 자동으로 "000m² (00평)" 형식으로 변환 표시

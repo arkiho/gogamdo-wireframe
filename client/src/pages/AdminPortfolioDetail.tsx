@@ -303,9 +303,27 @@ export default function AdminPortfolioDetail() {
                         className="w-full px-3 py-2 border border-border rounded-md text-sm" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">면적</label>
-                      <input type="text" value={editData.area} onChange={e => setEditData({ ...editData, area: e.target.value })}
-                        className="w-full px-3 py-2 border border-border rounded-md text-sm" />
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">면적 (평 입력)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={editData.area ? (editData.area.match(/(\d+)평/) ? editData.area.match(/(\d+)평/)![1] : editData.area.replace(/[^0-9.]/g, '')) : ''}
+                          onChange={e => {
+                            const pyeong = e.target.value;
+                            if (!pyeong || pyeong === '0') {
+                              setEditData({ ...editData, area: '' });
+                            } else {
+                              const py = parseFloat(pyeong);
+                              const sqm = Math.round(py * 3.3058);
+                              setEditData({ ...editData, area: `${sqm}m² (${Math.round(py)}평)` });
+                            }
+                          }}
+                          placeholder="평수"
+                          className="w-20 px-3 py-2 border border-border rounded-md text-sm"
+                        />
+                        <span className="text-xs text-muted-foreground">평</span>
+                        {editData.area && <span className="text-xs text-ink font-medium">→ {editData.area}</span>}
+                      </div>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">위치</label>
