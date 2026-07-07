@@ -98,6 +98,7 @@ export default function AdminPortfolios() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createFileInputRef = useRef<HTMLInputElement>(null);
   const [createPreviewImages, setCreatePreviewImages] = useState<{ file: File; url: string }[]>([]);
+  const [areaError, setAreaError] = useState("");
 
   // Queries
   const drafts = trpc.portfolio.list.useQuery(
@@ -465,11 +466,23 @@ export default function AdminPortfolios() {
                             <Label>면적 (평 입력)</Label>
                             <div className="flex items-center gap-2">
                               <Input
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
                                 value={form.area ? (form.area.match(/(\d+)평/) ? form.area.match(/(\d+)평/)![1] : form.area.replace(/[^0-9.]/g, '')) : ''}
                                 onChange={e => {
-                                  const pyeong = e.target.value;
-                                  if (!pyeong || pyeong === '0') {
+                                  const raw = e.target.value;
+                                  if (raw === '') {
+                                    setForm(f => ({ ...f, area: '' }));
+                                    setAreaError('');
+                                    return;
+                                  }
+                                  if (/[^0-9.]/.test(raw)) {
+                                    setAreaError('숫자만 입력 가능합니다');
+                                    return;
+                                  }
+                                  setAreaError('');
+                                  const pyeong = raw;
+                                  if (pyeong === '0') {
                                     setForm(f => ({ ...f, area: '' }));
                                   } else {
                                     const py = parseFloat(pyeong);
@@ -478,11 +491,12 @@ export default function AdminPortfolios() {
                                   }
                                 }}
                                 placeholder="평수 입력"
-                                className="w-24"
+                                className={`w-24 ${areaError ? 'border-red-500' : ''}`}
                               />
                               <span className="text-sm text-muted-foreground">평</span>
-                              {form.area && <span className="text-sm text-ink font-medium">→ {form.area}</span>}
+                              {form.area && !areaError && <span className="text-sm text-ink font-medium">→ {form.area}</span>}
                             </div>
+                            {areaError && <p className="text-xs text-red-500 mt-1">{areaError}</p>}
                           </div>
                           <div className="space-y-2">
                             <Label>위치</Label>

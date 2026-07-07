@@ -56,6 +56,7 @@ export default function AdminPortfolioDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const beforeFileInputRef = useRef<HTMLInputElement>(null);
   const [beforeUploadTargetId, setBeforeUploadTargetId] = useState<number | null>(null);
+  const [areaError, setAreaError] = useState("");
 
   const startEditing = useCallback(() => {
     if (!draft.data) return;
@@ -306,24 +307,36 @@ export default function AdminPortfolioDetail() {
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">면적 (평 입력)</label>
                       <div className="flex items-center gap-2">
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           value={editData.area ? (editData.area.match(/(\d+)평/) ? editData.area.match(/(\d+)평/)![1] : editData.area.replace(/[^0-9.]/g, '')) : ''}
                           onChange={e => {
-                            const pyeong = e.target.value;
-                            if (!pyeong || pyeong === '0') {
+                            const raw = e.target.value;
+                            if (raw === '') {
+                              setEditData({ ...editData, area: '' });
+                              setAreaError('');
+                              return;
+                            }
+                            if (/[^0-9.]/.test(raw)) {
+                              setAreaError('숫자만 입력 가능합니다');
+                              return;
+                            }
+                            setAreaError('');
+                            if (raw === '0') {
                               setEditData({ ...editData, area: '' });
                             } else {
-                              const py = parseFloat(pyeong);
+                              const py = parseFloat(raw);
                               const sqm = Math.round(py * 3.3058);
                               setEditData({ ...editData, area: `${sqm}m² (${Math.round(py)}평)` });
                             }
                           }}
                           placeholder="평수"
-                          className="w-20 px-3 py-2 border border-border rounded-md text-sm"
+                          className={`w-20 px-3 py-2 border rounded-md text-sm ${areaError ? 'border-red-500' : 'border-border'}`}
                         />
                         <span className="text-xs text-muted-foreground">평</span>
-                        {editData.area && <span className="text-xs text-ink font-medium">→ {editData.area}</span>}
+                        {editData.area && !areaError && <span className="text-xs text-ink font-medium">→ {editData.area}</span>}
                       </div>
+                      {areaError && <p className="text-xs text-red-500 mt-1">{areaError}</p>}
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">위치</label>
