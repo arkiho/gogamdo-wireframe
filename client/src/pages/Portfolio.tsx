@@ -34,7 +34,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   "산업시설": <Factory className="w-4 h-4" />,
   "병원": <HeartPulse className="w-4 h-4" />,
   "관급공사": <Shield className="w-4 h-4" />,
-  "리테일": <Store className="w-4 h-4" />,
+  "커머셜": <Store className="w-4 h-4" />,
 };
 
 // 대분류별 설명 텍스트
@@ -44,7 +44,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   "산업시설": "제조 시설, 스마트 팩토리 등 산업 공간의 효율성과 안전성을 극대화하는 설계",
   "병원": "환자와 이용자의 심리적 안정을 고려한 치유적 의료 공간 디자인",
   "관급공사": "공공기관, 교육시설 등 공공성과 기능성을 겸비한 공간 설계",
-  "리테일": "매장, F&B, 코워킹 등 고객 경험을 극대화하는 상업 공간 설계",
+  "커머셜": "매장, F&B, 코워킹 등 고객 경험을 극대화하는 상업 공간 설계",
 };
 
 // Unified project type for display

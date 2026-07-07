@@ -55,7 +55,7 @@ function formatDate(d: Date | string | null) {
 }
 
 const CATEGORY_OPTIONS = [
-  "오피스", "산업시설", "병원", "관급공사", "리테일",
+  "오피스", "산업시설", "병원", "관급공사", "커머셜",
 ];
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {

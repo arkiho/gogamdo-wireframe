@@ -18,7 +18,7 @@ export const MAJOR_CATEGORIES = [
   "산업시설",
   "병원",
   "관급공사",
-  "리테일",
+  "커머셜",
 ] as const;
 
 export type MajorCategory = (typeof MAJOR_CATEGORIES)[number];
@@ -31,10 +31,10 @@ export const CATEGORY_MAP: Record<string, MajorCategory> = {
   "글로벌 기업 오피스": "오피스",
   "IT 오피스": "오피스",
   "오피스": "오피스",
-  "상업공간": "리테일",
-  "코워킹 스페이스": "리테일",
-  "F&B": "리테일",
-  "리테일": "리테일",
+  "상업공간": "커머셜",
+  "코워킹 스페이스": "커머셜",
+  "F&B": "커머셜",
+  "커머셜": "커머셜",
   "헬스케어 오피스": "병원",
   "병원": "병원",
   "클리닉": "병원",
