@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE portfolio_drafts SET category = '커머셜' WHERE category = '리테일';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute UPDATE portfolio_drafts SET category = '커머셜' WHERE category = '리테일';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1778
+}

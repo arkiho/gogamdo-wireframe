@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, title, category FROM portfolio_drafts WHERE category = '리테일';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, category FROM portfolio_drafts WHERE category = '리테일';",
+  "rows": [
+    {
+      "id": "5",
+      "title": "THE PAPER LAB",
+      "category": "리테일"
+    },
+    {
+      "id": "720001",
+      "title": "G Gallery",
+      "category": "리테일"
+    },
+    {
+      "id": "840001",
+      "title": "명장시대(김해)",
+      "category": "리테일"
+    },
+    {
+      "id": "870001",
+      "title": "명장시대 (동탄점)",
+      "category": "리테일"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tcategory\n5\tTHE PAPER LAB\t리테일\n720001\tG Gallery\t리테일\n840001\t명장시대(김해)\t리테일\n870001\t명장시대 (동탄점)\t리테일\n",
+  "stderr": "",
+  "execution_time_ms": 3325
+}

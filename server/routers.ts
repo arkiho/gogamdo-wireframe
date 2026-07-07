@@ -2238,7 +2238,7 @@ ${topicPrompt}
           excerpt: parsed.excerpt,
           content: parsed.content,
           coverImageUrl: coverImageUrl || null,
-          author: "고감도 AI 에디터",
+          author: "고감도",
           readTimeMinutes: parsed.readTimeMinutes || 5,
           tags: parsed.tags || [],
           metaTitle: parsed.metaTitle || null,

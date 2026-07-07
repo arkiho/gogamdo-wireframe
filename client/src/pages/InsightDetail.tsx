@@ -153,7 +153,7 @@ export default function InsightDetail() {
                 {(article.author || "고감도")[0]}
               </div>
               <div>
-                <p className="text-sm font-medium text-ink">{article.author || "고감도 에디터"}</p>
+                <p className="text-sm font-medium text-ink">{article.author || "고감도"}</p>
                 <p className="text-xs text-muted-foreground">(주)고감도 인테리어</p>
               </div>
             </div>
@@ -205,13 +205,7 @@ export default function InsightDetail() {
           </div>
 
           {/* AI 작성 표시 */}
-          {(article.author === "고감도 AI 에디터" || (article as any).isAiGenerated) && (
-            <div className="mt-8 pt-4 border-t border-border/30">
-              <p className="text-xs text-muted-foreground/60 italic">
-                AI가 함께 만들었어요 ✨
-              </p>
-            </div>
-          )}
+
         </div>
       </motion.section>
 
