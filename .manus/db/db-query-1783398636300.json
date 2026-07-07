@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO portfolio_drafts (title, projectName, category, client, area, location, duration, description, tags, status, publishedAt, sortOrder) VALUES ('허시드', '허시드 본사 오피스', '사무실 인테리어', '(주)허시드', '250㎡ (76평)', '서울 강남구', '8주', 'IT 스타트업 허시드의 새로운 오피스 공간을 설계하였습니다. 개방형 업무 공간과 집중 부스를 조화롭게 배치하여 협업과 집중을 동시에 지원하는 하이브리드 워크 환경을 구현하였습니다. 자연광을 최대한 끌어들이는 유리 파티션과 식물을 활용한 바이오필릭 요소가 공간에 생기를 더합니다.', '[\"공간 기획\",\"인테리어 설계\",\"가구 배치\",\"조명 설계\",\"시공 관리\"]', 'published', NOW(), 10), ('제조시설 리모델링', '스마트 팩토리 오피스', '산업시설', '비공개', '600㎡ (181평)', '경기도 화성시', '16주', '기존 제조 시설을 현대적인 스마트 팩토리 오피스로 리모델링하였습니다. 생산 라인과 사무 공간이 유기적으로 연결되는 하이브리드 공간을 구현하였습니다. 높은 천장고를 살린 로프트 스타일이 산업 공간의 매력을 극대화합니다.', '[\"공간 기획\",\"구조 보강\",\"인테리어 설계\",\"설비 이전\",\"시공 관리\"]', 'published', NOW(), 11);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute INSERT INTO portfolio_drafts (title, projectName, category, client, area, location, duration, description, tags, status, publishedAt, sortOrder) VALUES ('허시드', '허시드 본사 오피스', '사무실 인테리어', '(주)허시드', '250㎡ (76평)', '서울 강남구', '8주', 'IT 스타트업 허시드의 새로운 오피스 공간을 설계하였습니다. 개방형 업무 공간과 집중 부스를 조화롭게 배치하여 협업과 집중을 동시에 지원하는 하이브리드 워크 환경을 구현하였습니다. 자연광을 최대한 끌어들이는 유리 파티션과 식물을 활용한 바이오필릭 요소가 공간에 생기를 더합니다.', '[\"공간 기획\",\"인테리어 설계\",\"가구 배치\",\"조명 설계\",\"시공 관리\"]', 'published', NOW(), 10), ('제조시설 리모델링', '스마트 팩토리 오피스', '산업시설', '비공개', '600㎡ (181평)', '경기도 화성시', '16주', '기존 제조 시설을 현대적인 스마트 팩토리 오피스로 리모델링하였습니다. 생산 라인과 사무 공간이 유기적으로 연결되는 하이브리드 공간을 구현하였습니다. 높은 천장고를 살린 로프트 스타일이 산업 공간의 매력을 극대화합니다.', '[\"공간 기획\",\"구조 보강\",\"인테리어 설계\",\"설비 이전\",\"시공 관리\"]', 'published', NOW(), 11);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1791
+}

@@ -1,0 +1,9 @@
+{
+  "query": "SELECT id, title, status, category, client, createdAt FROM portfolio_drafts WHERE title LIKE '%제조%' OR title LIKE '%리모델링%' OR title LIKE '%허시드%' OR title LIKE '%HUSHD%' OR title LIKE '%hushd%' OR client LIKE '%허시드%' ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, status, category, client, createdAt FROM portfolio_drafts WHERE title LIKE '%제조%' OR title LIKE '%리모델링%' OR title LIKE '%허시드%' OR title LIKE '%HUSHD%' OR title LIKE '%hushd%' OR client LIKE '%허시드%' ORDER BY id;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1819
+}

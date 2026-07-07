@@ -3,14 +3,14 @@
  * Neurodesign: Social proof, before/after contrast
  * Sections: Hero → Filter (대분류 + 세부) → Project Grid → CTA
  * 
- * 정적 프로젝트(PROJECTS)와 DB에서 게시된 포트폴리오를 합쳐서 표시
+ * DB에서 게시된 포트폴리오만 표시 (정적 데이터 제거됨)
  */
 
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight, Building2, Store, HeartPulse, Factory, Shield, Phone } from "lucide-react";
-import { PROJECTS, MAJOR_CATEGORIES, CATEGORY_MAP, type MajorCategory } from "@/lib/images";
+import { MAJOR_CATEGORIES, CATEGORY_MAP, type MajorCategory } from "@/lib/images";
 import { trpc } from "@/lib/trpc";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
@@ -57,7 +57,7 @@ type DisplayProject = {
   year: string;
   image: string;
   href: string;
-  source: "static" | "db";
+  source: "db";
 };
 
 export default function Portfolio() {
@@ -69,23 +69,11 @@ export default function Portfolio() {
     staleTime: 60_000,
   });
 
-  // Merge static + DB projects
+  // DB 데이터만 사용 (정적 데이터 제거됨)
   const allProjects = useMemo<DisplayProject[]>(() => {
-    const staticProjects: DisplayProject[] = PROJECTS.map(p => ({
-      id: `static-${p.slug}`,
-      name: p.name,
-      category: p.category,
-      majorCategory: p.majorCategory,
-      area: p.area.split(" ")[0],
-      year: p.year,
-      image: p.image,
-      href: `/portfolio/${p.slug}`,
-      source: "static" as const,
-    }));
-
     const dbProjects: DisplayProject[] = (publishedPortfolios.data || []).map((p: any) => {
       const cat = p.category || "기타";
-      const major = CATEGORY_MAP[cat] || "사무 공간";
+      const major = CATEGORY_MAP[cat] || "오피스";
       return {
         id: `db-${p.id}`,
         name: p.title,
@@ -99,8 +87,7 @@ export default function Portfolio() {
       };
     });
 
-    // DB projects first (newest), then static
-    return [...dbProjects, ...staticProjects];
+    return dbProjects;
   }, [publishedPortfolios.data]);
 
   // 현재 대분류에 속하는 세부 카테고리 목록 (실제 프로젝트가 있는 것만)
@@ -109,7 +96,7 @@ export default function Portfolio() {
     const subsInMajor = allProjects
       .filter(p => p.majorCategory === activeMajor)
       .map(p => p.category);
-    return [...new Set(subsInMajor)];
+    return Array.from(new Set(subsInMajor));
   }, [activeMajor, allProjects]);
 
   // 필터링 로직
@@ -296,11 +283,7 @@ export default function Portfolio() {
                       <div className="absolute bottom-3 right-3 w-8 h-8 bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <ArrowUpRight className="w-4 h-4 text-ink" />
                       </div>
-                      {project.source === "db" && (
-                        <div className="absolute top-3 left-3">
-                          <span className="px-2 py-0.5 text-[10px] font-medium bg-gold/90 text-ink rounded-full">NEW</span>
-                        </div>
-                      )}
+
                       {/* 대분류 배지 */}
                       <div className="absolute top-3 right-3">
                         <span className="px-2 py-0.5 text-[10px] font-medium bg-white/90 text-ink/70 backdrop-blur-sm">

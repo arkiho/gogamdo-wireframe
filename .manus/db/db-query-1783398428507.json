@@ -1,0 +1,70 @@
+{
+  "query": "SELECT id, title, status, client FROM portfolio_drafts ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, status, client FROM portfolio_drafts ORDER BY id;",
+  "rows": [
+    {
+      "id": "2",
+      "title": "휴시드 본사 오피스 신설",
+      "status": "published",
+      "client": "(주)휴시드"
+    },
+    {
+      "id": "3",
+      "title": "LAB543",
+      "status": "published",
+      "client": "(주)LAB543"
+    },
+    {
+      "id": "5",
+      "title": "THE PAPER LAB",
+      "status": "published",
+      "client": "(주)페이퍼랩"
+    },
+    {
+      "id": "6",
+      "title": "휴레이 포지티브 강남사옥 ",
+      "status": "published",
+      "client": "(주)휴레이"
+    },
+    {
+      "id": "8",
+      "title": "SBA/SETEC",
+      "status": "published",
+      "client": "서울산업진흥원(SBA)"
+    },
+    {
+      "id": "9",
+      "title": "기아 자동차 중국 염성 공장",
+      "status": "published",
+      "client": "기아자동차"
+    },
+    {
+      "id": "720001",
+      "title": "G Gallery",
+      "status": "published",
+      "client": "Samwon Paper"
+    },
+    {
+      "id": "780001",
+      "title": "MIT Soft 성수 오피스",
+      "status": "published",
+      "client": "MIT Soft"
+    },
+    {
+      "id": "810001",
+      "title": "고려신소재산업",
+      "status": "published",
+      "client": "고려신소재산업"
+    },
+    {
+      "id": "840001",
+      "title": "명장시대(김해)",
+      "status": "published",
+      "client": "명장시대"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tstatus\tclient\n2\t휴시드 본사 오피스 신설\tpublished\t(주)휴시드\n3\tLAB543\tpublished\t(주)LAB543\n5\tTHE PAPER LAB\tpublished\t(주)페이퍼랩\n6\t휴레이 포지티브 강남사옥 \tpublished\t(주)휴레이\n8\tSBA/SETEC\tpublished\t서울산업진흥원(SBA)\n9\t기아 자동차 중국 염성 공장\tpublished\t기아자동차\n720001\tG Gallery\tpublished\tSamwon Paper\n780001\tMIT Soft 성수 오피스\tpublished\tMIT Soft\n810001\t고려신소재산업\tpublished\t고려신소재산업\n840001\t명장시대(김해)\tpublished\t명장시대\n",
+  "stderr": "",
+  "execution_time_ms": 2692
+}

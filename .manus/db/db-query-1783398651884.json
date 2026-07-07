@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO draft_images (draftId, originalUrl, isCover, sortOrder, aiProcessed, processingStatus) VALUES (870002, 'https://files.manuscdn.com/user_upload_by_module/session_file/98603122/cNLDAtXkhNOXNqMK.jpg', 'yes', 0, 'no', 'done'), (870003, 'https://files.manuscdn.com/user_upload_by_module/session_file/98603122/OnwfoGXRjxDzWSjx.jpg', 'yes', 0, 'no', 'done');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute INSERT INTO draft_images (draftId, originalUrl, isCover, sortOrder, aiProcessed, processingStatus) VALUES (870002, 'https://files.manuscdn.com/user_upload_by_module/session_file/98603122/cNLDAtXkhNOXNqMK.jpg', 'yes', 0, 'no', 'done'), (870003, 'https://files.manuscdn.com/user_upload_by_module/session_file/98603122/OnwfoGXRjxDzWSjx.jpg', 'yes', 0, 'no', 'done');",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1765
+}

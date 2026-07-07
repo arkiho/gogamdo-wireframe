@@ -9,7 +9,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "wouter";
 import { motion, useInView } from "framer-motion";
 import { ArrowUpRight, ArrowRight, ChevronRight, Ruler, PenTool, HardHat, CheckCircle2, BarChart3, Database, LineChart, TrendingUp } from "lucide-react";
-import { HERO_IMG, PORTFOLIO } from "@/lib/images";
+import { HERO_IMG } from "@/lib/images";
 import { analytics } from "@/lib/analytics";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 import { trpc } from "@/lib/trpc";
@@ -160,46 +160,40 @@ function StatItem({ stat, delay }: { stat: typeof STATS[number]; delay: number }
 
 const FEATURED_PROJECTS = [
   {
-    slug: "huxeed",
     title: "허시드 본사",
     category: "오피스",
     area: "250㎡",
-    image: PORTFOLIO.huxeed?.image,
+    image: "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/cNLDAtXkhNOXNqMK.jpg",
   },
   {
-    slug: "lab543",
     title: "LAB543 크리에이티브 스튜디오",
     category: "오피스",
     area: "200㎡",
-    image: PORTFOLIO.lab543?.image,
+    image: "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/TqqvtcILYTQzDPFB.jpg",
   },
   {
-    slug: "paperlab",
     title: "페이퍼랩 R&D 센터",
-    category: "산업시설",
-    area: "450㎡",
-    image: PORTFOLIO.paperlab?.image,
+    category: "오피스",
+    area: "180㎡",
+    image: "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/koSHCzPKNjesEpDR.jpg",
   },
   {
-    slug: "huray",
     title: "휴레이 헬스케어 본사",
     category: "오피스",
-    area: "330㎡",
-    image: PORTFOLIO.huray?.image,
+    area: "300㎡",
+    image: "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/ncSJvUqhhpHRYEqT.jpg",
   },
   {
-    slug: "sbasetec",
     title: "SBA/SETEC 전시관",
     category: "관급공사",
-    area: "1,200㎡",
-    image: PORTFOLIO.sbasetec?.image,
+    area: "400㎡",
+    image: "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/FiNBIDGgyXtIAQQm.jpeg",
   },
   {
-    slug: "factoryremodel",
     title: "제조시설 리모델링",
     category: "산업시설",
-    area: "800㎡",
-    image: PORTFOLIO.factoryremodel?.image,
+    area: "600㎡",
+    image: "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/OnwfoGXRjxDzWSjx.jpg",
   },
 ];
 
@@ -609,7 +603,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURED_PROJECTS.map((project, i) => (
               <FadeUp key={i} delay={i * 0.08}>
-                <Link href={`/portfolio/${project.slug}`}>
+                <Link href="/portfolio">
                   <div className="group relative overflow-hidden aspect-[4/3] cursor-pointer">
                     <img
                       src={project.image}

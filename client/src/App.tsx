@@ -9,7 +9,8 @@ import Home from "./pages/Home";
 import About from "./pages/About";
 import Solutions from "./pages/Solutions";
 import Portfolio from "./pages/Portfolio";
-import ProjectDetail from "./pages/ProjectDetail";
+// ProjectDetail removed - all portfolios now use DB-based detail
+// import ProjectDetail from "./pages/ProjectDetail";
 import PortfolioDbDetail from "./pages/PortfolioDbDetail";
 import Estimator from "./pages/Estimator";
 import Insights from "./pages/Insights";
@@ -88,7 +89,7 @@ function PublicRouter() {
         <Route path="/portfolio" component={Portfolio} />
         <Route path="/portfolio/p/:id" component={PortfolioDbDetail} />
         <Route path="/review/:token" component={ReviewWrite} />
-        <Route path="/portfolio/:slug" component={ProjectDetail} />
+        {/* Static slug routes removed - all portfolios use /portfolio/p/:id */}
         <Route path="/estimator" component={Estimator} />
         <Route path="/insights" component={Insights} />
         <Route path="/insights/:slug" component={InsightDetail} />

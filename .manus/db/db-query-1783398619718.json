@@ -1,0 +1,118 @@
+{
+  "query": "SELECT di.draftId, di.originalUrl, di.isCover, di.sortOrder FROM draft_images di WHERE di.draftId IN (3, 5, 6, 8) ORDER BY di.draftId, di.sortOrder;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT di.draftId, di.originalUrl, di.isCover, di.sortOrder FROM draft_images di WHERE di.draftId IN (3, 5, 6, 8) ORDER BY di.draftId, di.sortOrder;",
+  "rows": [
+    {
+      "draftId": "3",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/SWMSkdiFxTRjCDUm.jpg",
+      "isCover": "yes",
+      "sortOrder": "0"
+    },
+    {
+      "draftId": "3",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/1783393871406-KakaoTalk_20220128_155452847_02.jpg",
+      "isCover": "no",
+      "sortOrder": "1"
+    },
+    {
+      "draftId": "3",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/1783393876683-KakaoTalk_20220128_155452847_08.jpg",
+      "isCover": "no",
+      "sortOrder": "2"
+    },
+    {
+      "draftId": "5",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/47t8ka4j.jpg",
+      "isCover": "no",
+      "sortOrder": "0"
+    },
+    {
+      "draftId": "5",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/rHfjyFTDcSrkgatl.jpg",
+      "isCover": "yes",
+      "sortOrder": "0"
+    },
+    {
+      "draftId": "5",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/q5vc734e.jpg",
+      "isCover": "no",
+      "sortOrder": "1"
+    },
+    {
+      "draftId": "5",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/eo2215m0.jpg",
+      "isCover": "no",
+      "sortOrder": "2"
+    },
+    {
+      "draftId": "5",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/x494z79d.jpg",
+      "isCover": "no",
+      "sortOrder": "3"
+    },
+    {
+      "draftId": "5",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/lpr0rxee.jpg",
+      "isCover": "no",
+      "sortOrder": "4"
+    },
+    {
+      "draftId": "5",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/5wmkk2oy.jpg",
+      "isCover": "no",
+      "sortOrder": "5"
+    },
+    {
+      "draftId": "5",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/u9o0mjhj.jpg",
+      "isCover": "no",
+      "sortOrder": "6"
+    },
+    {
+      "draftId": "6",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/hMQXezzhPfqUsbIv.jpg",
+      "isCover": "yes",
+      "sortOrder": "0"
+    },
+    {
+      "draftId": "6",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/zivldfkx.jpg",
+      "isCover": "no",
+      "sortOrder": "0"
+    },
+    {
+      "draftId": "6",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/oy9w3unv.jpg",
+      "isCover": "no",
+      "sortOrder": "1"
+    },
+    {
+      "draftId": "6",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/mkozzqn5.jpg",
+      "isCover": "no",
+      "sortOrder": "2"
+    },
+    {
+      "draftId": "6",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/aphqbr3w.jpg",
+      "isCover": "no",
+      "sortOrder": "3"
+    },
+    {
+      "draftId": "6",
+      "originalUrl": "https://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/69ysz7nm.jpg",
+      "isCover": "no",
+      "sortOrder": "4"
+    },
+    {
+      "draftId": "8",
+      "originalUrl": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/lKcbAotDgZZIksHh.jpeg",
+      "isCover": "yes",
+      "sortOrder": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "draftId\toriginalUrl\tisCover\tsortOrder\n3\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/SWMSkdiFxTRjCDUm.jpg\tyes\t0\n3\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/1783393871406-KakaoTalk_20220128_155452847_02.jpg\tno\t1\n3\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/1783393876683-KakaoTalk_20220128_155452847_08.jpg\tno\t2\n5\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/47t8ka4j.jpg\tno\t0\n5\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/rHfjyFTDcSrkgatl.jpg\tyes\t0\n5\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/q5vc734e.jpg\tno\t1\n5\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/eo2215m0.jpg\tno\t2\n5\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/x494z79d.jpg\tno\t3\n5\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/lpr0rxee.jpg\tno\t4\n5\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/5wmkk2oy.jpg\tno\t5\n5\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/5/u9o0mjhj.jpg\tno\t6\n6\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/hMQXezzhPfqUsbIv.jpg\tyes\t0\n6\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/zivldfkx.jpg\tno\t0\n6\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/oy9w3unv.jpg\tno\t1\n6\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/mkozzqn5.jpg\tno\t2\n6\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/aphqbr3w.jpg\tno\t3\n6\thttps://d2xsxph8kpxj0f.cloudfront.net/98603122/inVH3wtLGFa5DdYEVu2HqP/portfolio/6/69ysz7nm.jpg\tno\t4\n8\thttps://files.manuscdn.com/user_upload_by_module/session_file/98603122/lKcbAotDgZZIksHh.jpeg\tyes\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1783
+}

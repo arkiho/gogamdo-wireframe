@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, title, status, category, client, created_at FROM portfolio_drafts WHERE title LIKE '%제조시설%' OR title LIKE '%SBA%' OR title LIKE '%SETEC%' OR title LIKE '%휴레이%' OR title LIKE '%페이퍼랩%' OR title LIKE '%LAB543%' OR title LIKE '%허시드%' OR client LIKE '%SBA%' OR client LIKE '%SETEC%' OR client LIKE '%휴레이%' OR client LIKE '%페이퍼랩%' OR client LIKE '%LAB543%' OR client LIKE '%허시드%' ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, status, category, client, created_at FROM portfolio_drafts WHERE title LIKE '%제조시설%' OR title LIKE '%SBA%' OR title LIKE '%SETEC%' OR title LIKE '%휴레이%' OR title LIKE '%페이퍼랩%' OR title LIKE '%LAB543%' OR title LIKE '%허시드%' OR client LIKE '%SBA%' OR client LIKE '%SETEC%' OR client LIKE '%휴레이%' OR client LIKE '%페이퍼랩%' OR client LIKE '%LAB543%' OR client LIKE '%허시드%' ORDER BY id;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'created_at' in 'field list'"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "query": "SELECT id, title, status, category, client, createdAt FROM portfolio_drafts WHERE title LIKE '%제조시설%' OR title LIKE '%SBA%' OR title LIKE '%SETEC%' OR title LIKE '%휴레이%' OR title LIKE '%페이퍼랩%' OR title LIKE '%LAB543%' OR title LIKE '%허시드%' OR client LIKE '%SBA%' OR client LIKE '%SETEC%' OR client LIKE '%휴레이%' OR client LIKE '%페이퍼랩%' OR client LIKE '%LAB543%' OR client LIKE '%허시드%' ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ad4SRfBkUk6wR8a.a1b0714785be --database inVH3wtLGFa5DdYEVu2HqP --execute SELECT id, title, status, category, client, createdAt FROM portfolio_drafts WHERE title LIKE '%제조시설%' OR title LIKE '%SBA%' OR title LIKE '%SETEC%' OR title LIKE '%휴레이%' OR title LIKE '%페이퍼랩%' OR title LIKE '%LAB543%' OR title LIKE '%허시드%' OR client LIKE '%SBA%' OR client LIKE '%SETEC%' OR client LIKE '%휴레이%' OR client LIKE '%페이퍼랩%' OR client LIKE '%LAB543%' OR client LIKE '%허시드%' ORDER BY id;",
+  "rows": [
+    {
+      "id": "3",
+      "title": "LAB543",
+      "status": "published",
+      "category": "크리에이티브 스튜디오",
+      "client": "(주)LAB543",
+      "createdAt": "2026-02-14 09:13:44"
+    },
+    {
+      "id": "5",
+      "title": "THE PAPER LAB",
+      "status": "published",
+      "category": "리테일",
+      "client": "(주)페이퍼랩",
+      "createdAt": "2026-02-14 09:13:45"
+    },
+    {
+      "id": "6",
+      "title": "휴레이 포지티브 강남사옥 ",
+      "status": "published",
+      "category": "오피스",
+      "client": "(주)휴레이",
+      "createdAt": "2026-02-14 09:13:46"
+    },
+    {
+      "id": "8",
+      "title": "SBA/SETEC",
+      "status": "published",
+      "category": "공공기관",
+      "client": "서울산업진흥원(SBA)",
+      "createdAt": "2026-02-14 09:13:47"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tstatus\tcategory\tclient\tcreatedAt\n3\tLAB543\tpublished\t크리에이티브 스튜디오\t(주)LAB543\t2026-02-14 09:13:44\n5\tTHE PAPER LAB\tpublished\t리테일\t(주)페이퍼랩\t2026-02-14 09:13:45\n6\t휴레이 포지티브 강남사옥 \tpublished\t오피스\t(주)휴레이\t2026-02-14 09:13:46\n8\tSBA/SETEC\tpublished\t공공기관\t서울산업진흥원(SBA)\t2026-02-14 09:13:47\n",
+  "stderr": "",
+  "execution_time_ms": 1764
+}
