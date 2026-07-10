@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { storagePut } from "../storage";
 import sensorApiRouter from "../routers/sensorApi";
 import { generateInsightHandler } from "../routers/scheduledInsight";
+import sitemapRouter from "../routers/sitemap";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -101,6 +102,9 @@ async function startServer() {
         <p>잠시 후 다시 시도해주세요.</p></body></html>`);
     }
   });
+
+  // Dynamic sitemap.xml and robots.txt
+  app.use(sitemapRouter);
 
   // Scheduled cron callbacks (must be before tRPC middleware)
   app.post("/api/scheduled/generateInsight", generateInsightHandler);

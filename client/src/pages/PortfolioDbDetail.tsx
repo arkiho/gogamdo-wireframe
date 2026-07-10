@@ -5,6 +5,7 @@
 
 import { trpc } from "@/lib/trpc";
 import { useParams, Link } from "wouter";
+import SEOHead from "@/components/SEOHead";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -68,6 +69,13 @@ export default function PortfolioDbDetail() {
 
   return (
     <>
+      <SEOHead
+        title={`${project.title} | 고객 사례`}
+        description={`${project.title} - ${project.category || ''} ${project.area || ''} ${project.location || ''} 사무실 인테리어 시공 사례`}
+        path={`/portfolio/p/${id}`}
+        image={coverImage?.url}
+      />
+
       {/* Hero */}
       <section className="pt-28 lg:pt-36 pb-12 lg:pb-16">
         <div className="container">

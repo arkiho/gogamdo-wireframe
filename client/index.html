@@ -54,17 +54,18 @@
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "name": "고감도 KOKAMDO",
-      "alternateName": "(주)고감도",
+      "alternateName": ["(주)고감도", "KOKAMDO", "고감도 인테리어"],
       "url": "https://kokamdo.co.kr",
       "logo": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/YPvjJaHufGOhnzia.png",
       "image": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/YPvjJaHufGOhnzia.png",
-      "description": "12년 경력의 사무공간 인테리어 전문기업. 설계부터 시공까지 원스톱 솔루션 제공.",
+      "description": "1991년 창업, 35년 경력의 사무공간 인테리어 전문기업. 2,800건 이상 프로젝트 완료. 설계부터 시공까지 원스톱 솔루션. 여성기업 인증.",
       "telephone": "+82-2-3487-6133",
       "email": "contact@kokamdo.co.kr",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "강남구",
+        "streetAddress": "강남구 역삼동",
         "addressLocality": "서울특별시",
+        "postalCode": "06232",
         "addressCountry": "KR"
       },
       "geo": {
@@ -79,18 +80,27 @@
         "closes": "18:00"
       },
       "priceRange": "₩₩₩",
-      "areaServed": {
-        "@type": "Country",
-        "name": "대한민국"
-      },
-      "serviceType": ["사무실 인테리어", "상업공간 설계", "리모델링", "가구 솔루션"],
+      "areaServed": [
+        {"@type": "City", "name": "서울"},
+        {"@type": "City", "name": "경기"},
+        {"@type": "City", "name": "인천"},
+        {"@type": "Country", "name": "대한민국"}
+      ],
+      "serviceType": ["사무실 인테리어", "오피스 인테리어", "상업공간 설계", "리모델링", "가구 솔루션", "산업시설 인테리어"],
+      "foundingDate": "1991",
       "sameAs": [
         "https://www.kokamdo.co.kr"
       ],
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "reviewCount": "150"
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "인테리어 서비스",
+        "itemListElement": [
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "사무실 인테리어 설계"}},
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "3D 렌더링 시뮬레이션"}},
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "시공 관리"}},
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "데이터 기반 공간 컨설팅"}},
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "AI 예상 견적"}}
+        ]
       }
     }
     </script>
@@ -101,18 +111,22 @@
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "고감도 KOKAMDO",
+      "legalName": "주식회사 고감도",
       "url": "https://kokamdo.co.kr",
       "logo": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/YPvjJaHufGOhnzia.png",
-      "foundingDate": "2014",
+      "foundingDate": "1991",
       "founders": [
-        {"@type": "Person", "name": "안향자", "jobTitle": "공동대표"},
-        {"@type": "Person", "name": "김기호", "jobTitle": "공동대표"}
+        {"@type": "Person", "name": "안향자", "jobTitle": "공동대표이사"},
+        {"@type": "Person", "name": "김기호", "jobTitle": "공동대표이사"}
       ],
       "numberOfEmployees": {
         "@type": "QuantitativeValue",
-        "value": "20-50"
+        "minValue": "20",
+        "maxValue": "50"
       },
-      "knowsAbout": ["사무실 인테리어", "공간 설계", "시공 관리", "3D 렌더링"]
+      "knowsAbout": ["사무실 인테리어", "오피스 인테리어", "공간 설계", "시공 관리", "3D 렌더링", "데이터 기반 설계", "업무환경 컨설팅"],
+      "award": ["여성기업 인증", "이노비즈 인증"],
+      "slogan": "공간이 달라지면 일하는 방식이 달라집니다"
     }
     </script>
 

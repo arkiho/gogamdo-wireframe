@@ -99,8 +99,45 @@ export default function InsightDetail() {
   return (
     <>
       <SEOHead
-        title={`${article.title} | 고감도 인사이트`}
+        title={`${article.title} | \uace0\uac10\ub3c4 \uc778\uc0ac\uc774\ud2b8`}
         description={article.excerpt}
+        path={`/insights/${slug}`}
+        type="article"
+      />
+
+      {/* Article JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "headline": article.title,
+            "description": article.excerpt,
+            "image": article.coverImage || undefined,
+            "datePublished": article.publishedAt || article.createdAt,
+            "dateModified": article.updatedAt || article.createdAt,
+            "author": {
+              "@type": "Organization",
+              "name": "\uace0\uac10\ub3c4 KOKAMDO",
+              "url": "https://kokamdo.co.kr"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "\uace0\uac10\ub3c4 KOKAMDO",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://files.manuscdn.com/user_upload_by_module/session_file/98603122/YPvjJaHufGOhnzia.png"
+              }
+            },
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": `https://kokamdo.co.kr/insights/${slug}`
+            },
+            "keywords": tags.join(", "),
+            "articleSection": CATEGORY_LABEL[article.category] || article.category
+          })
+        }}
       />
 
       {/* Back Navigation */}

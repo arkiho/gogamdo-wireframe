@@ -1013,3 +1013,10 @@
 - [x] Portfolio.tsx에서 정적 데이터 합치는 로직 제거, DB 데이터만 사용
 - [x] ProjectDetail.tsx에서 정적 데이터 참조 제거, DB 기반 상세 페이지로 전환 (/portfolio/p/:id 통합)
 - [ ] images.ts에서 PROJECTS 배열 제거 (이미지 URL 상수는 유지)
+
+## SEO/AEO/GEO 최적화 (2026-07-10)
+- [x] 구조화 데이터 JSON-LD 삽입 (LocalBusiness, Service, Article, FAQPage)
+- [x] 동적 sitemap.xml 생성 (포트폴리오, 인사이트 포함)
+- [x] robots.txt 최적화
+- [x] 모든 페이지 메타태그 강화 (title, description, OG, canonical)
+- [x] 인사이트 slug 기반 URL 구현 (/insights/:slug) - 이미 적용됨
