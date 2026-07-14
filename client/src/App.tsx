@@ -78,6 +78,8 @@ import WorkspaceInterview from "./pages/WorkspaceInterview";
 import WorkspaceReport from "./pages/WorkspaceReport";
 import AdminJourneyAnalytics from "./pages/AdminJourneyAnalytics";
 import PwaInstallBanner from "./components/PwaInstallBanner";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 
 function PublicRouter() {
   return (
@@ -102,6 +104,8 @@ function PublicRouter() {
         <Route path="/how-we-work" component={HowWeWork} />
         <Route path="/opsx" component={OpsXProcess} />
         <Route path="/contact" component={Contact} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
         {/* 고객 포털 (로그인 필요) */}
         <Route path="/portal" component={ClientPortal} />
         <Route path="/my" component={ClientPortal} />

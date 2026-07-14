@@ -47,6 +47,33 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
+// Known SPA routes that should serve index.html with 200
+const SPA_ROUTES = new Set([
+  "/", "/about", "/solutions", "/portfolio", "/contact",
+  "/estimator", "/insights", "/resources", "/faq",
+  "/how-we-work", "/opsx", "/ai-chat", "/ai-style", "/ai-redesign",
+  "/privacy", "/terms", "/portal", "/my", "/404", "/offline",
+  "/client/login", "/client/register", "/client/verify-email",
+  "/client/forgot-password", "/client/reset-password",
+  "/partner/login",
+  "/survey/workspace", "/survey/interview", "/survey/report",
+  "/staff/join", "/staff/pending",
+]);
+
+// Route prefixes that match dynamic segments (e.g. /portfolio/p/:id)
+const SPA_ROUTE_PREFIXES = [
+  "/portfolio/p/", "/insights/", "/review/", "/unsubscribe/",
+  "/my/project/", "/survey/",
+  "/admin", "/ops", "/partner",
+  "/employee",
+];
+
+function isSpaRoute(url: string): boolean {
+  const pathname = url.split("?")[0];
+  if (SPA_ROUTES.has(pathname)) return true;
+  return SPA_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 export function serveStatic(app: Express) {
   const distPath =
     process.env.NODE_ENV === "development"
@@ -60,8 +87,13 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // Serve index.html for known SPA routes; return 404 for unknown paths
+  app.use("*", (req, res) => {
+    const indexPath = path.resolve(distPath, "index.html");
+    if (isSpaRoute(req.originalUrl)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).sendFile(indexPath);
+    }
   });
 }

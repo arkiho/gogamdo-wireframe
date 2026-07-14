@@ -8,6 +8,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Phone, Mail, MapPin, Clock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { analytics } from "@/lib/analytics";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
@@ -48,6 +49,7 @@ const FAQS = [
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     company: "",
@@ -283,9 +285,22 @@ export default function Contact() {
                       />
                     </div>
 
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={privacyAgreed}
+                        onChange={(e) => setPrivacyAgreed(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-gold"
+                        required
+                      />
+                      <span className="text-xs text-ink/60 leading-relaxed">
+                        <Link href="/privacy" className="text-gold hover:underline" target="_blank">개인정보처리방침</Link>에 따라 이름, 이메일, 연락처 등 개인정보의 수집·이용에 동의합니다. (필수)
+                      </span>
+                    </label>
+
                     <button
                       type="submit"
-                      disabled={createInquiry.isPending}
+                      disabled={createInquiry.isPending || !privacyAgreed}
                       className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300 disabled:opacity-50"
                     >
                       {createInquiry.isPending ? "접수 중..." : "문의 보내기"}

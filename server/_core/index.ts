@@ -34,6 +34,17 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // Security headers
+  app.disable("x-powered-by");
+  app.use((_req, res, next) => {
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    next();
+  });
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -101,6 +112,19 @@ async function startServer() {
         <h2>❌ 오류가 발생했습니다</h2>
         <p>잠시 후 다시 시도해주세요.</p></body></html>`);
     }
+  });
+
+  // OG Image placeholder (replace with actual branded image later)
+  app.get("/og-image.jpg", (_req, res) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+      <rect width="1200" height="630" fill="#1a1a2e"/>
+      <text x="600" y="280" font-family="sans-serif" font-size="72" font-weight="bold" fill="#C8A96E" text-anchor="middle">KOKAMDO</text>
+      <text x="600" y="350" font-family="sans-serif" font-size="28" fill="#ffffff" text-anchor="middle">고감도 — 사무실 인테리어 설계·시공 전문기업</text>
+      <text x="600" y="400" font-family="sans-serif" font-size="20" fill="#999999" text-anchor="middle">공간이 달라지면 일하는 방식이 달라집니다</text>
+    </svg>`;
+    res.set("Content-Type", "image/svg+xml");
+    res.set("Cache-Control", "public, max-age=86400");
+    res.send(svg);
   });
 
   // Dynamic sitemap.xml and robots.txt
