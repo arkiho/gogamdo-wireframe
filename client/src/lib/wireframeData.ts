@@ -201,7 +201,7 @@ export const wireframePages: WirePage[] = [
         annotation: '본사 위치 지도 (네이버/카카오맵 API 연동). 주소, 연락처, 대중교통 안내.',
         children: [
           { id: 'map-embed', type: 'image', label: '지도 임베드 영역', width: 'w-full', annotation: '네이버/카카오맵 API' },
-          { id: 'map-info', type: 'text', label: '주소: 서울특별시 강남구\n전화: 02-3487-6133' },
+          { id: 'map-info', type: 'text', label: '주소: 서울시 광진구 동일로 12길 15\n전화: 02-3487-6133' },
         ]
       },
     ]

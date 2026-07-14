@@ -335,7 +335,7 @@ export default function Contact() {
                       <li className="flex items-start gap-3">
                         <MapPin className="w-4 h-4 text-gold mt-1 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-ink">서울특별시 강남구</p>
+                          <p className="text-sm font-medium text-ink">서울시 광진구 동일로 12길 15</p>
                           <p className="text-xs text-muted-foreground">상세 주소 안내</p>
                         </div>
                       </li>
