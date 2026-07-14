@@ -821,7 +821,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 연락처
               </h4>
               <ul className="space-y-2.5 text-sm text-white/40">
-                <li>서울특별시 강남구 역삼로 160</li>
+                <li>서울시 광진구 동일로 12길 15</li>
                 <li><a href="tel:02-3487-6133" className="hover:text-gold transition-colors">02-3487-6133</a></li>
                 <li><a href="mailto:contact@kokamdo.co.kr" className="hover:text-gold transition-colors">contact@kokamdo.co.kr</a></li>
               </ul>
@@ -834,7 +834,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="container py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-white/25 space-y-1">
               <p>&copy; 2026 (주)고감도. 공동대표 안향자·김기호. All rights reserved.</p>
-              <p>사업자등록번호: 220-86-44, 개인정보보호책임자: 김기호 (contact@kokamdo.co.kr)</p>
+              <p>사업자등록번호: 214-86-06932, 개인정보보호책임자: 김기호 (contact@kokamdo.co.kr)</p>
             </div>
             <div className="flex gap-6">
               <Link href="/privacy" className="text-xs text-white/25 hover:text-white/50 transition-colors">

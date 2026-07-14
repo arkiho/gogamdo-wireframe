@@ -137,7 +137,7 @@ export default function Privacy() {
 
           <div className="mt-16 pt-8 border-t border-border">
             <p className="text-xs text-ink/40">
-              (주)고감도 | 공동대표 안향자·김기호 | 서울특별시 강남구 역삼동 | 02-3487-6133 |{" "}
+              (주)고감도 | 공동대표 안향자·김기호 | 서울시 광진구 동일로 12길 15 | 02-3487-6133 |{" "}
               <a href="mailto:contact@kokamdo.co.kr" className="hover:text-ink/60">contact@kokamdo.co.kr</a>
             </p>
           </div>
