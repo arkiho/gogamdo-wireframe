@@ -38,8 +38,28 @@ function formatAmount(amount: number): string {
 }
 
 export default function OpsHome() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">로딩 중...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md px-6">
+          <h1 className="text-2xl font-bold">로그인 필요</h1>
+          <p className="text-muted-foreground text-sm">OpsX에 접근하려면 로그인이 필요합니다.</p>
+          <Button onClick={() => setLocation("/")}>홈으로 돌아가기</Button>
+        </div>
+      </div>
+    );
+  }
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "", code: "", clientName: "", clientContact: "",

@@ -25,6 +25,8 @@ const STATIC_PAGES = [
   { path: "/how-we-work", changefreq: "monthly", priority: "0.7" },
   { path: "/resources", changefreq: "monthly", priority: "0.6" },
   { path: "/contact", changefreq: "monthly", priority: "0.7" },
+  { path: "/privacy", changefreq: "yearly", priority: "0.3" },
+  { path: "/terms", changefreq: "yearly", priority: "0.3" },
 ];
 
 function formatDate(date: Date | string | null): string {

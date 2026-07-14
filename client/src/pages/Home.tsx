@@ -268,30 +268,28 @@ export default function Home() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-wrap gap-4"
+              className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4"
             >
-              {aiEnabled ? (
-                <Link href="/estimator" onClick={() => analytics.ctaClick("AI 견적", "hero")}>
-                  <span className="inline-flex items-center gap-2 px-7 py-3.5 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
-                    AI 예상 견적 받기
-                    <ArrowUpRight className="w-4 h-4" />
-                  </span>
-                </Link>
-              ) : (
-                <Link href="/contact" onClick={() => analytics.ctaClick("무료 상담", "hero")}>
-                  <span className="inline-flex items-center gap-2 px-7 py-3.5 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
-                    무료 상담 신청
-                    <ArrowUpRight className="w-4 h-4" />
-                  </span>
-                </Link>
-              )}
-              <Link href="/survey/workspace" onClick={() => analytics.ctaClick("업무환경 진단", "hero")}>
+              {/* 모바일: AI 견적 + 무료 상담 둘 다 표시 */}
+              <Link href="/estimator" onClick={() => analytics.ctaClick("AI 견적", "hero")}>
+                <span className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
+                  AI 예상 견적 받기
+                  <ArrowUpRight className="w-4 h-4" />
+                </span>
+              </Link>
+              <Link href="/contact" onClick={() => analytics.ctaClick("무료 상담", "hero")}>
+                <span className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3.5 border border-gold/60 text-gold font-semibold text-sm tracking-wide hover:bg-gold/10 transition-all duration-300">
+                  무료 상담 신청
+                  <ArrowUpRight className="w-4 h-4" />
+                </span>
+              </Link>
+              <Link href="/survey/workspace" onClick={() => analytics.ctaClick("업무환경 진단", "hero")} className="hidden sm:inline-flex">
                 <span className="inline-flex items-center gap-2 px-7 py-3.5 border border-gold/60 text-gold font-semibold text-sm tracking-wide hover:bg-gold/10 transition-all duration-300">
                   업무환경 진단
                   <BarChart3 className="w-4 h-4" />
                 </span>
               </Link>
-              <Link href="/solutions" onClick={() => analytics.ctaClick("솔루션", "hero")}>
+              <Link href="/solutions" onClick={() => analytics.ctaClick("솔루션", "hero")} className="hidden sm:inline-flex">
                 <span className="inline-flex items-center gap-2 px-7 py-3.5 border border-white/30 text-white font-medium text-sm tracking-wide hover:bg-white/10 transition-all duration-300">
                   솔루션 보기
                   <ArrowRight className="w-4 h-4" />
