@@ -139,14 +139,40 @@ export default function PortfolioDbDetail() {
       <section className="pb-16">
         <div className="container">
           <div className="grid lg:grid-cols-3 gap-12">
-            {/* Left: Description */}
-            <div className="lg:col-span-2">
+            {/* Left: Description + Challenge/Solution/Result */}
+            <div className="lg:col-span-2 space-y-10">
               <FadeUp>
                 <h2 className="font-heading text-2xl font-bold text-ink mb-6">프로젝트 개요</h2>
                 <p className="text-ink/70 leading-relaxed text-lg">
                   {project.aiDescription || project.description || "프로젝트 설명이 준비 중입니다."}
                 </p>
               </FadeUp>
+
+              {/* 과제 · 솔루션 · 성과 구조 */}
+              {(project.challenge || project.solution || project.result) && (
+                <FadeUp delay={0.15}>
+                  <div className="grid sm:grid-cols-3 gap-6">
+                    {project.challenge && (
+                      <div className="bg-red-50/50 border border-red-100 p-5">
+                        <div className="text-xs font-bold text-red-500 uppercase tracking-widest mb-3">과제</div>
+                        <p className="text-sm text-ink/70 leading-relaxed">{project.challenge}</p>
+                      </div>
+                    )}
+                    {project.solution && (
+                      <div className="bg-blue-50/50 border border-blue-100 p-5">
+                        <div className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-3">솔루션</div>
+                        <p className="text-sm text-ink/70 leading-relaxed">{project.solution}</p>
+                      </div>
+                    )}
+                    {project.result && (
+                      <div className="bg-green-50/50 border border-green-100 p-5">
+                        <div className="text-xs font-bold text-green-600 uppercase tracking-widest mb-3">성과</div>
+                        <p className="text-sm text-ink/70 leading-relaxed">{project.result}</p>
+                      </div>
+                    )}
+                  </div>
+                </FadeUp>
+              )}
             </div>
 
             {/* Right: Details */}

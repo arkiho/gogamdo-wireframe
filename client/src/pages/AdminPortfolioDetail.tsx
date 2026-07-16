@@ -353,6 +353,21 @@ export default function AdminPortfolioDetail() {
                       <textarea value={editData.description} onChange={e => setEditData({ ...editData, description: e.target.value })}
                         rows={4} className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
                     </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">과제 (고객의 요구사항/문제)</label>
+                      <textarea value={editData.challenge || ""} onChange={e => setEditData({ ...editData, challenge: e.target.value })}
+                        rows={2} placeholder="예: 노후화된 사무공간의 업무 효율 개선 필요" className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">솔루션 (고감도의 해결 방안)</label>
+                      <textarea value={editData.solution || ""} onChange={e => setEditData({ ...editData, solution: e.target.value })}
+                        rows={2} placeholder="예: 오픈 플랜 + 집중 부스 하이브리드 설계" className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">성과 (프로젝트 결과)</label>
+                      <textarea value={editData.result || ""} onChange={e => setEditData({ ...editData, result: e.target.value })}
+                        rows={2} placeholder="예: 직원 만족도 35% 향상, 공간 활용률 40% 개선" className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
+                    </div>
                   </>
                 ) : (
                   <>
