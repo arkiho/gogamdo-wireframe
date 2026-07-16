@@ -1682,13 +1682,6 @@ export async function updateUserRole(userId: number, role: "user" | "admin" | "m
   await db.update(users).set({ role }).where(eq(users.id, userId));
 }
 
-export async function getUserById(userId: number) {
-  const db = await getDb();
-  if (!db) return null;
-  const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  return rows[0] ?? null;
-}
-
 // ============================================================
 // 다운로드 로깅 (지적재산권 보호)
 // ============================================================
