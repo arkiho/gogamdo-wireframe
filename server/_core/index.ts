@@ -31,7 +31,120 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+async function ensureTables() {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    const mysql2 = await import("mysql2/promise");
+    const conn = await mysql2.createConnection(process.env.DATABASE_URL);
+    console.log("[DB] Ensuring tables exist...");
+
+    // Create tables if not exist (idempotent)
+    await conn.execute(`CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      openId VARCHAR(64) UNIQUE,
+      googleId VARCHAR(128) UNIQUE,
+      name TEXT,
+      email VARCHAR(320) UNIQUE,
+      passwordHash VARCHAR(256),
+      loginMethod VARCHAR(64),
+      role ENUM('user','admin','master') NOT NULL DEFAULT 'user',
+      department ENUM('design','construction','accounting','management','sales','none') DEFAULT 'none',
+      opsRole ENUM('pm','designer','site_manager','accountant','director','staff') DEFAULT 'staff',
+      phone VARCHAR(20),
+      isActive TINYINT NOT NULL DEFAULT 1,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      lastSignedIn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS inquiries (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL, company VARCHAR(200), email VARCHAR(320) NOT NULL,
+      phone VARCHAR(20), type VARCHAR(50), area VARCHAR(50), message TEXT NOT NULL,
+      status ENUM('new','contacted','quoted','closed') NOT NULL DEFAULT 'new',
+      notes TEXT, isDeleted TINYINT NOT NULL DEFAULT 0, deletedAt TIMESTAMP NULL, deletedBy VARCHAR(100), deleteReason TEXT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS subscribers (
+      id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(320) NOT NULL UNIQUE,
+      source VARCHAR(50) DEFAULT 'website', company VARCHAR(200),
+      isActive TINYINT NOT NULL DEFAULT 1, isDeleted TINYINT NOT NULL DEFAULT 0,
+      deletedAt TIMESTAMP NULL, deletedBy VARCHAR(100), deleteReason TEXT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS estimates (
+      id INT AUTO_INCREMENT PRIMARY KEY, spaceType VARCHAR(50), area DECIMAL(10,2),
+      grade VARCHAR(50), estimatedCost DECIMAL(15,2), minCost DECIMAL(15,2), maxCost DECIMAL(15,2),
+      resultJson JSON, isDeleted TINYINT NOT NULL DEFAULT 0, deletedAt TIMESTAMP NULL, deletedBy VARCHAR(100), deleteReason TEXT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS portfolio_drafts (
+      id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(300) NOT NULL, projectName VARCHAR(200),
+      category VARCHAR(100), client VARCHAR(200), area VARCHAR(50), location VARCHAR(200),
+      duration VARCHAR(100), description TEXT, aiDescription TEXT, challenge TEXT, solution TEXT, \`result\` TEXT,
+      tags JSON, sortOrder INT NOT NULL DEFAULT 0,
+      status ENUM('draft','review','published','archived') NOT NULL DEFAULT 'draft',
+      driveFolder VARCHAR(500), driveFolderId VARCHAR(200),
+      publishedAt TIMESTAMP NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS draft_images (
+      id INT AUTO_INCREMENT PRIMARY KEY, portfolioId INT NOT NULL, originalUrl TEXT NOT NULL,
+      processedUrl TEXT, thumbnailUrl TEXT, beforeUrl TEXT,
+      isCover ENUM('yes','no') NOT NULL DEFAULT 'no', sortOrder INT NOT NULL DEFAULT 0,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS insight_articles (
+      id INT AUTO_INCREMENT PRIMARY KEY, slug VARCHAR(300) NOT NULL UNIQUE, title VARCHAR(500) NOT NULL,
+      summary TEXT, content LONGTEXT, category VARCHAR(100), tags JSON, coverImage TEXT,
+      author VARCHAR(200) DEFAULT '고감도', readingTime INT DEFAULT 5,
+      status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
+      publishedAt TIMESTAMP NULL, viewCount INT NOT NULL DEFAULT 0,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+      id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(320) NOT NULL UNIQUE,
+      name VARCHAR(200), company VARCHAR(200), source VARCHAR(50) DEFAULT 'website',
+      status ENUM('active','unsubscribed','bounced') NOT NULL DEFAULT 'active',
+      unsubscribeToken VARCHAR(100) UNIQUE,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS newsletter_campaigns (
+      id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(500) NOT NULL, subject VARCHAR(500) NOT NULL,
+      content LONGTEXT, segmentId INT, status ENUM('draft','sent','failed') NOT NULL DEFAULT 'draft',
+      sentAt TIMESTAMP NULL, recipientCount INT NOT NULL DEFAULT 0,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS site_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, \`key\` VARCHAR(200) NOT NULL UNIQUE, value JSON,
+      updatedBy INT, createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS announcements (
+      id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(300) NOT NULL, content TEXT,
+      type ENUM('info','warning','success','error') NOT NULL DEFAULT 'info',
+      isActive TINYINT NOT NULL DEFAULT 1, isDeleted TINYINT NOT NULL DEFAULT 0,
+      deletedAt TIMESTAMP NULL, deletedBy VARCHAR(100), deleteReason TEXT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await conn.end();
+    console.log("[DB] Tables ensured successfully.");
+  } catch (err) {
+    console.warn("[DB] Table creation warning:", err);
+  }
+}
+
 async function startServer() {
+  await ensureTables();
   const app = express();
   const server = createServer(app);
 
