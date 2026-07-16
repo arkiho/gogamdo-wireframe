@@ -144,7 +144,6 @@ async function ensureTables() {
 }
 
 async function startServer() {
-  await ensureTables();
   const app = express();
   const server = createServer(app);
 
@@ -273,6 +272,8 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    // Run table creation in background after server is up
+    ensureTables().catch((err) => console.warn("[DB] Background migration failed:", err));
   });
 }
 
