@@ -23,7 +23,7 @@ class SDKServer {
   }
 
   private getSessionSecret() {
-    const secret = ENV.cookieSecret;
+    const secret = ENV.cookieSecret || "kokamdo-fallback-secret-key-change-me";
     return new TextEncoder().encode(secret);
   }
 
@@ -49,9 +49,7 @@ class SDKServer {
   async verifySession(
     cookieValue: string | undefined | null
   ): Promise<SessionPayload | null> {
-    if (!cookieValue) {
-      return null;
-    }
+    if (!cookieValue) return null;
 
     try {
       const secretKey = this.getSessionSecret();
@@ -79,8 +77,8 @@ class SDKServer {
         name: (name as string) || "",
         email: (email as string) || "",
       };
-    } catch (error) {
-      console.warn("[Auth] Session verification failed", String(error));
+    } catch {
+      // Invalid or expired session token — expected for unauthenticated users
       return null;
     }
   }
