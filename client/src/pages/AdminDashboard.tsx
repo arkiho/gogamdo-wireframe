@@ -156,7 +156,7 @@ export default function AdminDashboard() {
           <Logo className="w-32 h-8 mx-auto" color="#111" />
           <h1 className="font-heading text-2xl font-bold text-ink">관리자 로그인</h1>
           <p className="text-muted-foreground text-sm">관리자 대시보드에 접근하려면 로그인이 필요합니다.</p>
-          <Button onClick={() => { window.location.href = getLoginUrl(); }} className="bg-ink text-white hover:bg-ink/90">
+          <Button onClick={() => { window.location.href = "/auth/login"; }} className="bg-ink text-white hover:bg-ink/90">
             로그인
           </Button>
         </div>

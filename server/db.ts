@@ -19,10 +19,6 @@ export async function getDb() {
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot upsert user: database not available");
@@ -30,9 +26,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
+    const values: InsertUser = { ...user };
     const updateSet: Record<string, unknown> = {};
 
     const textFields = ["name", "email", "loginMethod"] as const;
@@ -41,28 +35,22 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     const assignNullable = (field: TextField) => {
       const value = user[field];
       if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
+      updateSet[field] = value ?? null;
     };
 
     textFields.forEach(assignNullable);
 
     if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
       updateSet.lastSignedIn = user.lastSignedIn;
     }
+
     // 마스터 이메일 자동 승격 (최초 가입 시만)
-    const MASTER_EMAIL = 'henrykkim@kokamdo.co.kr';
+    const MASTER_EMAIL = ENV.masterEmail || 'henrykkim@kokamdo.co.kr';
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.email?.toLowerCase() === MASTER_EMAIL.toLowerCase()) {
       values.role = 'master';
-      // updateSet에는 role을 넣지 않아 이미 등록된 사용자의 역할을 덮어쓰지 않음
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
     }
 
     if (!values.lastSignedIn) {
@@ -84,13 +72,29 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
 
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByGoogleId(googleId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 

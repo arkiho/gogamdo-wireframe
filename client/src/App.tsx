@@ -86,6 +86,9 @@ const AdminKpiOkr = lazy(() => import("./pages/AdminKpiOkr"));
 const AdminPipelineOverview = lazy(() => import("./pages/AdminPipelineOverview"));
 const AdminJourneyAnalytics = lazy(() => import("./pages/AdminJourneyAnalytics"));
 
+// Auth pages
+const AuthLogin = lazy(() => import("./pages/AuthLogin"));
+
 // Lazy-loaded misc pages
 const SensorApiDocs = lazy(() => import("./pages/SensorApiDocs"));
 const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
@@ -158,6 +161,8 @@ function Router() {
         <Route path="/client/forgot-password" component={ClientForgotPassword} />
         <Route path="/client/reset-password" component={ClientResetPassword} />
         <Route path="/client/dashboard" component={ClientSpaceDashboard} />
+        {/* 로그인 */}
+        <Route path="/auth/login" component={AuthLogin} />
         {/* 직원 및 협력사 인증 */}
         <Route path="/staff/pending-approval" component={StaffPendingApproval} />
         <Route path="/partner/login" component={PartnerLogin} />

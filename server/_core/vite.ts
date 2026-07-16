@@ -131,6 +131,7 @@ const SPA_ROUTES = new Set([
   "/privacy", "/terms", "/portal", "/my", "/404", "/offline",
   "/client/login", "/client/register", "/client/verify-email",
   "/client/forgot-password", "/client/reset-password",
+  "/auth/login",
   "/partner/login",
   "/survey/workspace", "/survey/interview", "/survey/report",
   "/staff/join", "/staff/pending",

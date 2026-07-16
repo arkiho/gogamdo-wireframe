@@ -699,7 +699,7 @@ export default function AdminPortfolios() {
 
       {/* Create Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>새 포트폴리오 생성</DialogTitle>
             <DialogDescription>프로젝트 정보를 입력하세요. 이미지는 생성 후 추가할 수 있습니다.</DialogDescription>
@@ -783,7 +783,7 @@ export default function AdminPortfolios() {
             />
           </div>
           </div>
-          <DialogFooter className="border-t pt-4 mt-2">
+          <DialogFooter className="border-t pt-4 mt-2 flex-shrink-0">
             <Button variant="outline" onClick={() => { setShowCreateDialog(false); createPreviewImages.forEach(img => URL.revokeObjectURL(img.url)); setCreatePreviewImages([]); }}>취소</Button>
             <Button onClick={handleCreate} disabled={createDraft.isPending || !form.title.trim()}>
               {createDraft.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
