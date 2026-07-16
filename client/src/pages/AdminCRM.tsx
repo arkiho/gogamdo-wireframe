@@ -324,10 +324,21 @@ function ClientsListView({ clients, searchQuery, setSearchQuery, onSelectClient 
                 className="bg-gold text-ink hover:bg-gold/90"
                 disabled={!form.companyName || !form.contactName || createClient.isPending}
                 onClick={async () => {
-                  await createClient.mutateAsync(form);
-                  setShowForm(false);
-                  setForm({ companyName: "", contactName: "", contactTitle: "", email: "", phone: "", industry: "", source: "website" });
-                }}
+                  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+                    toast.error("올바른 이메일 형식을 입력하세요."); return;
+                  }
+                  if (form.phone && !/^[\d\-+() ]{8,}$/.test(form.phone)) {
+                    toast.error("올바른 전화번호를 입력하세요."); return;
+                  }
+                  try {
+                    await createClient.mutateAsync(form);
+                    toast.success("고객이 등록되었습니다.");
+                    setShowForm(false);
+                    setForm({ companyName: "", contactName: "", contactTitle: "", email: "", phone: "", industry: "", source: "website" });
+                  } catch (err: any) {
+                    toast.error(`등록 실패: ${err.message}`);
+                  }
+                }
               >
                 {createClient.isPending ? "등록 중..." : "등록"}
               </Button>

@@ -336,6 +336,10 @@ export default function AdminNewsletter() {
                 <CardContent>
                   <form className="space-y-5" onSubmit={(e) => {
                     e.preventDefault();
+                    if (!segmentName.trim()) { toast.error("세그먼트 이름을 입력하세요."); return; }
+                    if (segmentSources.length === 0 && segmentTags.length === 0 && !segmentAfter && !segmentBefore && !segmentHasCompany) {
+                      if (!confirm("필터 조건이 없으면 전체 구독자가 대상이 됩니다. 계속하시겠습니까?")) return;
+                    }
                     createSegmentMutation.mutate({
                       name: segmentName,
                       description: segmentDesc || undefined,
@@ -633,7 +637,10 @@ export default function AdminNewsletter() {
                                   size="sm"
                                   onClick={() => {
                                     const targetLabel = targetSegment ? `"${targetSegment.name}" 세그먼트` : "전체";
-                                    if (confirm(`"${camp.title}" 캠페인을 ${targetLabel} 구독자에게 발송하시겠습니까?`)) {
+                                    const recipientCount = targetSegment
+                                      ? subscribers?.filter((s: any) => s.tags?.some((t: string) => targetSegment.filterTags?.includes(t))).length || 0
+                                      : subscribers?.length || 0;
+                                    if (confirm(`"${camp.title}" 캠페인을 ${targetLabel} 구독자 약 ${recipientCount}명에게 발송하시겠습니까?\n\n발송 후에는 취소할 수 없습니다.`)) {
                                       sendCampaignMutation.mutate({ campaignId: camp.id, origin: window.location.origin });
                                     }
                                   }}

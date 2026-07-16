@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
+import { toast } from "sonner";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,14 +65,17 @@ export default function AdminDashboard() {
   const [deleteTarget, setDeleteTarget] = useState<{ tableName: string; ids: number[] } | null>(null);
 
   const softDelete = trpc.deletion.softDelete.useMutation({
-    onSuccess: () => { inquiries.refetch(); subscribers.refetch(); estimates.refetch(); leadDownloads.refetch(); chatSessions.refetch(); styleRecs.refetch(); stats.refetch(); },
+    onSuccess: () => { inquiries.refetch(); subscribers.refetch(); estimates.refetch(); leadDownloads.refetch(); chatSessions.refetch(); styleRecs.refetch(); stats.refetch(); toast.success("삭제되었습니다."); },
+    onError: (err) => toast.error(`삭제 실패: ${err.message}`),
   });
   const bulkSoftDelete = trpc.deletion.bulkSoftDelete.useMutation({
     onSuccess: () => {
       inquiries.refetch(); subscribers.refetch(); estimates.refetch(); leadDownloads.refetch(); chatSessions.refetch(); styleRecs.refetch(); stats.refetch();
       setSelectedIds(prev => ({ ...prev, [deleteTarget?.tableName ?? ""]: new Set() }));
       setShowDeleteConfirm(false); setDeleteTarget(null); setDeleteReason("");
+      toast.success("일괄 삭제가 완료되었습니다.");
     },
+    onError: (err) => toast.error(`일괄 삭제 실패: ${err.message}`),
   });
 
   const toggleSelect = (tableName: string, id: number) => {

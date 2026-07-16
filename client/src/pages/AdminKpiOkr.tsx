@@ -179,11 +179,20 @@ export default function AdminKpiOkr() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input placeholder="직원 ID" type="number" onChange={e => setRecordForm(f => ({ ...f, userId: parseInt(e.target.value) || 0 }))} />
-                  <Input placeholder="기간 (예: 2026-Q1)" value={recordForm.period} onChange={e => setRecordForm(f => ({ ...f, period: e.target.value }))} />
-                  <Input placeholder="실적값" type="number" onChange={e => setRecordForm(f => ({ ...f, actualValue: parseInt(e.target.value) || 0 }))} />
+                  <Input placeholder="직원 ID" type="number" onChange={e => setRecordForm(f => ({ ...f, userId: parseInt(e.target.value) || 0 }))} required />
+                  <Input placeholder="기간 (예: 2026-Q1)" value={recordForm.period} onChange={e => setRecordForm(f => ({ ...f, period: e.target.value }))} required />
+                  <Input placeholder="실적값" type="number" onChange={e => setRecordForm(f => ({ ...f, actualValue: parseInt(e.target.value) || 0 }))} required />
                   <Textarea placeholder="비고" onChange={e => setRecordForm(f => ({ ...f, notes: e.target.value }))} />
-                  <Button className="w-full" onClick={() => recordKpi.mutate(recordForm)} disabled={recordKpi.isPending}>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      if (!recordForm.kpiDefinitionId) { toast.error("KPI를 선택하세요."); return; }
+                      if (!recordForm.userId) { toast.error("직원 ID를 입력하세요."); return; }
+                      if (!recordForm.period) { toast.error("기간을 입력하세요."); return; }
+                      recordKpi.mutate(recordForm);
+                    }}
+                    disabled={recordKpi.isPending}
+                  >
                     {recordKpi.isPending ? "기록 중..." : "실적 기록"}
                   </Button>
                 </div>
@@ -245,10 +254,11 @@ export default function AdminKpiOkr() {
                       {level === "company" ? "회사 목표" : level === "department" ? "부서 목표" : "개인 목표"}
                     </h4>
                     <div className="pl-6 space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        직원 대시보드에서 등록된 OKR이 여기에 집계됩니다.
-                        관리자는 각 직원의 OKR 진행률을 모니터링할 수 있습니다.
-                      </p>
+                      <div className="border border-dashed border-muted-foreground/30 rounded-md p-4 text-center">
+                        <p className="text-xs text-muted-foreground">
+                          아직 등록된 OKR이 없습니다. 직원 대시보드에서 OKR을 등록하면 이곳에 집계됩니다.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))}

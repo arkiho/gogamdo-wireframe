@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
+import { toast } from "sonner";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   DndContext,
@@ -109,31 +110,40 @@ export default function AdminPortfolios() {
   // Mutations
   const utils = trpc.useUtils();
   const createDraft = trpc.portfolio.create.useMutation({
-    onSuccess: () => { utils.portfolio.list.invalidate(); },
+    onSuccess: () => { utils.portfolio.list.invalidate(); toast.success("포트폴리오가 생성되었습니다."); },
+    onError: (err) => toast.error(`생성 실패: ${err.message}`),
   });
   const updateDraft = trpc.portfolio.update.useMutation({
-    onSuccess: () => { utils.portfolio.list.invalidate(); setEditingId(null); setForm(EMPTY_FORM); },
+    onSuccess: () => { utils.portfolio.list.invalidate(); setEditingId(null); setForm(EMPTY_FORM); toast.success("포트폴리오가 수정되었습니다."); },
+    onError: (err) => toast.error(`수정 실패: ${err.message}`),
   });
   const publishDraft = trpc.portfolio.publish.useMutation({
-    onSuccess: () => utils.portfolio.list.invalidate(),
+    onSuccess: () => { utils.portfolio.list.invalidate(); toast.success("포트폴리오가 게시되었습니다."); },
+    onError: (err) => toast.error(`게시 실패: ${err.message}`),
   });
   const archiveDraft = trpc.portfolio.archive.useMutation({
-    onSuccess: () => utils.portfolio.list.invalidate(),
+    onSuccess: () => { utils.portfolio.list.invalidate(); toast.success("포트폴리오가 보관 처리되었습니다."); },
+    onError: (err) => toast.error(`보관 실패: ${err.message}`),
   });
   const deleteDraft = trpc.portfolio.delete.useMutation({
-    onSuccess: () => { utils.portfolio.list.invalidate(); setDeleteConfirmId(null); },
+    onSuccess: () => { utils.portfolio.list.invalidate(); setDeleteConfirmId(null); toast.success("포트폴리오가 삭제되었습니다."); },
+    onError: (err) => toast.error(`삭제 실패: ${err.message}`),
   });
   const uploadImage = trpc.portfolio.uploadImage.useMutation({
-    onSuccess: () => { utils.portfolio.list.invalidate(); },
+    onSuccess: () => { utils.portfolio.list.invalidate(); toast.success("이미지가 업로드되었습니다."); },
+    onError: (err) => toast.error(`업로드 실패: ${err.message}`),
   });
   const deleteImage = trpc.portfolio.deleteImage.useMutation({
-    onSuccess: () => { utils.portfolio.list.invalidate(); },
+    onSuccess: () => { utils.portfolio.list.invalidate(); toast.success("이미지가 삭제되었습니다."); },
+    onError: (err) => toast.error(`이미지 삭제 실패: ${err.message}`),
   });
   const generateDesc = trpc.portfolio.generateDescription.useMutation({
-    onSuccess: () => utils.portfolio.list.invalidate(),
+    onSuccess: () => { utils.portfolio.list.invalidate(); toast.success("설명이 자동 생성되었습니다."); },
+    onError: (err) => toast.error(`설명 생성 실패: ${err.message}`),
   });
   const reorderDrafts = trpc.portfolio.reorder.useMutation({
-    onSuccess: () => utils.portfolio.list.invalidate(),
+    onSuccess: () => { utils.portfolio.list.invalidate(); toast.success("순서가 변경되었습니다."); },
+    onError: (err) => toast.error(`순서 변경 실패: ${err.message}`),
   });
 
   // DnD state
@@ -230,10 +240,12 @@ export default function AdminPortfolios() {
       let file = files[i];
       // 10MB 초과 시 자동 압축
       if (file.size > 10 * 1024 * 1024) {
+        toast.info(`${file.name}: 파일이 10MB를 초과하여 자동 압축 중...`);
         try {
           file = await compressImage(file);
+          toast.success(`${file.name}: 압축 완료`);
         } catch (err) {
-          alert(`${file.name}: 이미지 압축에 실패했습니다.`);
+          toast.error(`${file.name}: 이미지 압축에 실패했습니다.`);
           continue;
         }
       }
@@ -261,10 +273,12 @@ export default function AdminPortfolios() {
       let file = files[i];
       // 10MB 초과 시 자동 압축
       if (file.size > 10 * 1024 * 1024) {
+        toast.info(`${file.name}: 파일이 10MB를 초과하여 자동 압축 중...`);
         try {
           file = await compressImage(file);
+          toast.success(`${file.name}: 압축 완료`);
         } catch (err) {
-          alert(`${file.name}: 이미지 압축에 실패했습니다.`);
+          toast.error(`${file.name}: 이미지 압축에 실패했습니다.`);
           continue;
         }
       }
