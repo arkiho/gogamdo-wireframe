@@ -138,8 +138,8 @@ async function ensureTables() {
 
     await conn.end();
     console.log("[DB] Tables ensured successfully.");
-  } catch (err) {
-    console.warn("[DB] Table creation warning:", err);
+  } catch (err: any) {
+    console.warn("[DB] Table creation warning:", err?.message || "unknown error");
   }
 }
 
