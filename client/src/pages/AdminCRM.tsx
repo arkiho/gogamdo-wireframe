@@ -338,7 +338,7 @@ function ClientsListView({ clients, searchQuery, setSearchQuery, onSelectClient 
                   } catch (err: any) {
                     toast.error(`등록 실패: ${err.message}`);
                   }
-                }
+                }}
               >
                 {createClient.isPending ? "등록 중..." : "등록"}
               </Button>
