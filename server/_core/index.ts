@@ -34,8 +34,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function ensureTables() {
   if (!process.env.DATABASE_URL) return;
   try {
-    const mysql2 = await import("mysql2/promise");
-    const conn = await mysql2.createConnection(process.env.DATABASE_URL);
+    const { createConnection } = await import("mysql2/promise");
+    const conn = await createConnection(process.env.DATABASE_URL);
     console.log("[DB] Ensuring tables exist...");
 
     // Create tables if not exist (idempotent)
