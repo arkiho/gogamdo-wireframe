@@ -24,7 +24,7 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
     assignee: "", progress: "0", sortOrder: "0",
   });
 
-  const schedules = trpc.ops.schedule.list.useQuery({ projectId });
+  const schedules = trpc.ops.schedule.list.useQuery({ projectId: Number(projectId) });
   const createSchedule = trpc.ops.schedule.create.useMutation({
     onSuccess: () => {
       schedules.refetch();
@@ -48,12 +48,12 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
       return;
     }
     createSchedule.mutate({
-      projectId,
-      taskName: form.taskName,
+      projectId: Number(projectId),
+      name: form.taskName,
       category: form.category,
       startDate: form.startDate,
       endDate: form.endDate,
-      assignee: form.assignee || undefined,
+      assignedTo: form.assignee || undefined,
       progress: parseInt(form.progress) || 0,
       sortOrder: parseInt(form.sortOrder) || 0,
     });
@@ -139,24 +139,24 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
                 <tbody>
                   {schedules.data.map(s => (
                     <tr key={s.id} className="border-b hover:bg-accent/30">
-                      <td className="py-2.5 px-3 font-medium">{s.taskName}</td>
+                      <td className="py-2.5 px-3 font-medium">{s.name}</td>
                       <td className="py-2.5 px-3">
-                        <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[s.category] ?? s.category}</Badge>
+                        <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[s.category ?? ""] ?? s.category}</Badge>
                       </td>
                       <td className="py-2.5 px-3 text-muted-foreground">{s.startDate} ~ {s.endDate}</td>
-                      <td className="py-2.5 px-3">{s.assignee || "-"}</td>
+                      <td className="py-2.5 px-3">{s.assignedTo || "-"}</td>
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-muted rounded-full h-2">
                             <div
-                              className={`h-2 rounded-full transition-all ${s.progress === 100 ? "bg-green-500" : s.progress >= 50 ? "bg-blue-500" : "bg-amber-500"}`}
+                              className={`h-2 rounded-full transition-all ${(s.progress ?? 0) === 100 ? "bg-green-500" : (s.progress ?? 0) >= 50 ? "bg-blue-500" : "bg-amber-500"}`}
                               style={{ width: `${s.progress}%` }}
                             />
                           </div>
                           <span className="text-xs w-8 text-right">{s.progress}%</span>
                           <select
                             className="text-xs border rounded px-1 py-0.5"
-                            value={s.progress}
+                            value={s.progress ?? 0}
                             onChange={e => updateProgress.mutate({ id: s.id, progress: parseInt(e.target.value) })}
                           >
                             {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => (
@@ -177,25 +177,25 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
                 <div key={s.id} className="border rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-semibold text-sm">{s.taskName}</span>
-                      <Badge variant="outline" className="text-[10px]">{CATEGORY_LABELS[s.category] ?? s.category}</Badge>
+                      <span className="font-semibold text-sm">{s.name}</span>
+                      <Badge variant="outline" className="text-[10px]">{CATEGORY_LABELS[s.category ?? ""] ?? s.category}</Badge>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{s.startDate} ~ {s.endDate}</span>
-                    {s.assignee && <span className="flex items-center gap-1"><User className="w-3 h-3" />{s.assignee}</span>}
+                    {s.assignedTo && <span className="flex items-center gap-1"><User className="w-3 h-3" />{s.assignedTo}</span>}
                   </div>
                   {/* 진행률 바 + 드롭다운 */}
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-muted rounded-full h-2.5">
                       <div
-                        className={`h-2.5 rounded-full transition-all ${s.progress === 100 ? "bg-green-500" : s.progress >= 50 ? "bg-blue-500" : "bg-amber-500"}`}
+                        className={`h-2.5 rounded-full transition-all ${(s.progress ?? 0) === 100 ? "bg-green-500" : (s.progress ?? 0) >= 50 ? "bg-blue-500" : "bg-amber-500"}`}
                         style={{ width: `${s.progress}%` }}
                       />
                     </div>
                     <select
                       className="text-sm border rounded px-2 py-1.5 min-w-[70px] bg-background"
-                      value={s.progress}
+                      value={s.progress ?? 0}
                       onChange={e => updateProgress.mutate({ id: s.id, progress: parseInt(e.target.value) })}
                     >
                       {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => (

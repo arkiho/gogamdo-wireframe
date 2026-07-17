@@ -17,7 +17,7 @@ export default function WorkReportTab({ projectId }: { projectId: string }) {
     title: "", content: "", workerCount: "0", issues: "",
   });
 
-  const reports = trpc.ops.workReport.list.useQuery({ projectId });
+  const reports = trpc.ops.workReport.list.useQuery({ projectId: Number(projectId) });
   const createReport = trpc.ops.workReport.create.useMutation({
     onSuccess: () => {
       reports.refetch();
@@ -34,12 +34,12 @@ export default function WorkReportTab({ projectId }: { projectId: string }) {
       return;
     }
     createReport.mutate({
-      projectId,
+      projectId: Number(projectId),
       reportDate: form.reportDate,
       title: form.title,
       content: form.content,
-      workerCount: parseInt(form.workerCount) || 0,
-      issues: form.issues || undefined,
+      workersCount: parseInt(form.workerCount) || 0,
+      safetyIssues: form.issues || undefined,
     });
   };
 
@@ -105,13 +105,13 @@ export default function WorkReportTab({ projectId }: { projectId: string }) {
                     </Badge>
                   </div>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Users className="w-3 h-3" />투입 {r.workerCount}명
+                    <Users className="w-3 h-3" />투입 {r.workersCount}명
                   </span>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 sm:line-clamp-none">{r.content}</p>
-                {r.issues && (
+                {r.safetyIssues && (
                   <div className="mt-2 p-2 bg-red-50 rounded text-xs sm:text-sm text-red-700">
-                    ⚠️ {r.issues}
+                    ⚠️ {r.safetyIssues}
                   </div>
                 )}
               </div>

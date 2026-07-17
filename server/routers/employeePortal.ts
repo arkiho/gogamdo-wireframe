@@ -32,9 +32,19 @@ export const employeePortalRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const result = await createDailySiteReport({
-        ...input,
-        userId: ctx.user.id,
-        userName: ctx.user.name || "Unknown",
+        projectId: input.projectId,
+        authorId: ctx.user.id,
+        reportDate: new Date(input.reportDate).toISOString().slice(0, 10),
+        weather: input.weatherCondition,
+        workCompleted: input.workSummary,
+        workPlanned: input.tomorrowPlan,
+        workersInternal: input.workersOnSite,
+        materialsReceived: input.materialsUsed ? JSON.parse(input.materialsUsed) : undefined,
+        qualityIssues: input.issuesEncountered,
+        // workDetails/safetyNotes 전용 컬럼이 없어 specialNotes에 통합 보존
+        specialNotes: [input.workDetails, input.safetyNotes ? `[안전] ${input.safetyNotes}` : ""].filter(Boolean).join("\n") || undefined,
+        photoUrls: input.photosJson ? JSON.parse(input.photosJson) : undefined,
+        overallProgress: input.progressPercentage,
         status: "submitted",
       });
       
@@ -77,7 +87,7 @@ export const employeePortalRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      await updateDailyReport(id, { ...data, reviewedBy: ctx.user.id, reviewedAt: Date.now() });
+      await updateDailyReport(id, { ...data, reviewedBy: ctx.user.id, reviewedAt: new Date() });
       return { success: true };
     }),
 
@@ -94,7 +104,7 @@ export const employeePortalRouter = router({
       
       const reports = await getDailyReportsByProject(input.projectId, 100, 0);
       const filtered = reports.filter(
-        r => r.reportDate >= input.dateRange.from && r.reportDate <= input.dateRange.to
+        r => new Date(r.reportDate).getTime() >= input.dateRange.from && new Date(r.reportDate).getTime() <= input.dateRange.to
       );
       
       if (filtered.length === 0) return { summary: "해당 기간 보고서가 없습니다." };
@@ -109,10 +119,10 @@ export const employeePortalRouter = router({
             role: "user",
             content: `일일 보고서 ${filtered.length}건:\n${JSON.stringify(filtered.map(r => ({
               date: new Date(r.reportDate).toLocaleDateString("ko-KR"),
-              summary: r.workSummary,
-              issues: r.issuesEncountered,
-              progress: r.progressPercentage,
-              workers: r.workersOnSite,
+              summary: r.workCompleted,
+              issues: r.qualityIssues,
+              progress: r.overallProgress,
+              workers: r.workersInternal,
             })))}`,
           },
         ],
@@ -138,7 +148,16 @@ export const employeePortalRouter = router({
       if (ctx.user.role !== "admin" && ctx.user.role !== "master") {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      const result = await createKpiDefinition({ ...input, createdBy: ctx.user.id });
+      const result = await createKpiDefinition({
+        name: input.name,
+        description: input.description,
+        category: input.category,
+        department: input.department,
+        measureUnit: input.unit,
+        targetValue: String(input.targetValue),
+        weight: input.weight,
+        frequency: input.measurementPeriod,
+      });
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       return { id: result.id };
     }),
@@ -161,8 +180,12 @@ export const employeePortalRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const result = await createKpiRecord({
-        ...input,
-        recordedBy: ctx.user.id,
+        kpiId: input.kpiDefinitionId,
+        userId: input.userId,
+        period: input.period,
+        actualValue: String(input.actualValue),
+        // evidenceUrl 전용 컬럼이 없어 notes에 보존
+        notes: input.evidenceUrl ? `${input.notes ?? ""}\n증빙: ${input.evidenceUrl}`.trim() : input.notes,
       });
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       return { id: result.id };
@@ -193,9 +216,13 @@ export const employeePortalRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const result = await createOkrObjective({
-        ...input,
-        ownerId: ctx.user.id,
-        status: "on_track",
+        userId: ctx.user.id,
+        title: input.title,
+        description: input.description,
+        period: input.period,
+        level: input.level,
+        parentId: input.parentObjectiveId,
+        status: "active",
         progress: 0,
       });
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -216,8 +243,9 @@ export const employeePortalRouter = router({
       progress: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
-      await updateOkrObjective(id, data);
+      const { id, status, ...rest } = input;
+      const objectiveStatusMap = { on_track: "active", at_risk: "active", behind: "active", completed: "completed", cancelled: "cancelled" } as const;
+      await updateOkrObjective(id, { ...rest, status: status ? objectiveStatusMap[status] : undefined });
       return { success: true };
     }),
 
@@ -232,9 +260,11 @@ export const employeePortalRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const result = await createOkrKeyResult({
-        ...input,
-        currentValue: 0,
-        status: "not_started",
+        objectiveId: input.objectiveId,
+        title: input.title,
+        measureType: input.metricType,
+        targetValue: String(input.targetValue),
+        currentValue: "0",
       });
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       return { id: result.id };
@@ -254,8 +284,11 @@ export const employeePortalRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
-      await updateOkrKeyResult(id, data);
+      const { id, currentValue, notes } = input;
+      await updateOkrKeyResult(id, {
+        currentValue: currentValue != null ? String(currentValue) : undefined,
+        notes,
+      });
       return { success: true };
     }),
 
@@ -291,7 +324,7 @@ export const employeePortalRouter = router({
                 title: kr.title,
                 target: kr.targetValue,
                 current: kr.currentValue,
-                status: kr.status,
+                status: kr.confidence,
               })),
             })))}`,
           },

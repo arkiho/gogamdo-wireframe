@@ -47,7 +47,7 @@ export async function generateInsightHandler(req: Request, res: Response) {
   try {
     // 인증: cron 전용 확인
     const user = await sdk.authenticateRequest(req);
-    if (!user.isCron) {
+    if (!(user as { isCron?: boolean }).isCron) {
       return res.status(403).json({ error: "cron-only endpoint" });
     }
 

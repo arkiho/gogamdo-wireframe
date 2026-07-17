@@ -65,7 +65,7 @@ export async function getCalendarEvents(startRange: string, endRange: string): P
       if (sDate && sDate >= startRange && sDate <= endRange) {
         events.push({
           id: `sched-${s.id}`,
-          title: s.taskName,
+          title: s.name,
           date: sDate,
           endDate: eDate || undefined,
           type: "schedule",

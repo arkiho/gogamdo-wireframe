@@ -25,7 +25,7 @@ export default function ClientInviteTab({ projectId }: { projectId: string }) {
     companyName: "", permission: "view_progress",
   });
 
-  const invites = trpc.ops.clientInvite.list.useQuery({ projectId });
+  const invites = trpc.ops.clientInvite.list.useQuery({ projectId: Number(projectId) });
   const createInvite = trpc.ops.clientInvite.create.useMutation({
     onSuccess: () => {
       invites.refetch();
@@ -36,7 +36,7 @@ export default function ClientInviteTab({ projectId }: { projectId: string }) {
     onError: (err) => toast.error(err.message),
   });
 
-  const toggleInvite = trpc.ops.clientInvite.toggle.useMutation({
+  const toggleInvite = trpc.ops.clientInvite.deactivate.useMutation({
     onSuccess: () => {
       invites.refetch();
       toast.success("초대 상태가 변경되었습니다.");
@@ -49,12 +49,9 @@ export default function ClientInviteTab({ projectId }: { projectId: string }) {
       return;
     }
     createInvite.mutate({
-      projectId,
+      projectId: Number(projectId),
       clientName: form.clientName,
       clientEmail: form.clientEmail || undefined,
-      clientPhone: form.clientPhone || undefined,
-      companyName: form.companyName || undefined,
-      permission: form.permission,
     });
   };
 
@@ -128,8 +125,8 @@ export default function ClientInviteTab({ projectId }: { projectId: string }) {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <h4 className="font-semibold">{inv.clientName}</h4>
-                    {inv.companyName && <span className="text-sm text-muted-foreground">({inv.companyName})</span>}
-                    <Badge variant="outline" className="text-xs">{PERMISSION_LABELS[inv.permission] ?? inv.permission}</Badge>
+                    
+                    <Badge variant="outline" className="text-xs">{Object.entries(inv.permissions ?? {}).filter(([, v]) => v).map(([k]) => k).join(", ") || "권한 없음"}</Badge>
                     <Badge className={`text-xs border-0 ${inv.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                       {inv.isActive ? "활성" : "비활성"}
                     </Badge>
@@ -141,7 +138,7 @@ export default function ClientInviteTab({ projectId }: { projectId: string }) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => toggleInvite.mutate({ id: inv.id, isActive: !inv.isActive })}
+                      onClick={() => toggleInvite.mutate({ id: inv.id })}
                     >
                       {inv.isActive ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </Button>

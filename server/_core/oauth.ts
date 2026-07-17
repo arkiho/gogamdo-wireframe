@@ -82,6 +82,127 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
+  // ========== Naver OAuth Callback ==========
+  app.get("/api/auth/naver/callback", async (req: Request, res: Response) => {
+    const code = req.query.code as string;
+    const state = req.query.state as string;
+    if (!code) {
+      res.status(400).json({ error: "Authorization code is required" });
+      return;
+    }
+
+    try {
+      const tokenRes = await axios.post("https://nid.naver.com/oauth2.0/token", null, {
+        params: {
+          grant_type: "authorization_code",
+          client_id: ENV.naverClientId,
+          client_secret: ENV.naverClientSecret,
+          code,
+          state: state || "",
+        },
+      });
+
+      const { access_token } = tokenRes.data;
+
+      const userInfoRes = await axios.get("https://openapi.naver.com/v1/nid/me", {
+        headers: { Authorization: `Bearer ${access_token}` },
+      });
+
+      const profile = userInfoRes.data.response;
+      const naverId = profile.id as string;
+      const email = profile.email as string | undefined;
+      const name = (profile.name || profile.nickname) as string | undefined;
+
+      let user = await db.getUserByNaverId(naverId);
+      if (!user && email) user = await db.getUserByEmail(email);
+
+      if (user) {
+        await db.upsertUser({ ...user, naverId, name: name || user.name, loginMethod: "naver", lastSignedIn: new Date() });
+      } else {
+        await db.upsertUser({ naverId, email, name: name || email?.split("@")[0] || "User", loginMethod: "naver", lastSignedIn: new Date() });
+        user = await db.getUserByNaverId(naverId);
+      }
+
+      if (!user) {
+        res.status(500).json({ error: "Failed to create user" });
+        return;
+      }
+
+      const sessionToken = await sdk.createSessionToken(user.id, {
+        name: user.name || "",
+        email: user.email || "",
+      });
+
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.redirect(302, "/");
+    } catch (error: any) {
+      console.error("[Naver OAuth] Failed:", error.response?.data || error.message);
+      res.status(500).json({ error: "Naver login failed" });
+    }
+  });
+
+  // ========== Kakao OAuth Callback ==========
+  app.get("/api/auth/kakao/callback", async (req: Request, res: Response) => {
+    const code = req.query.code as string;
+    if (!code) {
+      res.status(400).json({ error: "Authorization code is required" });
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: ENV.kakaoClientId,
+        redirect_uri: ENV.kakaoRedirectUri || `${req.protocol}://${req.get("host")}/api/auth/kakao/callback`,
+        code,
+      });
+      if (ENV.kakaoClientSecret) params.append("client_secret", ENV.kakaoClientSecret);
+
+      const tokenRes = await axios.post("https://kauth.kakao.com/oauth/token", params.toString(), {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
+
+      const { access_token } = tokenRes.data;
+
+      const userInfoRes = await axios.get("https://kapi.kakao.com/v2/user/me", {
+        headers: { Authorization: `Bearer ${access_token}` },
+      });
+
+      const kakaoId = String(userInfoRes.data.id);
+      const account = userInfoRes.data.kakao_account || {};
+      const email = account.email as string | undefined;
+      const name = account.profile?.nickname as string | undefined;
+
+      let user = await db.getUserByKakaoId(kakaoId);
+      if (!user && email) user = await db.getUserByEmail(email);
+
+      if (user) {
+        await db.upsertUser({ ...user, kakaoId, name: name || user.name, loginMethod: "kakao", lastSignedIn: new Date() });
+      } else {
+        await db.upsertUser({ kakaoId, email, name: name || (email ? email.split("@")[0] : "User"), loginMethod: "kakao", lastSignedIn: new Date() });
+        user = await db.getUserByKakaoId(kakaoId);
+      }
+
+      if (!user) {
+        res.status(500).json({ error: "Failed to create user" });
+        return;
+      }
+
+      const sessionToken = await sdk.createSessionToken(user.id, {
+        name: user.name || "",
+        email: user.email || "",
+      });
+
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.redirect(302, "/");
+    } catch (error: any) {
+      console.error("[Kakao OAuth] Failed:", error.response?.data || error.message);
+      res.status(500).json({ error: "Kakao login failed" });
+    }
+  });
+
   // ========== Email/Password Login ==========
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     const { email, password } = req.body;

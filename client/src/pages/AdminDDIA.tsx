@@ -331,8 +331,8 @@ function ProjectDetail({ projectId, onBack }: { projectId: number; onBack: () =>
                 ) : (
                   <SensorFloorPlan
                     floorPlanUrl={p.floorPlanUrl}
-                    sensors={sensorsList.data || []}
-                    latestData={latestData.data || []}
+                    sensors={(sensorsList.data || []) as any}
+                    latestData={(latestData.data || []) as any}
                     placingType={placingType}
                     onPlaceSensor={(posX, posY) => {
                       const meta = getSensorMeta(placingType!);

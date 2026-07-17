@@ -6,7 +6,15 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
+import { initGA4, initClarity, initFBPixel, initGoogleAds, initNaverAnalytics } from "@/lib/analytics";
 import "./index.css";
+
+// 분석 도구 초기화 — 각 함수는 해당 환경변수(ID)가 없으면 자동으로 아무것도 안 함
+initGA4();
+initClarity();
+initFBPixel();
+initGoogleAds();
+initNaverAnalytics();
 
 const queryClient = new QueryClient();
 

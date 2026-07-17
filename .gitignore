@@ -108,3 +108,11 @@ temp/
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
+
+# Data restore scripts (contain PII)
+restore_*.mjs
+
+# Git lock cleanup residuals
+_to_delete/
+_stale_git_locks/
+_lockbak_*

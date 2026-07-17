@@ -199,7 +199,7 @@ export default function SubcontractorTab({ projectId }: { projectId: string }) {
     contactPhone: "", contactEmail: "", contractAmount: "",
   });
 
-  const subs = trpc.ops.subcontractor.list.useQuery({ projectId });
+  const subs = trpc.ops.subcontractor.list.useQuery();
   const createSub = trpc.ops.subcontractor.create.useMutation({
     onSuccess: () => {
       subs.refetch();
@@ -207,15 +207,7 @@ export default function SubcontractorTab({ projectId }: { projectId: string }) {
       setForm({ companyName: "", trade: "other", contactName: "", contactPhone: "", contactEmail: "", contractAmount: "" });
       toast.success("하도급 업체가 등록되었습니다.");
     },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const approveSub = trpc.ops.subcontractor.approve.useMutation({
-    onSuccess: () => {
-      subs.refetch();
-      toast.success("처리되었습니다.");
-    },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
 
   const handleCreate = () => {
@@ -224,13 +216,11 @@ export default function SubcontractorTab({ projectId }: { projectId: string }) {
       return;
     }
     createSub.mutate({
-      projectId,
       companyName: form.companyName,
-      trade: form.trade,
+      specialty: form.trade,
       contactName: form.contactName || undefined,
       contactPhone: form.contactPhone || undefined,
       contactEmail: form.contactEmail || undefined,
-      contractAmount: form.contractAmount || undefined,
     });
   };
 
@@ -304,7 +294,7 @@ export default function SubcontractorTab({ projectId }: { projectId: string }) {
         ) : (
           <div className="space-y-3">
             {subs.data.map(s => {
-              const st = STATUS_LABELS[s.status] ?? STATUS_LABELS.invited;
+              const st = STATUS_LABELS[s.isActive ? "active" : "suspended"];
               return (
                 <div
                   key={s.id}
@@ -316,20 +306,15 @@ export default function SubcontractorTab({ projectId }: { projectId: string }) {
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <Building className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <h4 className="font-semibold text-sm sm:text-base">{s.companyName}</h4>
-                      <Badge variant="outline" className="text-[10px] sm:text-xs">{TRADE_LABELS[s.trade] ?? s.trade}</Badge>
+                      <Badge variant="outline" className="text-[10px] sm:text-xs">{s.specialty ? (TRADE_LABELS[s.specialty] ?? s.specialty) : "기타"}</Badge>
                       <Badge className={`text-[10px] sm:text-xs ${st.color} border-0`}>{st.label}</Badge>
                       <SubRatingBadge subcontractorId={s.id} />
                     </div>
                     {/* 액션 버튼 */}
                     <div className="flex gap-2 w-full sm:w-auto" onClick={e => e.stopPropagation()}>
-                      <Button size="sm" variant="ghost" className="flex-1 sm:flex-initial h-9 sm:h-8" onClick={() => handleCopyInviteLink(s.id)}>
+                      <Button size="sm" variant="ghost" className="flex-1 sm:flex-initial h-9 sm:h-8" onClick={() => handleCopyInviteLink(String(s.id))}>
                         <Copy className="w-3.5 h-3.5 mr-1" />링크 복사
                       </Button>
-                      {s.status === "invited" && (
-                        <Button size="sm" variant="outline" className="flex-1 sm:flex-initial text-green-600 h-9 sm:h-8" onClick={() => approveSub.mutate({ id: s.id, action: "activate" })}>
-                          <CheckCircle className="w-3.5 h-3.5 mr-1" />활성화
-                        </Button>
-                      )}
                       <Button size="sm" variant="ghost" className="h-9 sm:h-8 px-2" onClick={() => setDetailSub(s)}>
                         <ChevronRight className="w-4 h-4" />
                       </Button>
@@ -348,7 +333,6 @@ export default function SubcontractorTab({ projectId }: { projectId: string }) {
                         <Mail className="w-3 h-3 flex-shrink-0" />{s.contactEmail}
                       </a>
                     )}
-                    {s.contractAmount && <span className="font-medium text-foreground">{Number(s.contractAmount).toLocaleString()}원</span>}
                   </div>
                 </div>
               );

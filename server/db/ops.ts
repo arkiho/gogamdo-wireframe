@@ -547,6 +547,7 @@ export async function createNotification(data: InsertOpsNotification) {
 
 export async function createBulkNotifications(data: InsertOpsNotification[]) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   if (!db || data.length === 0) return;
   await db.insert(opsNotifications).values(data);
 }
@@ -776,6 +777,7 @@ export async function getExpenseCategoryDistribution(projectId?: number) {
 // ============ SUB EVALUATIONS ============
 export async function createSubEvaluation(data: InsertOpsSubEvaluation) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   // 자동 종합 점수 계산
   const overall = (
     (data.qualityScore + data.scheduleScore + data.safetyScore +
@@ -790,6 +792,7 @@ export async function createSubEvaluation(data: InsertOpsSubEvaluation) {
 
 export async function listSubEvaluations(projectId: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   return db.select().from(opsSubEvaluations)
     .where(eq(opsSubEvaluations.projectId, projectId))
     .orderBy(desc(opsSubEvaluations.createdAt));
@@ -797,6 +800,7 @@ export async function listSubEvaluations(projectId: number) {
 
 export async function listSubEvaluationsBySubcontractor(subcontractorId: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   return db.select().from(opsSubEvaluations)
     .where(eq(opsSubEvaluations.subcontractorId, subcontractorId))
     .orderBy(desc(opsSubEvaluations.createdAt));
@@ -804,6 +808,7 @@ export async function listSubEvaluationsBySubcontractor(subcontractorId: number)
 
 export async function getSubEvaluationSummary(subcontractorId: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const evals = await db.select().from(opsSubEvaluations)
     .where(eq(opsSubEvaluations.subcontractorId, subcontractorId));
 
@@ -836,6 +841,7 @@ export async function getSubEvaluationSummary(subcontractorId: number) {
 
 export async function deleteSubEvaluation(id: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   return db.delete(opsSubEvaluations).where(eq(opsSubEvaluations.id, id));
 }
 
@@ -943,6 +949,7 @@ export async function getSubcontractorsByTrade(tradeCategoryId: number) {
 /** 여러 공종 ID에 대해 매칭되는 업체 목록 반환 */
 export async function getSubcontractorsByTradeIds(tradeCategoryIds: number[]) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   if (!db || tradeCategoryIds.length === 0) return [];
   const rows = await db.select({
     tradeCategoryId: subcontractorTrades.tradeCategoryId,

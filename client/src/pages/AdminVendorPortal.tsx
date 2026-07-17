@@ -213,7 +213,7 @@ export default function AdminVendorPortal() {
       </Card>
 
       {/* 원가 변동률 추적 */}
-      {analytics.data?.length > 0 && (
+      {(analytics.data?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2"><BarChart3 className="w-5 h-5" />원가 변동률 추적</CardTitle>
@@ -234,7 +234,7 @@ export default function AdminVendorPortal() {
                   </tr>
                 </thead>
                 <tbody>
-                  {analytics.data.map((a: any) => (
+                  {analytics.data?.map((a: any) => (
                     <tr key={a.id} className="border-b hover:bg-muted/30">
                       <td className="py-2 px-3 font-mono text-xs">{a.materialCode}</td>
                       <td className="py-2 px-3">{a.materialName}</td>

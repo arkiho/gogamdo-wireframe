@@ -22,7 +22,7 @@ export default function CostTab({ projectId }: { projectId: string }) {
     actualAmount: "0", description: "",
   });
 
-  const costs = trpc.ops.cost.list.useQuery({ projectId });
+  const costs = trpc.ops.cost.list.useQuery({ projectId: Number(projectId) });
   const createCost = trpc.ops.cost.create.useMutation({
     onSuccess: () => {
       costs.refetch();
@@ -46,12 +46,12 @@ export default function CostTab({ projectId }: { projectId: string }) {
       return;
     }
     createCost.mutate({
-      projectId,
-      category: form.category,
-      itemName: form.itemName,
+      projectId: Number(projectId),
+      category: form.category as any,
+      description: form.itemName,
       budgetAmount: form.budgetAmount,
       actualAmount: form.actualAmount || "0",
-      description: form.description || undefined,
+      notes: form.description || undefined,
     });
   };
 
@@ -197,7 +197,7 @@ export default function CostTab({ projectId }: { projectId: string }) {
                             const itemDiff = Number(item.budgetAmount) - Number(item.actualAmount);
                             return (
                               <tr key={item.id} className="border-b hover:bg-accent/30">
-                                <td className="py-2 px-2">{item.itemName}</td>
+                                <td className="py-2 px-2">{item.description}</td>
                                 <td className="py-2 px-2 text-right">{Number(item.budgetAmount).toLocaleString()}</td>
                                 <td className="py-2 px-2 text-right">{Number(item.actualAmount).toLocaleString()}</td>
                                 <td className={`py-2 px-2 text-right font-medium ${itemDiff >= 0 ? "text-green-600" : "text-red-600"}`}>
@@ -207,7 +207,7 @@ export default function CostTab({ projectId }: { projectId: string }) {
                                   <Input
                                     type="number"
                                     className="w-28 h-7 text-xs text-right ml-auto"
-                                    defaultValue={item.actualAmount}
+                                    defaultValue={item.actualAmount ?? ""}
                                     onBlur={e => {
                                       const val = e.target.value;
                                       if (val !== String(item.actualAmount)) {
@@ -229,7 +229,7 @@ export default function CostTab({ projectId }: { projectId: string }) {
                         const itemDiff = Number(item.budgetAmount) - Number(item.actualAmount);
                         return (
                           <div key={item.id} className="border rounded-lg p-3 space-y-2">
-                            <div className="font-medium text-sm">{item.itemName}</div>
+                            <div className="font-medium text-sm">{item.description}</div>
                             <div className="grid grid-cols-3 gap-2 text-xs">
                               <div>
                                 <span className="text-muted-foreground block">예산</span>
@@ -251,7 +251,7 @@ export default function CostTab({ projectId }: { projectId: string }) {
                               <Input
                                 type="number"
                                 className="h-10 text-sm"
-                                defaultValue={item.actualAmount}
+                                defaultValue={item.actualAmount ?? ""}
                                 onBlur={e => {
                                   const val = e.target.value;
                                   if (val !== String(item.actualAmount)) {

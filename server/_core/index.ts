@@ -43,6 +43,8 @@ async function ensureTables() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       openId VARCHAR(64) UNIQUE,
       googleId VARCHAR(128) UNIQUE,
+      naverId VARCHAR(128) UNIQUE,
+      kakaoId VARCHAR(128) UNIQUE,
       name TEXT,
       email VARCHAR(320) UNIQUE,
       passwordHash VARCHAR(256),
@@ -56,6 +58,24 @@ async function ensureTables() {
       updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       lastSignedIn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // 기존 users 테이블에 소셜 로그인 컬럼이 없으면 추가 (배포된 DB 대응)
+    const addColumnIfMissing = async (table: string, column: string, ddl: string) => {
+      try {
+        const [rows]: any = await conn.execute(
+          `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+          [table, column]
+        );
+        if (rows?.[0]?.c === 0) {
+          await conn.execute(`ALTER TABLE \`${table}\` ADD COLUMN ${ddl}`);
+          console.log(`[DB] Added column ${table}.${column}`);
+        }
+      } catch (e: any) {
+        console.warn(`[DB] addColumn ${table}.${column} warning:`, e?.message || e);
+      }
+    };
+    await addColumnIfMissing("users", "naverId", "naverId VARCHAR(128) UNIQUE");
+    await addColumnIfMissing("users", "kakaoId", "kakaoId VARCHAR(128) UNIQUE");
 
     await conn.execute(`CREATE TABLE IF NOT EXISTS inquiries (
       id INT AUTO_INCREMENT PRIMARY KEY,

@@ -73,7 +73,7 @@ export default function PortfolioDbDetail() {
         title={`${project.title} | 고객 사례`}
         description={`${project.title} - ${project.category || ''} ${project.area || ''} ${project.location || ''} 사무실 인테리어 시공 사례`}
         path={`/portfolio/p/${id}`}
-        image={coverImage?.url}
+        image={coverImage?.processedUrl || coverImage?.originalUrl}
       />
 
       {/* Hero */}

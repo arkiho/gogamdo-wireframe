@@ -40,7 +40,7 @@ export default function EstimateTab({ projectId, projectName, clientName, siteAd
     title: "", version: "1", totalAmount: "", description: "", fileUrl: "",
   });
 
-  const estimates = trpc.ops.estimate.list.useQuery({ projectId });
+  const estimates = trpc.ops.estimate.list.useQuery({ projectId: Number(projectId) });
   const createEstimate = trpc.ops.estimate.create.useMutation({
     onSuccess: () => {
       estimates.refetch();
@@ -91,11 +91,10 @@ export default function EstimateTab({ projectId, projectName, clientName, siteAd
       return;
     }
     createEstimate.mutate({
-      projectId,
+      projectId: Number(projectId),
       title: form.title,
-      version: parseInt(form.version) || 1,
-      totalAmount: form.totalAmount,
-      description: form.description || undefined,
+      grandTotal: form.totalAmount || undefined,
+      notes: form.description || undefined,
       fileUrl: form.fileUrl || undefined,
     });
   };
@@ -126,11 +125,11 @@ export default function EstimateTab({ projectId, projectName, clientName, siteAd
         title: estimate.title,
         version: estimate.version || 1,
         items: estimate.items || [],
-        subtotal: estimate.subtotal || estimate.totalAmount || "0",
+        subtotal: estimate.subtotal || estimate.grandTotal || "0",
         overhead: estimate.overhead || "0",
         profit: estimate.profit || "0",
         vat: estimate.vat || "0",
-        grandTotal: estimate.grandTotal || estimate.totalAmount || "0",
+        grandTotal: estimate.grandTotal || estimate.grandTotal || "0",
         notes: estimate.notes || estimate.description || "",
         validUntil: estimate.validUntil,
         status: estimate.status,
@@ -233,7 +232,7 @@ export default function EstimateTab({ projectId, projectName, clientName, siteAd
                       <tr key={e.id} className="border-b hover:bg-accent/30">
                         <td className="py-2.5 px-3 font-medium">{e.title}</td>
                         <td className="py-2.5 px-3">v{e.version}</td>
-                        <td className="py-2.5 px-3 text-right font-semibold">{Number(e.totalAmount).toLocaleString()}원</td>
+                        <td className="py-2.5 px-3 text-right font-semibold">{Number(e.grandTotal).toLocaleString()}원</td>
                         <td className="py-2.5 px-3">
                           <Badge className={`text-xs ${s.color} border-0`}>{s.label}</Badge>
                         </td>
@@ -282,7 +281,7 @@ export default function EstimateTab({ projectId, projectName, clientName, siteAd
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">{new Date(e.createdAt).toLocaleDateString()}</span>
-                      <span className="font-semibold">{Number(e.totalAmount).toLocaleString()}원</span>
+                      <span className="font-semibold">{Number(e.grandTotal).toLocaleString()}원</span>
                     </div>
                     <div className="flex gap-2">
                       {e.fileUrl && (

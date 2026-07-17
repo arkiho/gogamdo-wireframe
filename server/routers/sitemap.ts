@@ -47,6 +47,7 @@ function escapeXml(str: string): string {
 sitemapRouter.get("/sitemap.xml", async (_req, res) => {
   try {
     const db = await getDb();
+    if (!db) throw new Error("Database not available");
 
     // 게시된 인사이트 글 조회
     const publishedInsights = await db

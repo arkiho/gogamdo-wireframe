@@ -20,6 +20,7 @@ export default function AdminRealestateMatching() {
   const [showCreateSearch, setShowCreateSearch] = useState(false);
   const [searchForm, setSearchForm] = useState({
     clientProjectId: 0,
+    relocationType: "relocation" as "relocation" | "renovation",
     minArea: 0, maxArea: 0, preferredDistricts: "",
     maxRent: 0, maxDeposit: 0, additionalRequirements: "",
   });
@@ -122,7 +123,7 @@ export default function AdminRealestateMatching() {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">유형</span>
-                    <Badge>{searchCriteria.data.relocationType === "relocation" ? "이사" : "레노베이션"}</Badge>
+                    <Badge>{searchCriteria.data.projectType === "relocation" ? "이사" : "레노베이션"}</Badge>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">면적</span>
@@ -130,11 +131,11 @@ export default function AdminRealestateMatching() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">선호 지역</span>
-                    <span>{searchCriteria.data.preferredDistricts || "-"}</span>
+                    <span>{searchCriteria.data.desiredLocation || "-"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">예산</span>
-                    <span>{searchCriteria.data.maxRent?.toLocaleString()} 만원/평 (보증금: {searchCriteria.data.maxDeposit?.toLocaleString()} 만원)</span>
+                    <span>{searchCriteria.data.budgetMax ? Number(searchCriteria.data.budgetMax).toLocaleString() : "-"} 만원</span>
                   </div>
                   <Button className="w-full mt-4 gap-2" onClick={() => runMatching.mutate({ clientProjectId: selectedProjectId! })} disabled={runMatching.isPending}>
                     <Zap className="w-4 h-4" />{runMatching.isPending ? "매칭 중..." : "AI 매물 매칭 실행"}

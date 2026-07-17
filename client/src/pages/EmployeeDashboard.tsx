@@ -268,7 +268,7 @@ export default function EmployeeDashboard() {
                         const target = prompt("목표 수치:");
                         const unit = prompt("단위 (건, %, 원 등):");
                         if (title && target && unit) {
-                          addKeyResult.mutate({ objectiveId: okr.id, title, targetValue: parseInt(target) || 0, unit });
+                          addKeyResult.mutate({ objectiveId: okr.id, title, metricType: "number", targetValue: parseInt(target) || 0, unit });
                         }
                       }}
                     >

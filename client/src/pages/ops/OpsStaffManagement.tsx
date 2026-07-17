@@ -61,29 +61,29 @@ export default function OpsStaffManagement() {
   const applications = trpc.staffManagement.listApplications.useQuery();
   const invitations = trpc.staffManagement.listInvitations.useQuery();
 
-  const approveApp = trpc.staffManagement.approveApplication.useMutation({
+  const approveApp = trpc.staffManagement.reviewApplication.useMutation({
     onSuccess: () => { applications.refetch(); staff.refetch(); toast.success("가입 신청이 승인되었습니다."); },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
-  const rejectApp = trpc.staffManagement.rejectApplication.useMutation({
+  const rejectApp = trpc.staffManagement.reviewApplication.useMutation({
     onSuccess: () => { applications.refetch(); toast.success("가입 신청이 거절되었습니다."); },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
-  const sendInvite = trpc.staffManagement.sendInvitation.useMutation({
+  const sendInvite = trpc.staffManagement.invite.useMutation({
     onSuccess: () => {
       invitations.refetch();
       setInviteEmail(""); setInviteName(""); setInviteDept("none");
       toast.success("초대 이메일이 발송되었습니다.");
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
   const deactivateStaff = trpc.staffManagement.deactivateStaff.useMutation({
     onSuccess: () => { staff.refetch(); toast.success("직원이 비활성화되었습니다."); },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
   const reactivateStaff = trpc.staffManagement.reactivateStaff.useMutation({
     onSuccess: () => { staff.refetch(); toast.success("직원이 재활성화되었습니다."); },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
   const updateDept = trpc.ops.staff.updateDepartment.useMutation({
     onSuccess: () => {
@@ -91,14 +91,14 @@ export default function OpsStaffManagement() {
       setEditingUser(null);
       toast.success("부서/역할이 변경되었습니다.");
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
   const updateRole = trpc.ops.staff.updateRole.useMutation({
     onSuccess: () => {
       staff.refetch();
       toast.success("권한이 변경되었습니다.");
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
 
   const filtered = staff.data?.filter(m =>
@@ -407,7 +407,7 @@ export default function OpsStaffManagement() {
                       <>
                         <Button
                           size="sm"
-                          onClick={() => approveApp.mutate({ id: app.id })}
+                          onClick={() => approveApp.mutate({ id: app.id, action: "approved" })}
                           disabled={approveApp.isPending}
                           className="bg-green-600 hover:bg-green-700 text-white"
                         >
@@ -416,7 +416,7 @@ export default function OpsStaffManagement() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => rejectApp.mutate({ id: app.id })}
+                          onClick={() => rejectApp.mutate({ id: app.id, action: "rejected" })}
                           disabled={rejectApp.isPending}
                         >
                           <XCircle className="w-3 h-3 mr-1" />거절
@@ -486,9 +486,8 @@ export default function OpsStaffManagement() {
                   return;
                 }
                 sendInvite.mutate({
-                  name: inviteName,
                   email: inviteEmail,
-                  department: inviteDept !== "none" ? inviteDept : undefined,
+                  department: (inviteDept !== "none" ? inviteDept : undefined) as any,
                 });
               }}
               disabled={sendInvite.isPending}

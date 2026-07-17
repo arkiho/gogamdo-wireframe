@@ -543,7 +543,7 @@ export default function SubPortal() {
                           ))}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          ({profile.data.summary.totalCount ?? 0}건 평가)
+                          ({(profile.data.summary as any)?.totalCount ?? 0}건 평가)
                         </div>
                       </div>
 

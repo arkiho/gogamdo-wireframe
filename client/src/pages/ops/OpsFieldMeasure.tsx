@@ -527,7 +527,7 @@ export default function OpsFieldMeasure() {
                   ...m,
                   points: m.points as any[],
                   calibratedValue: m.calibratedValue ? Number(m.calibratedValue) : undefined,
-                }))}
+                })) as any}
                 calibrationData={calibData?.scaleFactor ? calibData : null}
                 mode={measureMode}
                 measureType={measureType}

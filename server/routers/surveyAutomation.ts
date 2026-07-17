@@ -20,6 +20,23 @@ function generateToken() {
     .map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+// 클라이언트 어휘 -> DB 스키마 enum 매핑 (DB enum이 강제되므로 경계에서 변환)
+const TEMPLATE_TYPE_MAP: Record<string, "initial_manager" | "company_wide" | "post_occupancy" | "custom"> = {
+  initial_contact: "initial_manager",
+  company_wide: "company_wide",
+  post_occupancy: "post_occupancy",
+  satisfaction: "custom",
+};
+const QUESTION_TYPE_MAP: Record<string, "single_choice" | "multiple_choice" | "scale" | "text" | "number" | "matrix"> = {
+  text: "text",
+  textarea: "text",
+  single_choice: "single_choice",
+  multiple_choice: "multiple_choice",
+  scale: "scale",
+  number: "number",
+  matrix: "matrix",
+};
+
 export const surveyAutomationRouter = router({
   // ============ 설문 템플릿 관리 (관리자) ============
   
@@ -33,7 +50,7 @@ export const surveyAutomationRouter = router({
       if (ctx.user.role !== "admin" && ctx.user.role !== "master") {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      const result = await createSurveyTemplate(input);
+      const result = await createSurveyTemplate({ ...input, type: TEMPLATE_TYPE_MAP[input.type] });
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       return { id: result.id };
     }),
@@ -80,7 +97,7 @@ export const surveyAutomationRouter = router({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       const { options, ...questionData } = input;
-      const result = await createSurveyQuestion(questionData);
+      const result = await createSurveyQuestion({ ...questionData, questionType: QUESTION_TYPE_MAP[questionData.questionType] });
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       
       if (options && options.length > 0) {
@@ -104,7 +121,7 @@ export const surveyAutomationRouter = router({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       const { id, ...data } = input;
-      await updateSurveyQuestion(id, data);
+      await updateSurveyQuestion(id, { ...data, questionType: data.questionType ? QUESTION_TYPE_MAP[data.questionType] : undefined });
       return { success: true };
     }),
 
@@ -136,13 +153,14 @@ export const surveyAutomationRouter = router({
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7일
       
       const instance = await createSurveyInstance({
+        type: "initial_manager",
         templateId: input.templateId,
         clientProjectId: input.clientProjectId,
         token,
         recipientEmail: input.recipientEmail,
         recipientName: input.recipientName,
         status: "sent",
-        expiresAt: expiresAt.getTime(),
+        expiresAt,
       });
       
       if (!instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -155,7 +173,7 @@ export const surveyAutomationRouter = router({
         recipientName: input.recipientName,
         subject: "[고감도] 업무환경 진단 설문 안내",
         status: "sent",
-        metadata: JSON.stringify({ instanceId: instance.id, token }),
+        metadata: { instanceId: instance.id, token },
       });
       
       await notifyOwner({
@@ -173,7 +191,7 @@ export const surveyAutomationRouter = router({
     .query(async ({ input }) => {
       const instance = await getSurveyInstanceByToken(input.token);
       if (!instance) throw new TRPCError({ code: "NOT_FOUND", message: "설문을 찾을 수 없습니다." });
-      if (instance.status === "expired" || (instance.expiresAt && instance.expiresAt < Date.now())) {
+      if (instance.status === "expired" || (instance.expiresAt && instance.expiresAt.getTime() < Date.now())) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "설문 기한이 만료되었습니다." });
       }
       
@@ -214,7 +232,7 @@ export const surveyAutomationRouter = router({
         respondentName: input.respondentName,
         respondentEmail: input.respondentEmail,
         respondentDepartment: input.respondentDepartment,
-        answers: input.answers,
+        answers: JSON.parse(input.answers),
       });
       
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -244,7 +262,7 @@ export const surveyAutomationRouter = router({
       const responseSummary = responses.map(r => ({
         name: r.respondentName,
         department: r.respondentDepartment,
-        answers: JSON.parse(r.answers || "{}"),
+        answers: r.answers ?? [],
       }));
       
       const llmResponse = await invokeLLM({
@@ -312,19 +330,34 @@ export const surveyAutomationRouter = router({
         },
       });
       
-      const analysisData = JSON.parse(llmResponse.choices[0].message.content || "{}");
+      const analysisContent = llmResponse.choices[0].message.content;
+      const analysisData = JSON.parse((typeof analysisContent === "string" ? analysisContent : "") || "{}");
       
       const report = await createSurveyAnalysisReport({
         clientProjectId: input.clientProjectId,
         instanceId: input.instanceId,
         reportType: "initial_analysis",
-        overallScore: analysisData.overallScore,
-        executiveSummary: analysisData.executiveSummary,
-        categoryScores: JSON.stringify(analysisData.categoryScores),
-        painPoints: JSON.stringify(analysisData.painPoints),
-        recommendations: JSON.stringify(analysisData.recommendations),
-        spaceNeeds: JSON.stringify(analysisData.spaceNeeds),
-        fullReportJson: JSON.stringify(analysisData),
+        title: "업무환경 진단 분석 리포트",
+        summary: analysisData.executiveSummary,
+        // overallScore/categoryScores 전용 컬럼은 스키마에 없어 전체 분석 JSON을 content에 보존
+        content: JSON.stringify(analysisData),
+        insights: (analysisData.painPoints || []).map((p: string, i: number) => ({
+          category: "진단",
+          finding: p,
+          recommendation: (analysisData.recommendations || [])[i] || "",
+          priority: "medium" as const,
+        })),
+        spaceRequirements: analysisData.spaceNeeds
+          ? {
+              totalAreaNeeded: Number(analysisData.spaceNeeds.estimatedArea) || 0,
+              breakdown: Object.entries(analysisData.spaceNeeds.departmentBreakdown || {}).map(([spaceType, areaNeeded]) => ({
+                spaceType,
+                areaNeeded: Number(areaNeeded) || 0,
+                headcount: 0,
+                notes: "",
+              })),
+            }
+          : undefined,
       });
       
       if (!report) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -359,7 +392,7 @@ export const surveyAutomationRouter = router({
             recipientName: project.contactName,
             subject: `[고감도] ${project.companyName} 업무환경 진단 분석 보고서`,
             status: emailSent ? "sent" : "failed",
-            metadata: JSON.stringify({ reportId: report.id }),
+            metadata: { reportId: report.id },
           });
         }
       } catch (e) {
@@ -404,26 +437,27 @@ export const surveyAutomationRouter = router({
       const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14일
       
       const instance = await createSurveyInstance({
+        type: "company_wide",
         templateId: input.templateId,
         clientProjectId: input.clientProjectId,
         token,
         recipientEmail: input.recipientEmail,
         recipientName: input.recipientName,
         status: "sent",
-        expiresAt: expiresAt.getTime(),
-        customQuestions: input.customQuestions,
+        expiresAt,
+        customQuestions: input.customQuestions ? JSON.parse(input.customQuestions) : undefined,
       });
       
       if (!instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       
       await createAutoEmailLog({
         clientProjectId: input.clientProjectId,
-        emailType: "company_wide_survey",
+        emailType: "company_survey_link",
         recipientEmail: input.recipientEmail,
         recipientName: input.recipientName,
         subject: "[고감도] 전사 업무환경 설문 안내",
         status: "sent",
-        metadata: JSON.stringify({ instanceId: instance.id, token }),
+        metadata: { instanceId: instance.id, token },
       });
       
       return { instanceId: instance.id, token, expiresAt: expiresAt.getTime() };
@@ -525,7 +559,8 @@ export const surveyAutomationRouter = router({
         },
       });
 
-      const guide = JSON.parse(llmResponse.choices[0].message.content || "{}");
+      const guideContent = llmResponse.choices[0].message.content;
+      const guide = JSON.parse((typeof guideContent === "string" ? guideContent : "") || "{}");
       return guide;
     }),
 });

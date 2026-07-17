@@ -230,7 +230,7 @@ export default function WorkspaceSurvey() {
       ...data,
       employeeCount: data.employeeCount || 0,
       officeSizePyeong: data.officeSizePyeong || 0,
-    });
+    } as any);
   };
 
   const toggleArrayItem = (arr: string[], item: string): string[] => {

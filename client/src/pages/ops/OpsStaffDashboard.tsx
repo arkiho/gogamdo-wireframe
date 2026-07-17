@@ -103,7 +103,7 @@ export default function OpsStaffDashboard() {
   });
 
   // OpsX 통계
-  const opsStats = trpc.ops.getStats.useQuery();
+  const opsStats = trpc.ops.stats.useQuery();
 
   // UI 상태
   const [clockInOpen, setClockInOpen] = useState(false);

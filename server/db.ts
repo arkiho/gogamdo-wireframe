@@ -40,6 +40,14 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
     textFields.forEach(assignNullable);
 
+    // 소셜 로그인 계정 연결(merge): 기존 사용자에 소셜 ID 채우기
+    const socialFields = ["googleId", "naverId", "kakaoId"] as const;
+    socialFields.forEach((field) => {
+      const value = (user as any)[field];
+      if (value === undefined) return;
+      updateSet[field] = value ?? null;
+    });
+
     if (user.lastSignedIn !== undefined) {
       updateSet.lastSignedIn = user.lastSignedIn;
     }
@@ -95,6 +103,20 @@ export async function getUserByGoogleId(googleId: string) {
   const db = await getDb();
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByNaverId(naverId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.naverId, naverId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByKakaoId(kakaoId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.kakaoId, kakaoId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -2774,7 +2796,7 @@ export async function getKpiRecordsByDefinition(kpiDefinitionId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(kpiRecords)
-    .where(eq(kpiRecords.kpiDefinitionId, kpiDefinitionId))
+    .where(eq(kpiRecords.kpiId, kpiDefinitionId))
     .orderBy(desc(kpiRecords.createdAt));
 }
 
@@ -2790,7 +2812,7 @@ export async function getDailyReportsByUser(userId: number, limit: number = 30, 
   const db = await getDb();
   if (!db) return [];
   return db.select().from(dailySiteReports)
-    .where(eq(dailySiteReports.userId, userId))
+    .where(eq(dailySiteReports.authorId, userId))
     .orderBy(desc(dailySiteReports.reportDate))
     .limit(limit).offset(offset);
 }
@@ -2811,7 +2833,7 @@ export async function getDailyReportById(id: number) {
   return rows[0] ?? null;
 }
 
-export async function updateDailyReport(id: number, data: Partial<InsertDailySiteReport> & { reviewedBy?: number; reviewedAt?: number }) {
+export async function updateDailyReport(id: number, data: Partial<InsertDailySiteReport> & { reviewedBy?: number; reviewedAt?: Date }) {
   const db = await getDb();
   if (!db) return;
   await db.update(dailySiteReports).set(data).where(eq(dailySiteReports.id, id));
@@ -3298,12 +3320,14 @@ export async function listRfqsBySubcontractorEmail(email: string) {
 // --- 실측 세션 ---
 export async function createMeasurementSession(data: InsertFieldMeasurementSession) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const result = await db.insert(fieldMeasurementSessions).values(data);
   return { id: result[0].insertId };
 }
 
 export async function listMeasurementSessions(filters?: { createdBy?: number; status?: string; opsProjectId?: number }) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const conditions = [];
   if (filters?.createdBy) conditions.push(eq(fieldMeasurementSessions.createdBy, filters.createdBy));
   if (filters?.status) conditions.push(eq(fieldMeasurementSessions.status, filters.status as any));
@@ -3315,17 +3339,20 @@ export async function listMeasurementSessions(filters?: { createdBy?: number; st
 
 export async function getMeasurementSession(id: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const rows = await db.select().from(fieldMeasurementSessions).where(eq(fieldMeasurementSessions.id, id));
   return rows[0] || null;
 }
 
 export async function updateMeasurementSession(id: number, data: Partial<InsertFieldMeasurementSession>) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   await db.update(fieldMeasurementSessions).set(data).where(eq(fieldMeasurementSessions.id, id));
 }
 
 export async function deleteMeasurementSession(id: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   await db.delete(fieldMeasurements).where(eq(fieldMeasurements.sessionId, id));
   await db.delete(panoramaImages).where(eq(panoramaImages.sessionId, id));
   await db.delete(measurementReports).where(eq(measurementReports.sessionId, id));
@@ -3335,12 +3362,14 @@ export async function deleteMeasurementSession(id: number) {
 // --- 파노라마 이미지 ---
 export async function createPanoramaImage(data: InsertPanoramaImage) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const result = await db.insert(panoramaImages).values(data);
   return { id: result[0].insertId };
 }
 
 export async function listPanoramaImages(sessionId: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   return db.select().from(panoramaImages)
     .where(eq(panoramaImages.sessionId, sessionId))
     .orderBy(panoramaImages.spotOrder);
@@ -3348,17 +3377,20 @@ export async function listPanoramaImages(sessionId: number) {
 
 export async function getPanoramaImage(id: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const rows = await db.select().from(panoramaImages).where(eq(panoramaImages.id, id));
   return rows[0] || null;
 }
 
 export async function updatePanoramaImage(id: number, data: Partial<InsertPanoramaImage>) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   await db.update(panoramaImages).set(data).where(eq(panoramaImages.id, id));
 }
 
 export async function deletePanoramaImage(id: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   await db.delete(fieldMeasurements).where(eq(fieldMeasurements.panoramaId, id));
   await db.delete(panoramaImages).where(eq(panoramaImages.id, id));
 }
@@ -3366,12 +3398,14 @@ export async function deletePanoramaImage(id: number) {
 // --- 측정 데이터 ---
 export async function createFieldMeasurement(data: InsertFieldMeasurement) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const result = await db.insert(fieldMeasurements).values(data);
   return { id: result[0].insertId };
 }
 
 export async function listFieldMeasurements(panoramaId: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   return db.select().from(fieldMeasurements)
     .where(eq(fieldMeasurements.panoramaId, panoramaId))
     .orderBy(fieldMeasurements.createdAt);
@@ -3379,6 +3413,7 @@ export async function listFieldMeasurements(panoramaId: number) {
 
 export async function listSessionMeasurements(sessionId: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   return db.select().from(fieldMeasurements)
     .where(eq(fieldMeasurements.sessionId, sessionId))
     .orderBy(fieldMeasurements.createdAt);
@@ -3386,23 +3421,27 @@ export async function listSessionMeasurements(sessionId: number) {
 
 export async function updateFieldMeasurement(id: number, data: Partial<InsertFieldMeasurement>) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   await db.update(fieldMeasurements).set(data).where(eq(fieldMeasurements.id, id));
 }
 
 export async function deleteFieldMeasurement(id: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   await db.delete(fieldMeasurements).where(eq(fieldMeasurements.id, id));
 }
 
 // --- 실측 보고서 ---
 export async function createMeasurementReport(data: InsertMeasurementReport) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const result = await db.insert(measurementReports).values(data);
   return { id: result[0].insertId };
 }
 
 export async function getMeasurementReport(sessionId: number) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const rows = await db.select().from(measurementReports)
     .where(eq(measurementReports.sessionId, sessionId))
     .orderBy(desc(measurementReports.createdAt));
@@ -3411,6 +3450,7 @@ export async function getMeasurementReport(sessionId: number) {
 
 export async function updateMeasurementReport(id: number, data: Partial<InsertMeasurementReport>) {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   await db.update(measurementReports).set(data).where(eq(measurementReports.id, id));
 }
 

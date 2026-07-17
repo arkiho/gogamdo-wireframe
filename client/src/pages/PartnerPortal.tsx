@@ -71,7 +71,7 @@ export default function PartnerPortal() {
               로그인 후 이용 가능합니다. 협력업체 등록이 필요한 경우 관리자에게 문의하세요.
             </p>
             <Button className="bg-gold text-ink hover:bg-gold-light" asChild>
-              <a href={getLoginUrl("/partner")}>로그인</a>
+              <a href={getLoginUrl()}>로그인</a>
             </Button>
           </CardContent>
         </Card>

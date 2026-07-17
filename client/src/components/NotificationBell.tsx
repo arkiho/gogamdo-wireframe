@@ -84,7 +84,6 @@ async function showBrowserNotification(title: string, body: string, link?: strin
         icon: "/favicon.ico",
         badge: "/favicon.ico",
         tag: "ops-notification",
-        renotify: true,
         data: { url: link || "/ops" },
       });
       return;

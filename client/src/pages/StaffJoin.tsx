@@ -136,7 +136,7 @@ export default function StaffJoin() {
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone || undefined,
-                department: formData.department || undefined,
+                department: (formData.department || undefined) as any,
                 message: formData.message || undefined,
               });
             }}

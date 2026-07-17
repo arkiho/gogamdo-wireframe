@@ -59,6 +59,11 @@ export default function AdminSurveyAutomation() {
   const selectedReport = trpc.surveyAuto.getAnalysisReport.useQuery(
     { id: selectedReportId! }, { enabled: !!selectedReportId }
   );
+  // 전체 분석 데이터는 리포트 content(JSON)에 보존되어 있어 파싱해서 사용
+  const reportAnalysis: any = (() => {
+    try { return selectedReport.data?.content ? JSON.parse(selectedReport.data.content) : {}; }
+    catch { return {}; }
+  })();
   const emailLogs = trpc.surveyAuto.getEmailLogs.useQuery(
     { clientProjectId: emailLogProject },
     { enabled: emailLogProject > 0 }
@@ -366,22 +371,22 @@ export default function AdminSurveyAutomation() {
                         AI 분석 리포트 #{selectedReport.data.id}
                       </CardTitle>
                       <CardDescription>
-                        종합 점수: <span className="font-bold text-foreground">{selectedReport.data.overallScore}/100</span>
+                        종합 점수: <span className="font-bold text-foreground">{reportAnalysis.overallScore}/100</span>
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {/* 핵심 요약 */}
                       <div>
                         <h3 className="font-semibold text-sm mb-2">핵심 요약</h3>
-                        <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">{selectedReport.data.executiveSummary}</p>
+                        <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">{reportAnalysis.executiveSummary}</p>
                       </div>
 
                       {/* 카테고리 점수 */}
-                      {selectedReport.data.categoryScores && (
+                      {reportAnalysis.categoryScores && (
                         <div>
                           <h3 className="font-semibold text-sm mb-2">카테고리별 점수</h3>
                           <div className="grid grid-cols-2 gap-3">
-                            {Object.entries(JSON.parse(typeof selectedReport.data.categoryScores === "string" ? selectedReport.data.categoryScores : JSON.stringify(selectedReport.data.categoryScores))).map(([key, val]: any) => (
+                            {Object.entries(reportAnalysis.categoryScores || {}).map(([key, val]: any) => (
                               <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded">
                                 <span className="text-sm">{key}</span>
                                 <Badge variant={val >= 70 ? "default" : val >= 50 ? "secondary" : "destructive"} className="text-xs">{val}점</Badge>
@@ -392,11 +397,11 @@ export default function AdminSurveyAutomation() {
                       )}
 
                       {/* 문제점 */}
-                      {selectedReport.data.painPoints && (
+                      {reportAnalysis.painPoints && (
                         <div>
                           <h3 className="font-semibold text-sm mb-2">주요 문제점</h3>
                           <ul className="space-y-1">
-                            {JSON.parse(typeof selectedReport.data.painPoints === "string" ? selectedReport.data.painPoints : "[]").map((p: string, i: number) => (
+                            {(reportAnalysis.painPoints || []).map((p: string, i: number) => (
                               <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                                 <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />{p}
                               </li>
@@ -406,11 +411,11 @@ export default function AdminSurveyAutomation() {
                       )}
 
                       {/* 개선 권고 */}
-                      {selectedReport.data.recommendations && (
+                      {reportAnalysis.recommendations && (
                         <div>
                           <h3 className="font-semibold text-sm mb-2">개선 권고사항</h3>
                           <ul className="space-y-1">
-                            {JSON.parse(typeof selectedReport.data.recommendations === "string" ? selectedReport.data.recommendations : "[]").map((r: string, i: number) => (
+                            {(reportAnalysis.recommendations || []).map((r: string, i: number) => (
                               <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                                 <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />{r}
                               </li>
@@ -420,8 +425,8 @@ export default function AdminSurveyAutomation() {
                       )}
 
                       {/* 공간 니즈 */}
-                      {selectedReport.data.spaceNeeds && (() => {
-                        const needs = JSON.parse(typeof selectedReport.data.spaceNeeds === "string" ? selectedReport.data.spaceNeeds : "{}");
+                      {reportAnalysis.spaceNeeds && (() => {
+                        const needs = reportAnalysis.spaceNeeds || {};
                         return (
                           <div>
                             <h3 className="font-semibold text-sm mb-2">공간 니즈 분석</h3>

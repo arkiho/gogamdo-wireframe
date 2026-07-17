@@ -54,11 +54,11 @@ export default function OpsProjectDetail() {
   const logDownload = trpc.ipProtection.logDownload.useMutation();
   const utils = trpc.useUtils();
 
-  const project = trpc.ops.project.get.useQuery({ id: id! });
+  const project = trpc.ops.project.get.useQuery({ id: Number(id) });
 
   const updateProject = trpc.ops.project.update.useMutation({
     onSuccess: (_, variables) => {
-      utils.ops.project.get.invalidate({ id: id! });
+      utils.ops.project.get.invalidate({ id: Number(id) });
       utils.ops.project.list.invalidate();
       if (variables.status === "completed") {
         toast.success(
@@ -179,9 +179,9 @@ export default function OpsProjectDetail() {
                   name: p.name,
                   clientName: p.clientName,
                   status: p.status,
-                  startDate: p.startDate,
-                  endDate: p.endDate,
-                  address: p.siteAddress,
+                  startDate: p.startDate ?? "",
+                  endDate: p.endDate ?? "",
+                  address: p.siteAddress ?? "",
                 },
                 expenses: (p as any).expenses ?? [],
                 schedules: (p as any).schedules ?? [],
@@ -302,7 +302,7 @@ export default function OpsProjectDetail() {
           <SubcontractorTab projectId={id!} />
         </TabsContent>
         <TabsContent value="estimates" className="mt-4">
-          <EstimateTab projectId={id!} projectName={p.name} clientName={p.clientName} siteAddress={p.address} />
+          <EstimateTab projectId={id!} projectName={p.name} clientName={p.clientName} siteAddress={p.siteAddress ?? ""} />
         </TabsContent>
         <TabsContent value="contracts" className="mt-4">
           <ContractTab projectId={id!} />
@@ -416,9 +416,9 @@ export default function OpsProjectDetail() {
 
 // Overview Tab - project summary with quick stats
 function OverviewTab({ projectId }: { projectId: string }) {
-  const schedules = trpc.ops.schedule.list.useQuery({ projectId });
-  const expenses = trpc.ops.expense.list.useQuery({ projectId });
-  const subs = trpc.ops.subcontractor.list.useQuery({ projectId });
+  const schedules = trpc.ops.schedule.list.useQuery({ projectId: Number(projectId) });
+  const expenses = trpc.ops.expense.list.useQuery({ projectId: Number(projectId) });
+  const subs = trpc.ops.subcontractor.list.useQuery();
   const costs = trpc.ops.charts.costExecution.useQuery({ projectId: Number(projectId) });
   const project = trpc.ops.project.get.useQuery({ id: Number(projectId) });
 
@@ -427,9 +427,9 @@ function OverviewTab({ projectId }: { projectId: string }) {
   const avgProgress = totalSchedules > 0
     ? Math.round((schedules.data?.reduce((sum, s) => sum + (s.progress ?? 0), 0) ?? 0) / totalSchedules)
     : 0;
-  const totalExpenseAmount = expenses.data?.reduce((sum, e) => sum + Number(e.amount), 0) ?? 0;
-  const pendingExpenses = expenses.data?.filter(e => e.approvalStatus === "pending").length ?? 0;
-  const activeSubs = subs.data?.filter(s => s.status === "active").length ?? 0;
+  const totalExpenseAmount = expenses.data?.reduce((sum, e) => sum + Number(e.totalAmount), 0) ?? 0;
+  const pendingExpenses = expenses.data?.filter(e => e.status === "submitted").length ?? 0;
+  const activeSubs = subs.data?.filter(s => s.isActive === 1).length ?? 0;
 
   // 예산 소진율 계산
   const totalBudget = costs.data?.reduce((sum, c) => sum + Number(c.budget), 0) ?? 0;

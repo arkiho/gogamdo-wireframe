@@ -922,7 +922,7 @@ function ProposalTab({ projectId, proposals, onRefresh }: { projectId: number; p
             <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{viewProposal.title}</DialogTitle></DialogHeader>
               <div className="space-y-6 mt-4">
-                {viewProposal.clientAnalysis && (
+                {!!viewProposal.clientAnalysis && (
                   <div>
                     <h4 className="font-semibold mb-2">고객사 분석</h4>
                     <p className="text-sm text-muted-foreground">{(viewProposal.clientAnalysis as any).companyProfile}</p>
@@ -940,7 +940,7 @@ function ProposalTab({ projectId, proposals, onRefresh }: { projectId: number; p
                     <p className="text-sm text-muted-foreground">{viewProposal.designConcept}</p>
                   </div>
                 )}
-                {viewProposal.spaceProgram && (
+                {!!viewProposal.spaceProgram && (
                   <div>
                     <h4 className="font-semibold mb-2">공간 프로그램</h4>
                     <div className="border rounded-lg overflow-hidden">

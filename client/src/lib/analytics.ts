@@ -180,6 +180,7 @@ export function trackPageView(path: string, title?: string) {
 
 // Convenience wrappers for key events
 export const analytics = {
+  trackEvent,
   portfolioView: (projectSlug: string, projectName: string) =>
     trackEvent("portfolio_view", { project_slug: projectSlug, project_name: projectName }),
 

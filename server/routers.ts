@@ -3719,7 +3719,7 @@ ${topicPrompt}
               contactName: input.contactName,
               email: input.contactEmail,
               phone: input.contactPhone || undefined,
-              source: "workspace_survey",
+              source: "other",
               notes: `업무환경 서베이를 통해 자동 생성\n직원수: ${input.employeeCount}명\n면적: ${input.officeSizePyeong || "미입력"}평`,
             });
           }

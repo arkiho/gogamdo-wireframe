@@ -94,7 +94,7 @@ export default function InsightDetail() {
     );
   }
 
-  const tags = typeof article.tags === "string" ? article.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : (article.tags || []);
+  const tags = Array.isArray(article.tags) ? article.tags : [];
 
   return (
     <>
@@ -114,7 +114,7 @@ export default function InsightDetail() {
             "@type": "Article",
             "headline": article.title,
             "description": article.excerpt,
-            "image": article.coverImage || undefined,
+            "image": article.coverImageUrl || undefined,
             "datePublished": article.publishedAt || article.createdAt,
             "dateModified": article.updatedAt || article.createdAt,
             "author": {

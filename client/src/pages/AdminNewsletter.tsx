@@ -616,7 +616,7 @@ export default function AdminNewsletter() {
                               <h3 className="font-semibold text-ink">{camp.title}</h3>
                               <Badge variant={status.variant} className="text-xs">{status.label}</Badge>
                               {targetSegment ? (
-                                <Badge variant="outline" className="text-xs" style={{ borderColor: targetSegment.color, color: targetSegment.color }}>
+                                <Badge variant="outline" className="text-xs" style={{ borderColor: targetSegment.color ?? undefined, color: targetSegment.color ?? undefined }}>
                                   <Target className="w-3 h-3 mr-1" />{targetSegment.name}
                                 </Badge>
                               ) : (
@@ -638,7 +638,7 @@ export default function AdminNewsletter() {
                                   onClick={() => {
                                     const targetLabel = targetSegment ? `"${targetSegment.name}" 세그먼트` : "전체";
                                     const recipientCount = targetSegment
-                                      ? subscribers?.filter((s: any) => s.tags?.some((t: string) => targetSegment.filterTags?.includes(t))).length || 0
+                                      ? subscribers?.filter((s: any) => s.tags?.some((t: string) => (targetSegment as any).filterTags?.includes(t))).length || 0
                                       : subscribers?.length || 0;
                                     if (confirm(`"${camp.title}" 캠페인을 ${targetLabel} 구독자 약 ${recipientCount}명에게 발송하시겠습니까?\n\n발송 후에는 취소할 수 없습니다.`)) {
                                       sendCampaignMutation.mutate({ campaignId: camp.id, origin: window.location.origin });

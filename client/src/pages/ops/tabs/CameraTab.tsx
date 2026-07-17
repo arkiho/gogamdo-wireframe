@@ -138,7 +138,7 @@ export default function CameraTab({ projectId }: { projectId: string }) {
               {activeCam ? (
                 <div className="relative">
                   <div className="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center">
-                    {activeCam.streamUrl.includes("http") ? (
+                    {activeCam.streamUrl?.includes("http") ? (
                       <iframe
                         src={activeCam.streamUrl}
                         className="w-full h-full"

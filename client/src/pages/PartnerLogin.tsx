@@ -22,13 +22,13 @@ export default function PartnerLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const loginMutation = trpc.partnerAuth.login.useMutation({
-    onSuccess: (data) => {
+  const loginMutation = (trpc as any).partnerAuth.login.useMutation({
+    onSuccess: (data: any) => {
       toast.success("로그인 성공!");
       // 협력사 포털 대시보드로 이동
       navigate("/partner/dashboard");
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast.error(err.message || "로그인에 실패했습니다.");
     },
   });

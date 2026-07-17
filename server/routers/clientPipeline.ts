@@ -670,7 +670,7 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
       // 고객 알림 자동 생성
       try {
         const project = await getClientProjectById(input.id);
-        if (project?.clientId) {
+        if (project?.userId) {
           const STATUS_LABELS: Record<string, string> = {
             inquiry: "문의 접수", consulting: "상담 진행", survey: "서베이 진행",
             analysis: "분석 중", design: "설계 진행", proposal: "제안서 작성",
@@ -678,18 +678,18 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
           };
           const label = STATUS_LABELS[input.status] || input.status;
           await createClientNotification({
-            clientId: project.clientId,
+            clientId: project.userId,
             projectId: input.id,
             type: "status_change",
             title: `프로젝트 상태 변경: ${label}`,
-            message: `"${project.projectName || '프로젝트'}"의 상태가 "${label}"(으)로 변경되었습니다.`,
+            message: `"${project.companyName || '프로젝트'}"의 상태가 "${label}"(으)로 변경되었습니다.`,
             linkUrl: `/my/project/${input.id}`,
           });
           if (project.contactEmail) {
             try {
               await sendProjectStatusEmail({
                 to: project.contactEmail,
-                projectName: project.projectName || '프로젝트',
+                projectName: project.companyName || '프로젝트',
                 newStatus: label,
                 clientName: project.contactName || '고객',
               });

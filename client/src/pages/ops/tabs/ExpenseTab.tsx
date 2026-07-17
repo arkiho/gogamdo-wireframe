@@ -76,6 +76,14 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
     onError: (err) => toast.error(err.message),
   });
 
+  const rejectExpense = trpc.ops.expense.reject.useMutation({
+    onSuccess: () => {
+      expenses.refetch();
+      toast.success("반려 처리되었습니다.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const addItem = () => {
     setItems(prev => [...prev, { description: "", quantity: 1, unitPrice: 0, amount: 0 }]);
   };
@@ -152,14 +160,14 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
         expenseNumber: e.expenseNumber ?? `EXP-${e.id}`,
         title: e.title,
         category: e.category ?? "other",
-        items: e.items ?? [{ description: e.title, quantity: 1, unitPrice: Number(e.totalAmount ?? e.amount ?? 0), amount: Number(e.totalAmount ?? e.amount ?? 0) }],
+        items: e.items ?? [{ description: e.title, quantity: 1, unitPrice: Number(e.totalAmount ?? 0), amount: Number(e.totalAmount ?? 0) }],
         totalAmount: e.totalAmount ?? e.amount ?? 0,
         paymentMethod: e.paymentMethod,
         payeeName: e.payeeName,
         payeeBank: e.payeeBank,
         payeeAccount: e.payeeAccount,
         notes: e.notes,
-        status: e.status ?? e.approvalStatus ?? "draft",
+        status: e.status ?? "draft",
         authorName: user?.name ?? "작성자",
         projectName: projectName ?? "프로젝트",
         createdAt: e.createdAt,
@@ -176,10 +184,10 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
     }
   };
 
-  const listTotalAmount = expenses.data?.reduce((sum, e) => sum + Number(e.totalAmount ?? e.amount ?? 0), 0) ?? 0;
-  const approvedAmount = expenses.data?.filter(e => (e.status ?? e.approvalStatus) === "approved" || (e.status ?? e.approvalStatus) === "paid")
-    .reduce((sum, e) => sum + Number(e.totalAmount ?? e.amount ?? 0), 0) ?? 0;
-  const pendingCount = expenses.data?.filter(e => ["submitted", "in_review", "pending"].includes(e.status ?? e.approvalStatus ?? "")).length ?? 0;
+  const listTotalAmount = expenses.data?.reduce((sum, e) => sum + Number(e.totalAmount ?? 0), 0) ?? 0;
+  const approvedAmount = expenses.data?.filter(e => (e.status) === "approved" || (e.status) === "paid")
+    .reduce((sum, e) => sum + Number(e.totalAmount ?? 0), 0) ?? 0;
+  const pendingCount = expenses.data?.filter(e => ["submitted", "in_review", "pending"].includes(e.status ?? "")).length ?? 0;
 
   return (
     <div className="space-y-4">
@@ -471,7 +479,7 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                                 size="sm"
                                 variant="outline"
                                 className="flex-1 sm:flex-initial text-green-600 border-green-200 hover:bg-green-50 active:bg-green-100 h-10 sm:h-8"
-                                onClick={() => approveExpense.mutate({ id: e.id, action: "approved", comment: "" })}
+                                onClick={() => approveExpense.mutate({ id: e.id, comment: "" })}
                               >
                                 <CheckCircle className="w-4 h-4 mr-1" />승인
                               </Button>
@@ -481,7 +489,7 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                                 className="flex-1 sm:flex-initial text-red-600 border-red-200 hover:bg-red-50 active:bg-red-100 h-10 sm:h-8"
                                 onClick={() => {
                                   const reason = prompt("반려 사유를 입력해주세요:");
-                                  if (reason) approveExpense.mutate({ id: e.id, action: "rejected", comment: reason });
+                                  if (reason) rejectExpense.mutate({ id: e.id, comment: reason });
                                 }}
                               >
                                 <XCircle className="w-4 h-4 mr-1" />반려

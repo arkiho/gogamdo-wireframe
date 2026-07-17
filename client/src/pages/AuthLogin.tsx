@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { getGoogleLoginUrl } from "@/const";
+import { getGoogleLoginUrl, getNaverLoginUrl, getKakaoLoginUrl } from "@/const";
 import Logo from "@/components/Logo";
 
 export default function AuthLogin() {
@@ -46,6 +46,8 @@ export default function AuthLogin() {
   };
 
   const googleUrl = getGoogleLoginUrl();
+  const naverUrl = getNaverLoginUrl();
+  const kakaoUrl = getKakaoLoginUrl();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
@@ -60,9 +62,10 @@ export default function AuthLogin() {
           </p>
         </div>
 
-        {/* Google Login */}
-        {googleUrl && (
+        {/* Social Login */}
+        {(googleUrl || naverUrl || kakaoUrl) && (
           <>
+            {googleUrl && (
             <Button
               className="w-full bg-white text-ink border border-border hover:bg-gray-50 gap-3 h-11"
               onClick={() => { window.location.href = googleUrl; }}
@@ -75,6 +78,29 @@ export default function AuthLogin() {
               </svg>
               Google로 {mode === "login" ? "로그인" : "가입"}
             </Button>
+            )}
+
+            {naverUrl && (
+            <Button
+              className="w-full bg-[#03C75A] text-white hover:bg-[#02b350] gap-3 h-11"
+              onClick={() => { window.location.href = naverUrl; }}
+            >
+              <span className="font-extrabold text-lg leading-none">N</span>
+              네이버로 {mode === "login" ? "로그인" : "가입"}
+            </Button>
+            )}
+
+            {kakaoUrl && (
+            <Button
+              className="w-full bg-[#FEE500] text-[#191600] hover:bg-[#f5dc00] gap-3 h-11"
+              onClick={() => { window.location.href = kakaoUrl; }}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.76 1.86 5.19 4.65 6.57-.15.54-.96 3.3-.99 3.51 0 0-.02.18.1.24.11.06.24.01.24.01.3-.04 3.48-2.28 4.05-2.67.63.09 1.28.14 1.95.14 5.52 0 10-3.48 10-7.8S17.52 3 12 3z"/>
+              </svg>
+              카카오로 {mode === "login" ? "로그인" : "가입"}
+            </Button>
+            )}
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

@@ -72,7 +72,7 @@ export default function EvaluationTab({ projectId }: { projectId: string }) {
   });
 
   const evaluations = trpc.ops.evaluation.list.useQuery({ projectId: pid });
-  const subs = trpc.ops.subcontractor.list.useQuery({ projectId: pid });
+  const subs = trpc.ops.subcontractor.list.useQuery();
   const summary = trpc.ops.evaluation.summary.useQuery(
     { subcontractorId: selectedSub! },
     { enabled: !!selectedSub }

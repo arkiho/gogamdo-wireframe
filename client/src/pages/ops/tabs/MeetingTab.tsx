@@ -24,15 +24,15 @@ export default function MeetingTab({ projectId }: { projectId: string }) {
     title: "", attendees: "", agenda: "", decisions: "", actionItems: "",
   });
 
-  const meetings = trpc.ops.meeting.list.useQuery({ projectId });
-  const createMeeting = trpc.ops.meeting.create.useMutation({
+  const meetings = trpc.ops.meetingNote.list.useQuery({ projectId: Number(projectId) });
+  const createMeeting = trpc.ops.meetingNote.create.useMutation({
     onSuccess: () => {
       meetings.refetch();
       setOpen(false);
       setForm({ meetingDate: new Date().toISOString().split("T")[0], meetingType: "weekly", title: "", attendees: "", agenda: "", decisions: "", actionItems: "" });
       toast.success("회의록이 등록되었습니다.");
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
 
   const handleCreate = () => {
@@ -41,14 +41,18 @@ export default function MeetingTab({ projectId }: { projectId: string }) {
       return;
     }
     createMeeting.mutate({
-      projectId,
+      projectId: Number(projectId),
       meetingDate: form.meetingDate,
-      meetingType: form.meetingType,
+      meetingType: form.meetingType as any,
       title: form.title,
-      attendees: form.attendees || undefined,
-      agenda: form.agenda,
-      decisions: form.decisions || undefined,
-      actionItems: form.actionItems || undefined,
+      agenda: form.agenda || undefined,
+      // 참석자/결정/액션은 자유 텍스트라 content에 통합 보존
+      content: [
+        form.agenda,
+        form.attendees ? `참석자: ${form.attendees}` : "",
+        form.decisions ? `결정사항: ${form.decisions}` : "",
+        form.actionItems ? `액션아이템: ${form.actionItems}` : "",
+      ].filter(Boolean).join("\n") || form.title,
     });
   };
 
@@ -119,7 +123,7 @@ export default function MeetingTab({ projectId }: { projectId: string }) {
           </div>
         ) : (
           <div className="space-y-3">
-            {meetings.data.map(m => (
+            {meetings.data.map((m: any) => (
               <div key={m.id} className="p-3 sm:p-4 border rounded-lg hover:bg-accent/30 active:bg-accent/50 transition-colors">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 mb-2">
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">

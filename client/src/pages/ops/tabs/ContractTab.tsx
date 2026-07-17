@@ -30,7 +30,7 @@ export default function ContractTab({ projectId }: { projectId: string }) {
     startDate: "", endDate: "", description: "", fileUrl: "",
   });
 
-  const contracts = trpc.ops.contract.list.useQuery({ projectId });
+  const contracts = trpc.ops.contract.list.useQuery({ projectId: Number(projectId) });
   const createContract = trpc.ops.contract.create.useMutation({
     onSuccess: () => {
       contracts.refetch();
@@ -47,14 +47,15 @@ export default function ContractTab({ projectId }: { projectId: string }) {
       return;
     }
     createContract.mutate({
-      projectId,
+      projectId: Number(projectId),
       title: form.title,
-      contractType: form.contractType,
-      partyName: form.partyName,
-      contractAmount: form.contractAmount,
+      contractType: form.contractType as any,
+      partyA: form.partyName,
+      partyB: "(주)고감도",
+      contractAmount: form.contractAmount || undefined,
       startDate: form.startDate || undefined,
       endDate: form.endDate || undefined,
-      description: form.description || undefined,
+      specialTerms: form.description || undefined,
       fileUrl: form.fileUrl || undefined,
     });
   };
@@ -169,7 +170,7 @@ export default function ContractTab({ projectId }: { projectId: string }) {
                           <td className="py-2.5 px-3">
                             <Badge variant="outline" className="text-xs">{TYPE_LABELS[c.contractType] ?? c.contractType}</Badge>
                           </td>
-                          <td className="py-2.5 px-3">{c.partyName}</td>
+                          <td className="py-2.5 px-3">{c.partyA}</td>
                           <td className="py-2.5 px-3 text-right font-semibold">{Number(c.contractAmount).toLocaleString()}원</td>
                           <td className="py-2.5 px-3 text-muted-foreground text-xs">
                             {c.startDate ? `${c.startDate} ~ ${c.endDate || "미정"}` : "-"}
@@ -196,7 +197,7 @@ export default function ContractTab({ projectId }: { projectId: string }) {
                         <Badge className={`text-[10px] ${s.color} border-0`}>{s.label}</Badge>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">{c.partyName}</span>
+                        <span className="text-muted-foreground">{c.partyA}</span>
                         <span className="font-semibold">{Number(c.contractAmount).toLocaleString()}원</span>
                       </div>
                       {c.startDate && (

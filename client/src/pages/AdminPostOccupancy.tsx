@@ -100,7 +100,7 @@ export default function AdminPostOccupancy() {
             <Card>
               <CardContent className="pt-6">
                 <Star className="w-6 h-6 text-amber-500 mb-2" />
-                <p className="text-2xl font-bold">{satisfaction.data?.overallScore || "-"}</p>
+                <p className="text-2xl font-bold">{satisfaction.data?.overallSatisfaction || "-"}</p>
                 <p className="text-xs text-muted-foreground">만족도 점수</p>
               </CardContent>
             </Card>
@@ -114,7 +114,7 @@ export default function AdminPostOccupancy() {
             <Card>
               <CardContent className="pt-6">
                 <Repeat className="w-6 h-6 text-green-500 mb-2" />
-                <p className="text-2xl font-bold">{subscription.data ? planLabels[subscription.data.planType] || subscription.data.planType : "-"}</p>
+                <p className="text-2xl font-bold">{subscription.data ? planLabels[subscription.data.plan] || subscription.data.plan : "-"}</p>
                 <p className="text-xs text-muted-foreground">구독 상태</p>
               </CardContent>
             </Card>
@@ -148,26 +148,26 @@ export default function AdminPostOccupancy() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="text-center p-4 bg-muted/30 rounded-lg">
-                          <p className="text-2xl font-bold">{satisfaction.data.overallScore || 0}</p>
+                          <p className="text-2xl font-bold">{satisfaction.data.overallSatisfaction || 0}</p>
                           <p className="text-xs text-muted-foreground">종합 점수</p>
                         </div>
                         <div className="text-center p-4 bg-muted/30 rounded-lg">
-                          <p className="text-2xl font-bold">{satisfaction.data.designScore || 0}</p>
+                          <p className="text-2xl font-bold">{satisfaction.data.designSatisfaction || 0}</p>
                           <p className="text-xs text-muted-foreground">설계 만족도</p>
                         </div>
                         <div className="text-center p-4 bg-muted/30 rounded-lg">
-                          <p className="text-2xl font-bold">{satisfaction.data.constructionScore || 0}</p>
+                          <p className="text-2xl font-bold">{satisfaction.data.constructionSatisfaction || 0}</p>
                           <p className="text-xs text-muted-foreground">시공 만족도</p>
                         </div>
                         <div className="text-center p-4 bg-muted/30 rounded-lg">
-                          <p className="text-2xl font-bold">{satisfaction.data.communicationScore || 0}</p>
+                          <p className="text-2xl font-bold">{satisfaction.data.communicationSatisfaction || 0}</p>
                           <p className="text-xs text-muted-foreground">소통 만족도</p>
                         </div>
                       </div>
-                      {satisfaction.data.feedback && (
+                      {satisfaction.data.positiveComments && (
                         <div className="p-4 border rounded-lg">
                           <h4 className="font-medium text-sm mb-2">고객 피드백</h4>
-                          <p className="text-sm text-muted-foreground">{satisfaction.data.feedback}</p>
+                          <p className="text-sm text-muted-foreground">{satisfaction.data.positiveComments}</p>
                         </div>
                       )}
                       {satisfaction.data.improvementSuggestions && (
@@ -258,7 +258,7 @@ export default function AdminPostOccupancy() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="p-4 bg-muted/30 rounded-lg">
                         <p className="text-xs text-muted-foreground">플랜</p>
-                        <p className="font-medium">{planLabels[subscription.data.planType] || subscription.data.planType}</p>
+                        <p className="font-medium">{planLabels[subscription.data.plan] || subscription.data.plan}</p>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-lg">
                         <p className="text-xs text-muted-foreground">상태</p>
@@ -268,7 +268,7 @@ export default function AdminPostOccupancy() {
                       </div>
                       <div className="p-4 bg-muted/30 rounded-lg">
                         <p className="text-xs text-muted-foreground">주기</p>
-                        <p className="font-medium">{subscription.data.intervalMonths}개월</p>
+                        <p className="font-medium">-</p>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-lg">
                         <p className="text-xs text-muted-foreground">다음 리포트</p>
@@ -293,7 +293,7 @@ export default function AdminPostOccupancy() {
                         <DialogHeader><DialogTitle>OpsX Insight 구독 생성</DialogTitle></DialogHeader>
                         <div className="space-y-4 pt-4">
                           <Input placeholder="고객 ID" type="number" onChange={e => setSubscriptionForm(f => ({ ...f, clientId: parseInt(e.target.value) || 0 }))} />
-                          <Select value={subscriptionForm.planType} onValueChange={v => setSubscriptionForm(f => ({ ...f, planType: v as any }))}>
+                          <Select value={subscriptionForm.plan} onValueChange={v => setSubscriptionForm(f => ({ ...f, plan: v as any }))}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="basic">Basic (분기 1회)</SelectItem>

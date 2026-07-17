@@ -33,8 +33,29 @@ export const postOccupancyRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const result = await createPostOccupancySurvey({
-        ...input,
-        respondentId: ctx.user.id,
+        clientProjectId: input.clientProjectId,
+        overallSatisfaction: input.overallScore,
+        designSatisfaction: input.designScore,
+        constructionSatisfaction: input.constructionScore,
+        communicationSatisfaction: input.communicationScore,
+        timelineSatisfaction: input.timelinessScore,
+        positiveComments: input.positives,
+        improvementSuggestions: input.improvements,
+        wouldRecommend: input.wouldRecommend,
+        status: "completed",
+        // value/airQuality/lighting/noise/temperature 점수 및 additionalComments 전용 컬럼이 없어 issuesReported에 보존
+        issuesReported: [{
+          area: "추가 평가/코멘트",
+          description: JSON.stringify({
+            valueScore: input.valueScore,
+            airQualityScore: input.airQualityScore,
+            lightingScore: input.lightingScore,
+            noiseScore: input.noiseScore,
+            temperatureScore: input.temperatureScore,
+            additionalComments: input.additionalComments,
+          }),
+          severity: "minor" as const,
+        }],
       });
       
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -70,10 +91,16 @@ export const postOccupancyRouter = router({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       
+      const visitTypeMap = { initial_inspection: "inspection", fine_tuning: "fine_tuning", repair: "warranty", optimization: "optimization", quarterly_review: "inspection" } as const;
       const result = await createMaintenanceVisit({
-        ...input,
+        clientProjectId: input.clientProjectId,
+        visitType: visitTypeMap[input.visitType],
+        scheduledDate: new Date(input.scheduledDate).toISOString().slice(0, 10),
+        technicianId: input.assignedStaffId,
+        technicianName: input.assignedStaffName,
+        // issueReported 전용 컬럼이 없어 description에 통합 보존
+        description: [input.description, input.issueReported ? `[보고된 이슈] ${input.issueReported}` : ""].filter(Boolean).join("\n") || undefined,
         status: "scheduled",
-        createdBy: ctx.user.id,
       });
       
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -124,9 +151,13 @@ export const postOccupancyRouter = router({
       }
       
       const result = await createInsightSubscription({
-        ...input,
+        clientProjectId: input.clientProjectId,
+        plan: input.plan,
+        monthlyFee: String(input.monthlyFee),
         status: "active",
-        startDate: Date.now(),
+        startDate: new Date().toISOString().slice(0, 10),
+        // sensorTypes는 sensorsInstalled에 보존, reportFrequency 전용 컬럼은 스키마에 없음(미저장)
+        sensorsInstalled: input.sensorTypes ? JSON.parse(input.sensorTypes) : undefined,
       });
       
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -205,16 +236,13 @@ ${input.currentLayoutJson ? "현재 레이아웃: " + input.currentLayoutJson : 
         subscriptionId: input.subscriptionId,
         clientProjectId: input.clientProjectId,
         reportPeriod: `${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`,
-        overallEfficiency: reportData.overallEfficiency,
-        zoneAnalysis: JSON.stringify(reportData.zoneAnalysis),
-        environmentalIssues: JSON.stringify(reportData.environmentalIssues),
-        layoutChanges: JSON.stringify(reportData.layoutChanges),
-        costSavings: JSON.stringify(reportData.costSavingOpportunities),
-        executiveSummary: reportData.executiveSummary,
-        fullReportJson: JSON.stringify(reportData),
-        rewallRecommendations: JSON.stringify(
-          (reportData.layoutChanges || []).filter((c: any) => c.rewallApplicable)
-        ),
+        summary: reportData.executiveSummary,
+        occupancyAnalysis: reportData.zoneAnalysis,
+        environmentAnalysis: reportData.environmentalIssues,
+        optimizationSuggestions: reportData.layoutChanges,
+        // overallEfficiency/costSavings/rewallRecommendations 전용 컬럼이 없어 전체 분석을 fullReport에 보존
+        fullReport: JSON.stringify(reportData),
+        status: "ready",
       });
       
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });

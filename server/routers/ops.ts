@@ -281,7 +281,7 @@ export const opsRouter = router({
             // OpsX 내부 알림
             await notifyAdminsAndPMs({
               projectId: id,
-              type: "system",
+              type: "general",
               title: "프로젝트 완료 자동화 실행",
               message: `"${project.name}" 프로젝트가 완료되어 포트폴리오 초안이 생성되었습니다.${project.clientEmail ? " 리뷰 요청도 자동 발송되었습니다." : " (고객 이메일 미등록으로 리뷰 요청은 수동 처리 필요)"}`,
             });
@@ -718,7 +718,7 @@ export const opsRouter = router({
           await notifyAccountants({
             type: "expense_approved",
             title: "[회계처리] 지출결의서 승인 완료",
-            message: `지출결의서 "${expense.title}" (${expense.amount ? Number(expense.amount).toLocaleString() + '원' : '금액 미입력'})이 승인되었습니다. 회계 처리를 진행해 주세요.`,
+            message: `지출결의서 "${expense.title}" (${expense.totalAmount ? Number(expense.totalAmount).toLocaleString() + '원' : '금액 미입력'})이 승인되었습니다. 회계 처리를 진행해 주세요.`,
             link: `/ops/project/${expense.projectId}?tab=expenses`,
             projectId: expense.projectId,
           });

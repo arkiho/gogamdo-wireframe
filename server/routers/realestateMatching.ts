@@ -55,6 +55,7 @@ ${input.insightData ? "OpsX Insight 데이터: " + input.insightData : ""}`,
   setSearchCriteria: protectedProcedure
     .input(z.object({
       clientProjectId: z.number(),
+      relocationType: z.enum(["relocation", "renovation"]).optional(),
       minArea: z.number().optional(),
       maxArea: z.number().optional(),
       preferredDistricts: z.string().optional(), // JSON array
@@ -67,12 +68,28 @@ ${input.insightData ? "OpsX Insight 데이터: " + input.insightData : ""}`,
       additionalRequirements: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // 입력 필드를 realestate_search_criteria 스키마에 매핑 (decimal은 문자열, 전용 컬럼 없는 값은 additionalRequirements에 보존)
+      const mapped = {
+        clientProjectId: input.clientProjectId,
+        minArea: input.minArea != null ? String(input.minArea) : undefined,
+        maxArea: input.maxArea != null ? String(input.maxArea) : undefined,
+        desiredLocation: input.preferredDistricts,
+        budgetMax: input.maxRent != null ? String(input.maxRent) : undefined,
+        buildingType: input.buildingGrade,
+        parkingNeeded: input.parkingRequired,
+        moveInDate: input.moveInDate,
+        additionalRequirements: [
+          input.additionalRequirements,
+          input.maxDeposit != null ? `최대 보증금: ${input.maxDeposit}` : "",
+          input.nearSubway ? "역세권 선호" : "",
+        ].filter(Boolean).join("\n") || undefined,
+      };
       const existing = await getRealestateSearchByProject(input.clientProjectId);
       if (existing) {
-        await updateRealestateSearch(existing.id, input);
+        await updateRealestateSearch(existing.id, mapped);
         return { id: existing.id, updated: true };
       }
-      const result = await createRealestateSearch(input);
+      const result = await createRealestateSearch({ ...mapped, projectType: input.relocationType ?? "relocation" });
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       return { id: result.id, updated: false };
     }),
@@ -132,21 +149,25 @@ ${input.insightData ? "OpsX Insight 데이터: " + input.insightData : ""}`,
         const saved = await createRealestateMatch({
           clientProjectId: input.clientProjectId,
           searchCriteriaId: criteria.id,
+          propertyName: match.buildingName ?? "매물",
           buildingName: match.buildingName,
-          address: match.address,
-          floor: match.floor,
-          area: match.area,
-          rentPerPyeong: match.rentPerPyeong,
-          deposit: match.deposit,
-          managementFee: match.managementFee,
-          buildingGrade: match.buildingGrade,
-          yearBuilt: match.yearBuilt,
-          nearestStation: match.nearestStation,
-          parking: match.parking,
+          address: match.address ?? "",
+          floor: match.floor != null ? String(match.floor) : undefined,
+          totalArea: match.area != null ? String(match.area) : undefined,
+          monthlyRent: match.rentPerPyeong != null ? String(match.rentPerPyeong) : undefined,
+          deposit: match.deposit != null ? String(match.deposit) : undefined,
+          managementFee: match.managementFee != null ? String(match.managementFee) : undefined,
           matchScore: match.matchScore,
-          pros: JSON.stringify(match.pros),
-          cons: JSON.stringify(match.cons),
-          status: "new",
+          // 전용 컬럼이 없는 등급/준공/교통/주차/단점은 matchReasons에 보존
+          matchReasons: [
+            ...(match.pros || []),
+            match.buildingGrade ? `등급: ${match.buildingGrade}` : "",
+            match.yearBuilt ? `준공: ${match.yearBuilt}` : "",
+            match.nearestStation ? `교통: ${match.nearestStation}` : "",
+            match.parking ? `주차: ${match.parking}` : "",
+            ...(match.cons || []).map((c: string) => `단점: ${c}`),
+          ].filter(Boolean),
+          status: "matched",
         });
         if (saved) savedMatches.push(saved);
       }
@@ -167,8 +188,9 @@ ${input.insightData ? "OpsX Insight 데이터: " + input.insightData : ""}`,
       clientNotes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
-      await updateRealestateMatch(id, data);
+      const { id, status, clientNotes } = input;
+      const matchStatusMap = { new: "matched", shortlisted: "shortlisted", visited: "viewed", rejected: "rejected", selected: "selected" } as const;
+      await updateRealestateMatch(id, { status: matchStatusMap[status], clientNotes });
       return { success: true };
     }),
 
@@ -204,19 +226,19 @@ ${input.insightData ? "OpsX Insight 데이터: " + input.insightData : ""}`,
         ],
       });
 
-      const diagramData = llmResponse.choices[0].message.content || "{}";
+      const diagramContent = llmResponse.choices[0].message.content || "{}";
+      const parsedDiagram = JSON.parse(diagramContent);
       
       const result = await createProgramDiagram({
         clientProjectId: input.clientProjectId,
-        matchId: input.matchId,
+        realestateMatchId: input.matchId,
         floorPlanId: input.floorPlanId,
-        diagramType: input.matchId ? "relocation" : "renovation",
-        zonesJson: diagramData,
-        totalArea: JSON.parse(input.spaceNeeds).recommendedArea || 0,
+        title: `프로그램 다이어그램 (${input.matchId ? "이전" : "리노베이션"})`,
+        diagramData: parsedDiagram,
       });
 
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      return { diagramId: result.id, diagram: JSON.parse(diagramData) };
+      return { diagramId: result.id, diagram: parsedDiagram };
     }),
 
   getDiagrams: protectedProcedure

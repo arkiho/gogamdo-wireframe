@@ -38,11 +38,14 @@ export const vendorPortalRouter = router({
       })).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { items, ...quoteData } = input;
+      const { items, quoteCategory, totalAmount, taxAmount, validUntil, notes, ...quoteData } = input;
       
       const result = await createVendorQuote({
         ...quoteData,
-        submittedBy: ctx.user.id,
+        category: quoteCategory,
+        totalAmount: String(totalAmount),
+        vatAmount: taxAmount != null ? String(taxAmount) : undefined,
+        validUntil: validUntil != null ? String(validUntil) : undefined,
         status: "submitted",
       });
       
@@ -51,7 +54,13 @@ export const vendorPortalRouter = router({
       // 견적 항목 저장
       if (items && items.length > 0) {
         await createVendorQuoteItems(
-          items.map(item => ({ ...item, quoteId: result.id }))
+          items.map(item => ({
+            ...item,
+            quoteId: result.id,
+            quantity: String(item.quantity),
+            unitPrice: String(item.unitPrice),
+            amount: String(item.amount),
+          }))
         );
         
         // 자재 단가 이력 기록 (materialCode가 있는 항목만)
@@ -62,11 +71,11 @@ export const vendorPortalRouter = router({
               materialName: item.itemName,
               category: input.quoteCategory,
               vendorName: input.vendorName,
-              unitPrice: item.unitPrice,
+              unitPrice: String(item.unitPrice),
               unit: item.unit || "EA",
               specification: item.specification,
               projectId: input.projectId,
-              priceDate: Date.now(),
+              priceDate: new Date().toISOString().slice(0, 10),
             });
           }
         }
@@ -129,7 +138,8 @@ export const vendorPortalRouter = router({
         ],
       });
 
-      const parsed = JSON.parse(llmResponse.choices[0].message.content || "{}");
+      const rawContent = llmResponse.choices[0].message.content;
+      const parsed = JSON.parse((typeof rawContent === "string" ? rawContent : "") || "{}");
       
       // 파싱된 항목 저장
       if (parsed.items && parsed.items.length > 0) {
@@ -145,10 +155,10 @@ export const vendorPortalRouter = router({
       // 총액 업데이트
       if (parsed.totalAmount) {
         await updateVendorQuote(input.quoteId, {
-          totalAmount: parsed.totalAmount,
-          taxAmount: parsed.taxAmount || 0,
-          aiParsedData: JSON.stringify(parsed),
-          status: "parsed",
+          totalAmount: String(parsed.totalAmount),
+          vatAmount: String(parsed.taxAmount || 0),
+          aiParsedData: parsed,
+          aiParsed: 1,
         });
       }
       
@@ -175,7 +185,7 @@ export const vendorPortalRouter = router({
   updateQuoteStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
-      status: z.enum(["submitted", "parsed", "reviewing", "approved", "rejected", "revised"]),
+      status: z.enum(["submitted", "reviewing", "accepted", "rejected", "revised"]),
       reviewNotes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -183,7 +193,7 @@ export const vendorPortalRouter = router({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       const { id, ...data } = input;
-      await updateVendorQuote(id, { ...data, reviewedBy: ctx.user.id, reviewedAt: Date.now() });
+      await updateVendorQuote(id, data);
       return { success: true };
     }),
 
@@ -202,7 +212,7 @@ export const vendorPortalRouter = router({
         const history = await getMaterialPriceHistoryByCode(input.materialCode);
         if (history.length < 2) return { message: "데이터가 부족합니다." };
         
-        const prices = history.map(h => h.unitPrice);
+        const prices = history.map(h => Number(h.unitPrice));
         const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
@@ -213,14 +223,12 @@ export const vendorPortalRouter = router({
           materialCode: input.materialCode,
           materialName: history[0].materialName,
           category: history[0].category,
-          avgPrice,
-          minPrice,
-          maxPrice,
-          latestPrice,
-          priceChangeRate: changeRate,
+          avgPrice: String(Math.round(avgPrice)),
+          minPrice: String(minPrice),
+          maxPrice: String(maxPrice),
+          priceChangeRate: String(changeRate.toFixed(2)),
           sampleCount: history.length,
-          trendDirection: changeRate > 2 ? "up" : changeRate < -2 ? "down" : "stable",
-          lastAnalyzedAt: Date.now(),
+          trendDirection: changeRate > 2 ? "rising" : changeRate < -2 ? "falling" : "stable",
         });
         
         return { materialCode: input.materialCode, avgPrice, minPrice, maxPrice, latestPrice, changeRate };

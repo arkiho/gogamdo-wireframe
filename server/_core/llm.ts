@@ -85,7 +85,7 @@ export type InvokeResult = {
     index: number;
     message: {
       role: Role;
-      content: string | Array<TextContent | ImageContent | FileContent>;
+      content: string;
       tool_calls?: ToolCall[];
     };
     finish_reason: string | null;

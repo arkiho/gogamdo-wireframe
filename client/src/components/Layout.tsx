@@ -11,7 +11,6 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ArrowUpRight, Mail, ChevronDown, User, Building2, HardHat, LogIn, LogOut, LayoutDashboard, Users, Handshake, Camera } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { analytics } from "@/lib/analytics";
@@ -339,59 +338,18 @@ function LoginDropdown({ isTransparent }: { isTransparent: boolean }) {
     );
   }
 
-  // 비로그인 상태: 로그인 드롭다운
+  // 비로그인 상태: 로그인 페이지(/auth/login)로 이동
   return (
-    <div
-      className="relative"
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-    >
-      <button
-        className={`flex items-center gap-1.5 text-sm font-medium tracking-wide transition-colors duration-300 hover:text-gold ${
+    <Link href="/auth/login">
+      <span
+        className={`flex items-center gap-1.5 text-sm font-medium tracking-wide transition-colors duration-300 hover:text-gold cursor-pointer ${
           isTransparent ? "text-white/70" : "text-ink-light"
         }`}
       >
         <User className="w-4 h-4" />
         <span className="hidden xl:inline">로그인</span>
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.2 }}
-            className="absolute top-full right-0 pt-3"
-          >
-            <div className="bg-paper/95 backdrop-blur-xl border border-border/50 shadow-lg min-w-[220px]">
-              <div className="px-4 py-3 border-b border-border/30">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">로그인</p>
-              </div>
-              <Link href="/client/login">
-                <span className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
-                  <Building2 className="w-4 h-4" />
-                  <div>
-                    <p className="font-semibold text-ink">고객사 로그인</p>
-                    <p className="text-xs text-muted-foreground">프로젝트 현황 · 서베이 · 보고서</p>
-                  </div>
-                </span>
-              </Link>
-              <a href={getLoginUrl()}>
-                <span className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors border-t border-border/20">
-                  <HardHat className="w-4 h-4" />
-                  <div>
-                    <p className="font-semibold text-ink">직원 로그인</p>
-                    <p className="text-xs text-muted-foreground">OpsX · 공정관리 · 결재</p>
-                  </div>
-                </span>
-              </a>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      </span>
+    </Link>
   );
 }
 
@@ -477,12 +435,12 @@ function MobileLoginButtons() {
             고객사
           </span>
         </Link>
-        <a href={getLoginUrl()}>
+        <Link href="/auth/login">
           <span className="inline-flex items-center gap-2 px-5 py-3 bg-gold/10 text-gold text-base font-medium hover:bg-gold/20 transition-colors">
-            <HardHat className="w-4 h-4" />
-            직원
+            <User className="w-4 h-4" />
+            로그인
           </span>
-        </a>
+        </Link>
       </div>
     </motion.div>
   );
@@ -494,7 +452,7 @@ function NewsletterForm() {
   const [agreed, setAgreed] = useState(false);
   const subscribe = trpc.newsletter.subscribe.useMutation({
     onSuccess: (data) => {
-      if (data.isNew) {
+      if ((data as any).isNew) {
         analytics.newsletterSubscribe();
         toast.success("구독이 완료되었습니다. 감사합니다!");
       } else {
@@ -514,7 +472,7 @@ function NewsletterForm() {
         className="flex w-full lg:w-auto gap-0"
         onSubmit={(e) => {
           e.preventDefault();
-          if (email && agreed) subscribe.mutate({ email, source: "footer" });
+          if (email && agreed) subscribe.mutate({ email, source: "website" });
         }}
       >
         <div className="relative flex-1 lg:w-80">
