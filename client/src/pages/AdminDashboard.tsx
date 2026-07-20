@@ -335,284 +335,174 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* DDIA 바로가기 */}
-            <Card className="border-gold/30 bg-gradient-to-r from-gold/5 to-transparent cursor-pointer hover:border-gold/50 transition-colors" onClick={() => navigate("/admin/ddia")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-gold/10 flex items-center justify-center">
-                    <BarChart3 className="w-6 h-6 text-gold" />
+            {/* 관리 메뉴 그리드 — 한 줄에 4개 */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-gold/30 bg-gold/5 cursor-pointer hover:border-gold/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/ddia")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-gold/10 flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-gold" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-ink">DDIA 공간 분석</h3>
-                    <p className="text-xs text-muted-foreground">Data Driven Interior Architecture — 센서 데이터 수집 및 공간 분석</p>
+                    <h3 className="font-heading font-bold text-ink text-sm">DDIA 공간 분석</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">센서 데이터 수집 및 공간 분석</p>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* 설계 자동화 바로가기 */}
-            <Card className="border-emerald-300/30 bg-gradient-to-r from-emerald-50/50 to-transparent cursor-pointer hover:border-emerald-400/50 transition-colors" onClick={() => navigate("/admin/design-auto")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center">
-                    <Wand2 className="w-6 h-6 text-emerald-600" />
+              <Card className="border-emerald-300/30 bg-emerald-50/30 cursor-pointer hover:border-emerald-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/design-auto")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <Wand2 className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-ink">설계 자동화</h3>
-                    <p className="text-xs text-muted-foreground">도면 → RFP → 레이아웃 → 렌더링 → 제안서 → 견적서 자동 생성</p>
+                    <h3 className="font-heading font-bold text-ink text-sm">설계 자동화</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">도면→렌더링→견적서 자동 생성</p>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* 리뷰 관리 바로가기 */}
-            <Card className="border-purple-300/30 bg-gradient-to-r from-purple-50/50 to-transparent cursor-pointer hover:border-purple-400/50 transition-colors" onClick={() => navigate("/admin/reviews")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <MessageSquare className="w-6 h-6 text-purple-600" />
+              <Card className="border-purple-300/30 bg-purple-50/30 cursor-pointer hover:border-purple-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/reviews")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-ink">포트폴리오 리뷰</h3>
-                    <p className="text-xs text-muted-foreground">담당자 리뷰 요청 생성, 승인/거절 관리</p>
+                    <h3 className="font-heading font-bold text-ink text-sm">포트폴리오 리뷰</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">리뷰 요청 생성, 승인/거절</p>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* 인사이트 관리 바로가기 */}
-            <Card className="border-purple-300/30 bg-gradient-to-r from-purple-50/50 to-transparent cursor-pointer hover:border-purple-400/50 transition-colors" onClick={() => navigate("/admin/insights")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-purple-600" />
+              <Card className="border-purple-300/30 bg-purple-50/30 cursor-pointer hover:border-purple-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/insights")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-ink">인사이트 관리</h3>
-                    <p className="text-xs text-muted-foreground">아티클 관리 및 AI 자동 생성</p>
+                    <h3 className="font-heading font-bold text-ink text-sm">인사이트 관리</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">아티클 관리 및 AI 자동 생성</p>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* 뉴스레터 관리 바로가기 */}
-            <Card className="border-emerald-300/30 bg-gradient-to-r from-emerald-50/50 to-transparent cursor-pointer hover:border-emerald-400/50 transition-colors" onClick={() => navigate("/admin/newsletter")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center">
-                    <Mail className="w-6 h-6 text-emerald-600" />
+              <Card className="border-emerald-300/30 bg-emerald-50/30 cursor-pointer hover:border-emerald-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/newsletter")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-ink">뉴스레터 관리</h3>
-                    <p className="text-xs text-muted-foreground">구독자 관리, 캠페인 생성 및 발송</p>
+                    <h3 className="font-heading font-bold text-ink text-sm">뉴스레터 관리</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">구독자 관리, 캠페인 발송</p>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* 고객 파이프라인 바로가기 */}
-            <Card className="border-orange-300/30 bg-gradient-to-r from-orange-50/50 to-transparent cursor-pointer hover:border-orange-400/50 transition-colors" onClick={() => navigate("/admin/client-pipeline")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-orange-600" />
+              <Card className="border-orange-300/30 bg-orange-50/30 cursor-pointer hover:border-orange-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/client-pipeline")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-orange-100 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-orange-600" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-ink">고객 셀프서비스 파이프라인</h3>
-                    <p className="text-xs text-muted-foreground">고객 프로젝트, 도면 업로드, 서베이, AI 보고서, 미팅 예약 관리</p>
+                    <h3 className="font-heading font-bold text-ink text-sm">고객 파이프라인</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">프로젝트, 서베이, AI 보고서</p>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* 다운로드 이력 관리 바로가기 */}
-            <Card className="border-amber-300/30 bg-gradient-to-r from-amber-50/50 to-transparent cursor-pointer hover:border-amber-400/50 transition-colors" onClick={() => navigate("/admin/download-logs")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
-                    <Shield className="w-6 h-6 text-amber-600" />
+              <Card className="border-amber-300/30 bg-amber-50/30 cursor-pointer hover:border-amber-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/download-logs")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-amber-600" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-ink">다운로드 이력 관리</h3>
-                    <p className="text-xs text-muted-foreground">파일 다운로드 추적, 트래킹 코드 검색, 지적재산권 보호</p>
+                    <h3 className="font-heading font-bold text-ink text-sm">다운로드 이력</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">파일 추적, 지적재산권 보호</p>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* CRM 바로가기 */}
-            <Card className="border-blue-300/30 bg-gradient-to-r from-blue-50/50 to-transparent cursor-pointer hover:border-blue-400/50 transition-colors" onClick={() => navigate("/admin/crm")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-blue-600" />
+              <Card className="border-blue-300/30 bg-blue-50/30 cursor-pointer hover:border-blue-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/crm")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-ink">고객 관리 (CRM)</h3>
-                    <p className="text-xs text-muted-foreground">고객 관리, 상담 이력, 딜 파이프라인, 프로젝트 추적</p>
+                    <h3 className="font-heading font-bold text-ink text-sm">고객 관리 (CRM)</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">상담 이력, 딜 파이프라인</p>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-            {/* 사이트 설정 바로가기 */}
-            <Card className="border-purple-300/30 bg-gradient-to-r from-purple-50/50 to-transparent cursor-pointer hover:border-purple-400/50 transition-colors" onClick={() => navigate("/admin/settings")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <ToggleRight className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-ink">사이트 설정 & 직원 관리</h3>
-                    <p className="text-xs text-muted-foreground">AI 서비스 ON/OFF, 직원 권한 관리, 사이트 구성 설정</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-            {/* 설문 자동화 바로가기 */}
-            <Card className="border-teal-300/30 bg-gradient-to-r from-teal-50/50 to-transparent cursor-pointer hover:border-teal-400/50 transition-colors" onClick={() => navigate("/admin/survey")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center">
-                    <ClipboardList className="w-6 h-6 text-teal-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-ink">설문 자동화</h3>
-                    <p className="text-xs text-muted-foreground">1차 설문 → 전사 설문 → AI 분석 리포트 자동 생성</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-            {/* 부동산 매칭 바로가기 */}
-            <Card className="border-cyan-300/30 bg-gradient-to-r from-cyan-50/50 to-transparent cursor-pointer hover:border-cyan-400/50 transition-colors" onClick={() => navigate("/admin/realestate")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-cyan-100 flex items-center justify-center">
-                    <Building2 className="w-6 h-6 text-cyan-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-ink">부동산 매칭</h3>
-                    <p className="text-xs text-muted-foreground">이사 고객 매물 탐색 + 프로그램 다이어그램 자동 생성</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-            {/* 납품사 관리 바로가기 */}
-            <Card className="border-indigo-300/30 bg-gradient-to-r from-indigo-50/50 to-transparent cursor-pointer hover:border-indigo-400/50 transition-colors" onClick={() => navigate("/admin/vendor")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center">
-                    <Package className="w-6 h-6 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-ink">납품사 견적 관리</h3>
-                    <p className="text-xs text-muted-foreground">견적 등록 → AI 파싱 → 원가 변동률 추적</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-            {/* 사후관리 바로가기 */}
-            <Card className="border-rose-300/30 bg-gradient-to-r from-rose-50/50 to-transparent cursor-pointer hover:border-rose-400/50 transition-colors" onClick={() => navigate("/admin/aftercare")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-rose-100 flex items-center justify-center">
-                    <HeartHandshake className="w-6 h-6 text-rose-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-ink">사후관리 & OpsX Insight</h3>
-                    <p className="text-xs text-muted-foreground">만족도 조사 → 정기 방문 → 공간 최적화 구독</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-            {/* 직원 대시보드 바로가기 */}
-            <Card className="border-sky-300/30 bg-gradient-to-r from-sky-50/50 to-transparent cursor-pointer hover:border-sky-400/50 transition-colors" onClick={() => navigate("/admin/employee")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-sky-100 flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-sky-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-ink">직원 대시보드</h3>
-                    <p className="text-xs text-muted-foreground">일일보고서, KPI/OKR 관리, 공정률 추적</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* 고객 여정 분석 바로가기 */}
-            <Card className="border-violet-300/30 bg-gradient-to-r from-violet-50/50 to-transparent cursor-pointer hover:border-violet-400/50 transition-colors" onClick={() => navigate("/admin/journey-analytics")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-violet-100 flex items-center justify-center">
-                    <BarChart3 className="w-6 h-6 text-violet-600" />
+              <Card className="border-purple-300/30 bg-purple-50/30 cursor-pointer hover:border-purple-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/settings")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <ToggleRight className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-ink">고객 여정 분석</h3>
-                    <p className="text-xs text-muted-foreground">업무환경 진단 설문 → 보고서 → 전환 퍼널 분석</p>
+                    <h3 className="font-heading font-bold text-ink text-sm">사이트 설정</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">AI ON/OFF, 직원 권한 관리</p>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-            {/* E2E 파이프라인 현황판 바로가기 */}
-            <Card className="border-gold/30 bg-gradient-to-r from-gold/5 to-transparent cursor-pointer hover:border-gold/50 transition-colors" onClick={() => navigate("/admin/pipeline")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-gold/20 flex items-center justify-center">
-                    <Activity className="w-6 h-6 text-gold" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-ink">E2E 파이프라인 현황판</h3>
-                    <p className="text-xs text-muted-foreground">상담 → 설문 → 부동산 → 설계 → 시공 → 사후관리 전체 흐름</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-            {/* KPI/OKR 관리 바로가기 */}
-            <Card className="border-amber-300/30 bg-gradient-to-r from-amber-50/50 to-transparent cursor-pointer hover:border-amber-400/50 transition-colors" onClick={() => navigate("/admin/kpi-okr")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
-                    <BarChart3 className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-ink">KPI / OKR 관리</h3>
-                    <p className="text-xs text-muted-foreground">전사 KPI 정의, 직원별 실적 기록, OKR 현황</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-            {/* OpsX 직원 포털 바로가기 (관리자도 접근 가능) */}
-            <Card className="border-teal-300/30 bg-gradient-to-r from-teal-50/50 to-transparent cursor-pointer hover:border-teal-400/50 transition-colors" onClick={() => navigate("/ops")}>
-              <CardContent className="py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center">
-                    <HardHat className="w-6 h-6 text-teal-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-ink">OpsX 직원 포털</h3>
-                    <p className="text-xs text-muted-foreground">프로젝트 관리, 공정표, 작업일보, 카메라 모니터링</p>
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 추가 관리 메뉴 — 4열 그리드 */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-teal-300/30 bg-teal-50/30 cursor-pointer hover:border-teal-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/survey")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-teal-100 flex items-center justify-center"><ClipboardList className="w-5 h-5 text-teal-600" /></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">설문 자동화</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">설문→AI 분석 리포트</p></div>
+                </CardContent>
+              </Card>
+              <Card className="border-cyan-300/30 bg-cyan-50/30 cursor-pointer hover:border-cyan-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/realestate")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-cyan-100 flex items-center justify-center"><Building2 className="w-5 h-5 text-cyan-600" /></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">부동산 매칭</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">매물 탐색+다이어그램</p></div>
+                </CardContent>
+              </Card>
+              <Card className="border-indigo-300/30 bg-indigo-50/30 cursor-pointer hover:border-indigo-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/vendor")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-indigo-100 flex items-center justify-center"><Package className="w-5 h-5 text-indigo-600" /></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">납품사 견적</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">견적→AI 파싱→원가</p></div>
+                </CardContent>
+              </Card>
+              <Card className="border-rose-300/30 bg-rose-50/30 cursor-pointer hover:border-rose-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/aftercare")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-rose-100 flex items-center justify-center"><HeartHandshake className="w-5 h-5 text-rose-600" /></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">사후관리</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">만족도, 공간 최적화</p></div>
+                </CardContent>
+              </Card>
+              <Card className="border-sky-300/30 bg-sky-50/30 cursor-pointer hover:border-sky-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/employee")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-sky-100 flex items-center justify-center"><FileText className="w-5 h-5 text-sky-600" /></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">직원 대시보드</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">일일보고, KPI, 공정률</p></div>
+                </CardContent>
+              </Card>
+              <Card className="border-violet-300/30 bg-violet-50/30 cursor-pointer hover:border-violet-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/journey-analytics")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-violet-100 flex items-center justify-center"><BarChart3 className="w-5 h-5 text-violet-600" /></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">고객 여정 분석</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">설문→보고서→퍼널</p></div>
+                </CardContent>
+              </Card>
+              <Card className="border-gold/30 bg-gold/5 cursor-pointer hover:border-gold/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/pipeline")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-gold/20 flex items-center justify-center"><Activity className="w-5 h-5 text-gold" /></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">E2E 파이프라인</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">상담→시공→사후관리</p></div>
+                </CardContent>
+              </Card>
+              <Card className="border-amber-300/30 bg-amber-50/30 cursor-pointer hover:border-amber-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/kpi-okr")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-amber-100 flex items-center justify-center"><BarChart3 className="w-5 h-5 text-amber-600" /></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">KPI / OKR</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">전사 KPI, 실적 기록</p></div>
+                </CardContent>
+              </Card>
+              <Card className="border-teal-300/30 bg-teal-50/30 cursor-pointer hover:border-teal-400/50 hover:shadow-md transition-all" onClick={() => navigate("/ops")}>
+                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-11 h-11 rounded-lg bg-teal-100 flex items-center justify-center"><HardHat className="w-5 h-5 text-teal-600" /></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">OpsX 직원 포털</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">프로젝트, 공정표, 카메라</p></div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
