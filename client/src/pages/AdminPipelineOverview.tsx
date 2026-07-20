@@ -10,31 +10,75 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  ArrowLeft, Users, MessageSquare, FileText, Building2, Layers,
-  Box, CheckCircle2, HeartHandshake, BarChart3, TrendingUp,
-  Clock, AlertCircle, ChevronRight, Activity, Target, Loader2,
+  ArrowLeft, Users, MessageSquare, FileText, Layers,
+  CheckCircle2, HeartHandshake, BarChart3, TrendingUp, TrendingDown,
+  Clock, AlertCircle, ChevronRight, ChevronDown, Activity, Target, Loader2,
 } from "lucide-react";
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
 
-// 파이프라인 단계 정의
+/**
+ * client_projects.status 진행 순서.
+ * 퍼널의 "해당 단계 이상 도달" 판정 기준이 되므로 DB enum 순서와 일치해야 함.
+ */
+const STATUS_ORDER = [
+  "created",
+  "floor_plan_uploaded",
+  "survey_completed",
+  "report_generated",
+  "report_sent",
+  "company_survey_shared",
+  "company_survey_done",
+  "meeting_requested",
+  "meeting_confirmed",
+  "completed",
+] as const;
+
+const STATUS_LABELS: Record<string, string> = {
+  created: "프로젝트 생성",
+  floor_plan_uploaded: "도면 업로드",
+  survey_completed: "설문 완료",
+  report_generated: "리포트 생성",
+  report_sent: "리포트 발송",
+  company_survey_shared: "전사 설문 공유",
+  company_survey_done: "전사 설문 완료",
+  meeting_requested: "미팅 요청",
+  meeting_confirmed: "미팅 확정",
+  completed: "완료",
+};
+
+/**
+ * 퍼널 단계 정의. 각 단계는 `from` 상태에 도달한 프로젝트를 집계한다.
+ * (문의 → 설문 → 설계/제안 → 미팅 → 완료)
+ */
 const PIPELINE_STAGES = [
-  { id: "inquiry", label: "상담 문의", icon: MessageSquare, color: "bg-blue-500", lightColor: "bg-blue-50 text-blue-700 border-blue-200" },
-  { id: "survey", label: "설문 분석", icon: FileText, color: "bg-purple-500", lightColor: "bg-purple-50 text-purple-700 border-purple-200" },
-  { id: "realestate", label: "부동산 매칭", icon: Building2, color: "bg-emerald-500", lightColor: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { id: "design", label: "설계/레이아웃", icon: Layers, color: "bg-amber-500", lightColor: "bg-amber-50 text-amber-700 border-amber-200" },
-  { id: "rendering", label: "3D/제안서", icon: Box, color: "bg-pink-500", lightColor: "bg-pink-50 text-pink-700 border-pink-200" },
-  { id: "construction", label: "시공 관리", icon: Activity, color: "bg-orange-500", lightColor: "bg-orange-50 text-orange-700 border-orange-200" },
-  { id: "postcare", label: "사후관리", icon: HeartHandshake, color: "bg-rose-500", lightColor: "bg-rose-50 text-rose-700 border-rose-200" },
-];
+  { id: "inquiry", label: "문의 접수", from: "created", icon: MessageSquare, color: "bg-blue-500", text: "text-blue-600", bg: "bg-blue-100" },
+  { id: "survey", label: "설문 분석", from: "survey_completed", icon: FileText, color: "bg-purple-500", text: "text-purple-600", bg: "bg-purple-100" },
+  { id: "design", label: "설계/제안", from: "report_generated", icon: Layers, color: "bg-amber-500", text: "text-amber-600", bg: "bg-amber-100" },
+  { id: "meeting", label: "미팅/계약", from: "meeting_requested", icon: Users, color: "bg-orange-500", text: "text-orange-600", bg: "bg-orange-100" },
+  { id: "completed", label: "완료/사후관리", from: "completed", icon: HeartHandshake, color: "bg-rose-500", text: "text-rose-600", bg: "bg-rose-100" },
+] as const;
+
+function statusIndex(status: string | null | undefined) {
+  const idx = STATUS_ORDER.indexOf((status || "created") as (typeof STATUS_ORDER)[number]);
+  return idx < 0 ? 0 : idx;
+}
 
 function formatNumber(n: number | null | undefined) {
   if (n == null) return "0";
   return n.toLocaleString("ko-KR");
 }
 
+function formatDays(days: number | null) {
+  if (days == null) return "-";
+  if (days < 1) return "1일 미만";
+  return `${Math.round(days)}일`;
+}
+
 export default function AdminPipelineOverview() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
+  const [openStage, setOpenStage] = useState<string | null>(null);
 
   // 데이터 가져오기
   const adminStats = trpc.admin.stats.useQuery(undefined, { enabled: !!user && (user.role === "admin" || user.role === "master") });
@@ -55,30 +99,59 @@ export default function AdminPipelineOverview() {
     return null;
   }
 
-  // 프로젝트 단계별 분류
   const projects = clientProjects.data || [];
-  const stageMap: Record<string, typeof projects> = {};
-  projects.forEach((p: any) => {
-    const stage = p.status || "inquiry";
-    if (!stageMap[stage]) stageMap[stage] = [];
-    stageMap[stage].push(p);
+
+  /**
+   * 단계별 도달 프로젝트. 퍼널이므로 "그 단계 이상 진행된" 프로젝트를 누적 집계한다.
+   * (완료된 프로젝트도 설문 단계를 거쳤으므로 설문 단계에 포함)
+   */
+  const stages = PIPELINE_STAGES.map((stage, idx) => {
+    const threshold = statusIndex(stage.from);
+    const reached = projects.filter((p: any) => statusIndex(p.status) >= threshold);
+    // 현재 이 구간에 머물러 있는(다음 단계로 못 넘어간) 프로젝트
+    const nextThreshold = idx < PIPELINE_STAGES.length - 1 ? statusIndex(PIPELINE_STAGES[idx + 1].from) : Infinity;
+    const current = reached.filter((p: any) => statusIndex(p.status) < nextThreshold);
+    return { ...stage, reached, current, count: reached.length };
   });
 
-  // 단계별 카운트 계산
-  const stageCounts = {
-    inquiry: (inquiries.data?.length || 0),
-    survey: projects.filter((p: any) => p.status === "survey_sent" || p.status === "survey_completed" || p.status === "report_generated").length,
-    realestate: projects.filter((p: any) => p.status === "realestate_matching" || p.status === "realestate_selected").length,
-    design: projects.filter((p: any) => p.status === "design" || p.status === "layout_review").length,
-    rendering: projects.filter((p: any) => p.status === "rendering" || p.status === "proposal_sent").length,
-    construction: opsStats.data?.activeProjects || 0,
-    postcare: projects.filter((p: any) => p.status === "completed" || p.status === "post_occupancy").length,
-  };
+  const entryCount = stages[0]?.count || 0;
+
+  // 직전 단계 대비 전환율 — 병목 판정 기준
+  const stagesWithRate = stages.map((s, idx) => {
+    const prev = idx === 0 ? null : stages[idx - 1];
+    const stepRate = prev == null ? 100 : prev.count > 0 ? Math.round((s.count / prev.count) * 100) : 0;
+    const overallRate = entryCount > 0 ? Math.round((s.count / entryCount) * 100) : 0;
+    return { ...s, stepRate, overallRate, isFirst: idx === 0 };
+  });
+
+  // 병목: 전환율이 가장 낮은 단계(첫 단계 제외, 유입이 있을 때만)
+  const bottleneck = stagesWithRate
+    .filter((s) => !s.isFirst && s.stepRate < 100)
+    .sort((a, b) => a.stepRate - b.stepRate)[0] || null;
 
   const totalProjects = projects.length;
-  const activeProjects = projects.filter((p: any) => p.status !== "completed" && p.status !== "cancelled").length;
-  const completedProjects = projects.filter((p: any) => p.status === "completed").length;
+  const completedList = projects.filter((p: any) => p.status === "completed");
+  const completedProjects = completedList.length;
+  const activeProjects = totalProjects - completedProjects;
   const conversionRate = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0;
+
+  // 평균 전환 시간 — 완료 프로젝트의 생성~완료 소요일 평균
+  const leadTimes = completedList
+    .map((p: any) => {
+      if (!p.createdAt || !p.updatedAt) return null;
+      const ms = new Date(p.updatedAt).getTime() - new Date(p.createdAt).getTime();
+      return ms >= 0 ? ms / 86_400_000 : null;
+    })
+    .filter((d: number | null): d is number => d != null);
+  const avgLeadTime = leadTimes.length > 0 ? leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length : null;
+
+  // 이번 달 완료 건수
+  const now = new Date();
+  const monthlyCompleted = completedList.filter((p: any) => {
+    if (!p.updatedAt) return false;
+    const d = new Date(p.updatedAt);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
 
   return (
     <div className="min-h-screen bg-paper">
@@ -107,7 +180,7 @@ export default function AdminPipelineOverview() {
 
       <div className="container py-8 space-y-8">
         {/* 핵심 KPI 카드 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border-border/50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
@@ -154,8 +227,34 @@ export default function AdminPipelineOverview() {
                   <TrendingUp className="w-5 h-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">전환율</p>
+                  <p className="text-xs text-muted-foreground">전체 전환율</p>
                   <p className="text-2xl font-heading font-bold text-ink">{conversionRate}%</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">평균 전환 시간</p>
+                  <p className="text-2xl font-heading font-bold text-ink">{formatDays(avgLeadTime)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-teal-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">이번 달 완료</p>
+                  <p className="text-2xl font-heading font-bold text-ink">{formatNumber(monthlyCompleted)}</p>
                 </div>
               </div>
             </CardContent>
@@ -167,7 +266,7 @@ export default function AdminPipelineOverview() {
                   <AlertCircle className="w-5 h-5 text-gold" />
                 </div>
                 <div>
-                  <p className="text-xs text-gold">즉시 대응</p>
+                  <p className="text-xs text-gold">신규 문의</p>
                   <p className="text-2xl font-heading font-bold text-gold">{formatNumber(adminStats.data?.newInquiries)}</p>
                 </div>
               </div>
@@ -178,43 +277,113 @@ export default function AdminPipelineOverview() {
         {/* 파이프라인 단계별 현황 - 퍼널 뷰 */}
         <Card className="border-border/50">
           <CardHeader>
-            <CardTitle className="font-heading text-lg flex items-center gap-2">
-              <Target className="w-5 h-5 text-gold" />
-              파이프라인 퍼널
-            </CardTitle>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <CardTitle className="font-heading text-lg flex items-center gap-2">
+                <Target className="w-5 h-5 text-gold" />
+                파이프라인 퍼널
+              </CardTitle>
+              {bottleneck && bottleneck.stepRate < 100 && (
+                <Badge variant="outline" className="text-xs border-red-200 bg-red-50 text-red-700 self-start">
+                  <TrendingDown className="w-3 h-3 mr-1" />
+                  병목: {bottleneck.label} ({bottleneck.stepRate}%)
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {PIPELINE_STAGES.map((stage, idx) => {
-                const count = stageCounts[stage.id as keyof typeof stageCounts] || 0;
-                const maxCount = Math.max(...Object.values(stageCounts), 1);
-                const width = Math.max((count / maxCount) * 100, 8);
-                const Icon = stage.icon;
-                return (
-                  <div key={stage.id} className="flex items-center gap-4">
-                    <div className="w-24 sm:w-32 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${stage.color} text-white`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs sm:text-sm font-medium text-ink">{stage.label}</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="relative h-10 bg-muted/30 rounded-lg overflow-hidden">
-                        <div
-                          className={`absolute inset-y-0 left-0 ${stage.color} rounded-lg flex items-center justify-end pr-3 transition-all duration-500`}
-                          style={{ width: `${width}%` }}
-                        >
-                          <span className="text-sm font-bold text-white">{count}</span>
+            {clientProjects.isLoading ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">로딩 중...</div>
+            ) : totalProjects === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">집계할 프로젝트가 없습니다.</div>
+            ) : (
+              <div className="space-y-2">
+                {stagesWithRate.map((stage) => {
+                  const width = Math.max(stage.overallRate, 6);
+                  const Icon = stage.icon;
+                  const isBottleneck = bottleneck?.id === stage.id;
+                  const isOpen = openStage === stage.id;
+                  return (
+                    <div key={stage.id}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenStage(isOpen ? null : stage.id)}
+                        className={`w-full flex items-center gap-3 sm:gap-4 p-2 rounded-lg text-left transition-colors hover:bg-muted/40 ${isBottleneck ? "bg-red-50/60" : ""}`}
+                      >
+                        <div className="w-28 sm:w-36 flex items-center gap-2 flex-shrink-0">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${stage.color} text-white flex-shrink-0`}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <span className="text-xs sm:text-sm font-medium text-ink truncate">{stage.label}</span>
                         </div>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="relative h-10 bg-muted/30 rounded-lg overflow-hidden">
+                            <div
+                              className={`absolute inset-y-0 left-0 ${stage.color} rounded-lg flex items-center justify-end pr-3 transition-all duration-500`}
+                              style={{ width: `${width}%` }}
+                            >
+                              <span className="text-sm font-bold text-white">{stage.count}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="w-24 sm:w-32 flex-shrink-0 text-right">
+                          {stage.isFirst ? (
+                            <span className="text-xs text-muted-foreground">유입 기준</span>
+                          ) : (
+                            <>
+                              <p className={`text-sm font-bold ${isBottleneck ? "text-red-600" : "text-ink"}`}>
+                                {stage.stepRate}%
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                누적 {stage.overallRate}% · 대기 {stage.current.length}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                        {isOpen ? (
+                          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        )}
+                      </button>
+
+                      {isOpen && (
+                        <div className="ml-2 sm:ml-10 mb-2 mt-1 border-l-2 border-border/60 pl-3 sm:pl-4">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            이 단계에 머물러 있는 프로젝트 {stage.current.length}건
+                            {stage.count !== stage.current.length && ` (도달 ${stage.count}건)`}
+                          </p>
+                          {stage.current.length === 0 ? (
+                            <p className="text-xs text-muted-foreground py-2">대기 중인 프로젝트가 없습니다.</p>
+                          ) : (
+                            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                              {stage.current.map((p: any) => (
+                                <div
+                                  key={p.id}
+                                  className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium text-ink truncate">{p.companyName || "미정"}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{p.contactName}</p>
+                                  </div>
+                                  <div className="text-right flex-shrink-0">
+                                    <Badge variant="outline" className="text-[11px]">
+                                      {STATUS_LABELS[p.status] || p.status}
+                                    </Badge>
+                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                      {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString("ko-KR") : "-"}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {idx < PIPELINE_STAGES.length - 1 && (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -302,14 +471,7 @@ export default function AdminPipelineOverview() {
                       </div>
                       <div className="text-right">
                         <Badge variant="outline" className="text-xs">
-                          {p.status === "inquiry" ? "상담" :
-                           p.status === "survey_sent" ? "설문 발송" :
-                           p.status === "survey_completed" ? "설문 완료" :
-                           p.status === "report_generated" ? "리포트 생성" :
-                           p.status === "design" ? "설계" :
-                           p.status === "construction" ? "시공" :
-                           p.status === "completed" ? "완료" :
-                           p.status || "진행중"}
+                          {STATUS_LABELS[p.status] || p.status || "진행중"}
                         </Badge>
                         <p className="text-xs text-muted-foreground mt-1">
                           {p.createdAt ? new Date(p.createdAt).toLocaleDateString("ko-KR") : "-"}
@@ -327,7 +489,7 @@ export default function AdminPipelineOverview() {
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[
             { label: "설문 자동화", desc: "설문 템플릿 · 분석 리포트", href: "/admin/survey", icon: FileText, color: "purple" },
-            { label: "부동산 매칭", desc: "매물 검색 · 프로그램 다이어그램", href: "/admin/realestate", icon: Building2, color: "emerald" },
+            { label: "CRM", desc: "고객 · 상담 이력 · 딜", href: "/admin/crm", icon: Users, color: "blue" },
             { label: "납품사 관리", desc: "견적 파싱 · 원가 분석", href: "/admin/vendor", icon: BarChart3, color: "indigo" },
             { label: "KPI / OKR", desc: "전사 KPI · 직원 OKR", href: "/admin/kpi-okr", icon: Target, color: "amber" },
           ].map((item) => {

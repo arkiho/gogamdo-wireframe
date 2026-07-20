@@ -454,12 +454,6 @@ export default function AdminDashboard() {
                   <div><h3 className="font-heading font-bold text-ink text-sm">설문 자동화</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">설문→AI 분석 리포트</p></div>
                 </CardContent>
               </Card>
-              <Card className="border-cyan-300/30 bg-cyan-50/30 cursor-pointer hover:border-cyan-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/realestate")}>
-                <CardContent className="py-5 flex flex-col items-center text-center gap-3">
-                  <div className="w-11 h-11 rounded-lg bg-cyan-100 flex items-center justify-center"><Building2 className="w-5 h-5 text-cyan-600" /></div>
-                  <div><h3 className="font-heading font-bold text-ink text-sm">부동산 매칭</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">매물 탐색+다이어그램</p></div>
-                </CardContent>
-              </Card>
               <Card className="border-indigo-300/30 bg-indigo-50/30 cursor-pointer hover:border-indigo-400/50 hover:shadow-md transition-all" onClick={() => navigate("/admin/vendor")}>
                 <CardContent className="py-5 flex flex-col items-center text-center gap-3">
                   <div className="w-11 h-11 rounded-lg bg-indigo-100 flex items-center justify-center"><Package className="w-5 h-5 text-indigo-600" /></div>
