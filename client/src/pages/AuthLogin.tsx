@@ -37,7 +37,16 @@ export default function AuthLogin() {
       }
 
       toast.success(mode === "login" ? "로그인 성공!" : "회원가입 완료!");
-      window.location.href = "/admin";
+      // 역할에 따라 적절한 페이지로 이동
+      const role = data.user?.role;
+      const dept = data.user?.department;
+      if (role === "admin" || role === "master") {
+        window.location.href = "/admin";
+      } else if (dept && dept !== "none") {
+        window.location.href = "/ops";
+      } else {
+        window.location.href = "/my";
+      }
     } catch {
       toast.error("서버 연결에 실패했습니다.");
     } finally {

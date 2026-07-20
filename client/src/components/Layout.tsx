@@ -287,34 +287,25 @@ function LoginDropdown({ isTransparent }: { isTransparent: boolean }) {
                   <p className="text-sm font-semibold text-ink">{user.name}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
-                {isStaff && (
-                  <Link href="/ops">
-                    <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
-                      <HardHat className="w-4 h-4" />
-                      OpsX 대시보드
-                    </span>
-                  </Link>
-                )}
+                {/* 고객 메뉴 — 모든 로그인 사용자 */}
                 <Link href="/my">
                   <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
                     <Building2 className="w-4 h-4" />
-                    고객 포털
+                    마이페이지
                   </span>
                 </Link>
+                {/* 직원 메뉴 — 직원만 */}
                 {isStaff && (
-                  <Link href="/ops/staff-dashboard">
-                    <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
-                      <Users className="w-4 h-4" />
-                      직원용 대시보드
-                    </span>
-                  </Link>
+                  <>
+                    <Link href="/ops">
+                      <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
+                        <HardHat className="w-4 h-4" />
+                        직원 콘솔 (OpsX)
+                      </span>
+                    </Link>
+                  </>
                 )}
-                <Link href="/partner-portal">
-                  <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
-                    <Handshake className="w-4 h-4" />
-                    협력업체 대시보드
-                  </span>
-                </Link>
+                {/* 관리자 메뉴 */}
                 {(user.role === "admin" || user.role === "master") && (
                   <Link href="/admin">
                     <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
@@ -370,34 +361,20 @@ function MobileLoginButtons() {
           {user.name}님
         </p>
         <div className="flex flex-col gap-2">
+          <Link href="/my">
+            <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
+              <Building2 className="w-5 h-5" />
+              마이페이지
+            </span>
+          </Link>
           {isStaff && (
             <Link href="/ops">
               <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
                 <HardHat className="w-5 h-5" />
-                OpsX 대시보드
+                직원 콘솔 (OpsX)
               </span>
             </Link>
           )}
-          <Link href="/my">
-            <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
-              <Building2 className="w-5 h-5" />
-              고객 포털
-            </span>
-          </Link>
-          {isStaff && (
-            <Link href="/ops/staff-dashboard">
-              <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
-                <Users className="w-5 h-5" />
-                직원용 대시보드
-              </span>
-            </Link>
-          )}
-          <Link href="/partner-portal">
-            <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
-              <Handshake className="w-5 h-5" />
-              협력업체 대시보드
-            </span>
-          </Link>
           {(user.role === "admin" || user.role === "master") && (
             <Link href="/admin">
               <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
@@ -783,6 +760,15 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <li><a href="tel:02-3487-6133" className="hover:text-gold transition-colors">02-3487-6133</a></li>
                 <li><a href="mailto:contact@kokamdo.co.kr" className="hover:text-gold transition-colors">contact@kokamdo.co.kr</a></li>
               </ul>
+              <div className="mt-6 pt-4 border-t border-white/5 space-y-2">
+                <Link href="/auth/login">
+                  <span className="text-xs text-white/25 hover:text-white/50 transition-colors">직원 로그인</span>
+                </Link>
+                <span className="text-xs text-white/15 mx-2">·</span>
+                <Link href="/auth/login">
+                  <span className="text-xs text-white/25 hover:text-white/50 transition-colors">협력사 로그인</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

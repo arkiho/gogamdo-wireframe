@@ -236,7 +236,7 @@ export function registerOAuthRoutes(app: Express) {
 
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+      res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, department: user.department } });
     } catch (error: any) {
       console.error("[Auth] Login failed:", error);
       res.status(500).json({ error: "로그인에 실패했습니다." });
@@ -289,7 +289,7 @@ export function registerOAuthRoutes(app: Express) {
 
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+      res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, department: user.department } });
     } catch (error: any) {
       console.error("[Auth] Register failed:", error);
       res.status(500).json({ error: "회원가입에 실패했습니다." });
