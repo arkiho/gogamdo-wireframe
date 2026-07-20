@@ -113,6 +113,7 @@ vi.mock("./_core/trpc", () => {
   return {
     publicProcedure: mockProcedure,
     protectedProcedure: mockProcedure,
+    adminProcedure: mockProcedure,
     router: (routes: any) => routes,
   };
 });

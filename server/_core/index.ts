@@ -157,6 +157,52 @@ async function ensureTables() {
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`);
 
+    // 사후관리(Post-Occupancy) — schema.ts에는 정의되어 있으나 마이그레이션이 없어 여기서 보장
+    await conn.execute(`CREATE TABLE IF NOT EXISTS post_occupancy_surveys (
+      id INT AUTO_INCREMENT PRIMARY KEY, clientProjectId INT NOT NULL, opsProjectId INT, surveyInstanceId INT,
+      overallSatisfaction INT, designSatisfaction INT, constructionSatisfaction INT,
+      communicationSatisfaction INT, timelineSatisfaction INT,
+      issuesReported JSON, positiveComments TEXT, improvementSuggestions TEXT, wouldRecommend TINYINT,
+      status ENUM('pending','sent','completed','follow_up_needed') NOT NULL DEFAULT 'pending',
+      completedAt TIMESTAMP NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_poc_project (clientProjectId)
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS maintenance_visits (
+      id INT AUTO_INCREMENT PRIMARY KEY, clientProjectId INT NOT NULL, opsProjectId INT,
+      visitType ENUM('fine_tuning','warranty','optimization','inspection') NOT NULL,
+      scheduledDate VARCHAR(20) NOT NULL, scheduledTime VARCHAR(10),
+      technicianId INT, technicianName VARCHAR(200),
+      description TEXT, workPerformed TEXT, issuesFound JSON, photoUrls JSON, clientSignature TEXT,
+      status ENUM('scheduled','confirmed','in_progress','completed','cancelled','rescheduled') NOT NULL DEFAULT 'scheduled',
+      completedAt TIMESTAMP NULL, clientFeedback TEXT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_mv_project (clientProjectId), INDEX idx_mv_status (status)
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS insight_subscriptions (
+      id INT AUTO_INCREMENT PRIMARY KEY, clientProjectId INT NOT NULL, opsProjectId INT, clientUserId INT,
+      plan ENUM('basic','standard','premium') NOT NULL DEFAULT 'basic',
+      status ENUM('active','paused','cancelled','expired') NOT NULL DEFAULT 'active',
+      startDate VARCHAR(20) NOT NULL, endDate VARCHAR(20), nextReportDate VARCHAR(20),
+      monthlyFee DECIMAL(10,0), sensorProjectId INT, sensorsInstalled JSON,
+      lastReportId INT, totalReports INT DEFAULT 0,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_is_project (clientProjectId)
+    )`);
+
+    await conn.execute(`CREATE TABLE IF NOT EXISTS space_optimization_reports (
+      id INT AUTO_INCREMENT PRIMARY KEY, subscriptionId INT NOT NULL, clientProjectId INT NOT NULL,
+      reportPeriod VARCHAR(50) NOT NULL,
+      occupancyAnalysis JSON, environmentAnalysis JSON, trafficAnalysis JSON, optimizationSuggestions JSON,
+      summary TEXT, fullReport LONGTEXT,
+      status ENUM('generating','ready','sent','reviewed') NOT NULL DEFAULT 'generating',
+      sentAt TIMESTAMP NULL, viewedAt TIMESTAMP NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_sor_subscription (subscriptionId)
+    )`);
+
     await conn.end();
     console.log("[DB] Tables ensured successfully.");
   } catch (err: any) {

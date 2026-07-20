@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "../_core/llm";
 import { notifyOwner } from "../_core/notification";
 import {
-  createPostOccupancySurvey, getPostOccupancyByProject,
-  createMaintenanceVisit, getMaintenanceVisitsByProject, updateMaintenanceVisit,
+  createPostOccupancySurvey, getPostOccupancyByProject, getAllPostOccupancySurveys,
+  createMaintenanceVisit, getMaintenanceVisitsByProject, getAllMaintenanceVisits, updateMaintenanceVisit,
   createInsightSubscription, getInsightSubscriptionByProject, updateInsightSubscription,
   createSpaceOptimizationReport, getOptimizationReportsBySubscription,
 } from "../db";
@@ -74,12 +74,44 @@ export const postOccupancyRouter = router({
       return getPostOccupancyByProject(input.clientProjectId);
     }),
 
+  /** 관리자: 전체 만족도 조사 목록 (평균 산출·개별 응답 열람용) */
+  adminListSurveys: adminProcedure.query(async () => {
+    return getAllPostOccupancySurveys();
+  }),
+
+  /** 관리자: 만족도 조사 발송 — 응답 대기 레코드를 생성한다 */
+  sendSatisfactionSurvey: adminProcedure
+    .input(z.object({ clientProjectId: z.number() }))
+    .mutation(async ({ input }) => {
+      const existing = await getPostOccupancyByProject(input.clientProjectId);
+      if (existing) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: existing.status === "completed"
+            ? "이미 응답이 완료된 조사입니다."
+            : "이미 발송된 조사가 있습니다.",
+        });
+      }
+      const result = await createPostOccupancySurvey({
+        clientProjectId: input.clientProjectId,
+        status: "sent",
+      });
+      if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      await notifyOwner({
+        title: "만족도 조사 발송",
+        content: `프로젝트 #${input.clientProjectId} 만족도 조사가 발송되었습니다.`,
+      });
+      return { id: result.id };
+    }),
+
   // ============ 유지보수 방문 관리 ============
 
   scheduleVisit: protectedProcedure
     .input(z.object({
       clientProjectId: z.number(),
-      visitType: z.enum(["initial_inspection", "fine_tuning", "repair", "optimization", "quarterly_review"]),
+      // maintenance_visits.visitType enum과 동일하게 유지할 것
+      visitType: z.enum(["fine_tuning", "warranty", "optimization", "inspection"]),
       scheduledDate: z.number(),
       assignedStaffId: z.number().optional(),
       assignedStaffName: z.string().optional(),
@@ -90,11 +122,10 @@ export const postOccupancyRouter = router({
       if (ctx.user.role !== "admin" && ctx.user.role !== "master" && ctx.user.role !== "user") {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      
-      const visitTypeMap = { initial_inspection: "inspection", fine_tuning: "fine_tuning", repair: "warranty", optimization: "optimization", quarterly_review: "inspection" } as const;
+
       const result = await createMaintenanceVisit({
         clientProjectId: input.clientProjectId,
-        visitType: visitTypeMap[input.visitType],
+        visitType: input.visitType,
         scheduledDate: new Date(input.scheduledDate).toISOString().slice(0, 10),
         technicianId: input.assignedStaffId,
         technicianName: input.assignedStaffName,
@@ -122,18 +153,39 @@ export const postOccupancyRouter = router({
   updateVisit: protectedProcedure
     .input(z.object({
       id: z.number(),
-      status: z.enum(["scheduled", "confirmed", "in_progress", "completed", "cancelled"]).optional(),
-      visitNotes: z.string().optional(),
-      photosJson: z.string().optional(),
-      completedDate: z.number().optional(),
+      status: z.enum(["scheduled", "confirmed", "in_progress", "completed", "cancelled", "rescheduled"]).optional(),
+      workPerformed: z.string().optional(),
+      photoUrls: z.array(z.string()).optional(),
+      completedAt: z.number().optional(),
       clientSignature: z.string().optional(),
-      satisfactionScore: z.number().optional(),
+      clientFeedback: z.string().optional(),
+      technicianId: z.number().optional(),
+      technicianName: z.string().optional(),
+      issuesFound: z.array(z.object({
+        area: z.string(),
+        issue: z.string(),
+        resolution: z.string(),
+        status: z.enum(["resolved", "pending", "escalated"]),
+      })).optional(),
     }))
-    .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
-      await updateMaintenanceVisit(id, data);
+    .mutation(async ({ input }) => {
+      const { id, completedAt, ...rest } = input;
+      // completedAt은 timestamp 컬럼이므로 epoch ms를 Date로 변환해야 한다.
+      // status가 completed로 바뀌는데 시각이 없으면 현재 시각으로 채운다.
+      const completedTs = completedAt != null
+        ? new Date(completedAt)
+        : rest.status === "completed" ? new Date() : undefined;
+      await updateMaintenanceVisit(id, {
+        ...rest,
+        ...(completedTs ? { completedAt: completedTs } : {}),
+      });
       return { success: true };
     }),
+
+  /** 관리자: 전체 방문/하자보수 목록 */
+  adminListVisits: adminProcedure.query(async () => {
+    return getAllMaintenanceVisits();
+  }),
 
   // ============ OpsX Insight 구독 관리 ============
 

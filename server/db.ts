@@ -2627,6 +2627,13 @@ export async function getPostOccupancyByProject(projectId: number) {
   return result ?? null;
 }
 
+export async function getAllPostOccupancySurveys() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(postOccupancySurveys)
+    .orderBy(desc(postOccupancySurveys.createdAt));
+}
+
 // ===== 유지보수 방문 =====
 
 export async function createMaintenanceVisit(data: InsertMaintenanceVisit) {
@@ -2641,6 +2648,13 @@ export async function getMaintenanceVisitsByProject(projectId: number) {
   if (!db) return [];
   return db.select().from(maintenanceVisits)
     .where(eq(maintenanceVisits.clientProjectId, projectId))
+    .orderBy(desc(maintenanceVisits.scheduledDate));
+}
+
+export async function getAllMaintenanceVisits() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(maintenanceVisits)
     .orderBy(desc(maintenanceVisits.scheduledDate));
 }
 
