@@ -271,16 +271,19 @@ function ClientsListView({ clients, searchQuery, setSearchQuery, onSelectClient 
     companyName: "", contactName: "", contactTitle: "", email: "", phone: "",
     industry: "", source: "website" as const,
   });
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   const filtered = useMemo(() => {
-    if (!searchQuery) return clients;
     const q = searchQuery.toLowerCase();
-    return clients.filter((c: any) =>
-      c.companyName?.toLowerCase().includes(q) ||
-      c.contactName?.toLowerCase().includes(q) ||
-      c.email?.toLowerCase().includes(q)
-    );
-  }, [clients, searchQuery]);
+    return clients.filter((c: any) => {
+      const matchesQuery = !q ||
+        c.companyName?.toLowerCase().includes(q) ||
+        c.contactName?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q);
+      const matchesSource = sourceFilter === "all" || c.source === sourceFilter;
+      return matchesQuery && matchesSource;
+    });
+  }, [clients, searchQuery, sourceFilter]);
 
   return (
     <div className="space-y-4">
@@ -347,54 +350,123 @@ function ClientsListView({ clients, searchQuery, setSearchQuery, onSelectClient 
         </Dialog>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="회사명, 담당자, 이메일로 검색..."
-          className="pl-10"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-        />
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="회사명, 담당자, 이메일로 검색..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <Select value={sourceFilter} onValueChange={setSourceFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <span className="flex items-center gap-2"><Filter className="w-4 h-4" /><SelectValue placeholder="유입경로" /></span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체 유입경로</SelectItem>
+            {Object.entries(SOURCE_LABELS).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      <div className="text-xs text-muted-foreground">{filtered.length}명</div>
 
       {filtered.length === 0 ? (
         <Card className="border-border/50">
           <CardContent className="py-12 text-center text-muted-foreground">
-            {searchQuery ? "검색 결과가 없습니다." : "등록된 고객이 없습니다. 새 고객을 추가해보세요."}
+            {searchQuery || sourceFilter !== "all" ? "검색/필터 결과가 없습니다." : "등록된 고객이 없습니다. 새 고객을 추가해보세요."}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((client: any) => (
-            <Card key={client.id} className="border-border/50 hover:border-gold/30 transition-colors cursor-pointer" onClick={() => onSelectClient(client.id)}>
-              <CardContent className="py-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-gold/10 flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-gold" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-ink">{client.companyName}</p>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                      <span className="flex items-center gap-1"><User className="w-3 h-3" /> {client.contactName}</span>
-                      {client.industry && <span>· {client.industry}</span>}
-                      {client.source && <Badge variant="secondary" className="text-[10px]">{SOURCE_LABELS[client.source] || client.source}</Badge>}
+        <>
+          {/* 데스크톱: 테이블 */}
+          <Card className="border-border/50 hidden sm:block overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 bg-paper-warm/40 text-left text-xs text-muted-foreground">
+                    <th className="py-3 px-4 font-medium">회사명</th>
+                    <th className="py-3 px-4 font-medium">담당자</th>
+                    <th className="py-3 px-4 font-medium">이메일</th>
+                    <th className="py-3 px-4 font-medium">전화</th>
+                    <th className="py-3 px-4 font-medium">유입경로</th>
+                    <th className="py-3 px-4 font-medium">등록일</th>
+                    <th className="py-3 px-4 font-medium w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((client: any) => (
+                    <tr
+                      key={client.id}
+                      className="border-b border-border/30 last:border-0 hover:bg-gold/5 cursor-pointer transition-colors"
+                      onClick={() => onSelectClient(client.id)}
+                    >
+                      <td className="py-3 px-4">
+                        <span className="font-medium text-ink">{client.companyName}</span>
+                        {client.industry && <span className="block text-[11px] text-muted-foreground">{client.industry}</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        {client.contactName}
+                        {client.contactTitle && <span className="text-[11px] text-muted-foreground"> {client.contactTitle}</span>}
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">{client.email || "-"}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{client.phone || "-"}</td>
+                      <td className="py-3 px-4">
+                        {client.source
+                          ? <Badge variant="secondary" className="text-[10px]">{SOURCE_LABELS[client.source] || client.source}</Badge>
+                          : <span className="text-muted-foreground">-</span>}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{formatDate(client.createdAt)}</td>
+                      <td className="py-3 px-4">
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={(e) => { e.stopPropagation(); if (confirm("이 고객을 삭제하시겠습니까?")) deleteClient.mutate({ id: client.id }); }}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-400" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* 모바일: 카드 */}
+          <div className="space-y-2 sm:hidden">
+            {filtered.map((client: any) => (
+              <Card key={client.id} className="border-border/50 hover:border-gold/30 transition-colors cursor-pointer" onClick={() => onSelectClient(client.id)}>
+                <CardContent className="py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-gold/10 flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-gold" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-ink">{client.companyName}</p>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                        <span className="flex items-center gap-1"><User className="w-3 h-3" /> {client.contactName}</span>
+                        {client.source && <Badge variant="secondary" className="text-[10px]">{SOURCE_LABELS[client.source] || client.source}</Badge>}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">{formatDate(client.createdAt)}</span>
-                  <Button
-                    variant="ghost" size="sm"
-                    onClick={(e) => { e.stopPropagation(); if (confirm("이 고객을 삭제하시겠습니까?")) deleteClient.mutate({ id: client.id }); }}
-                  >
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  </Button>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost" size="sm"
+                      onClick={(e) => { e.stopPropagation(); if (confirm("이 고객을 삭제하시겠습니까?")) deleteClient.mutate({ id: client.id }); }}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-400" />
+                    </Button>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -678,10 +750,14 @@ function DealsPipelineView({ deals, clients }: { deals: any[]; clients: any[] })
 
   // Pipeline stages (exclude completed and lost for kanban)
   const pipelineStages = STAGES.filter(s => s.value !== "completed" && s.value !== "lost");
+  const [draggingId, setDraggingId] = useState<number | null>(null);
 
   return (
     <div className="space-y-4">
-      <h2 className="font-heading text-xl font-bold text-ink">딜 파이프라인</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-heading text-xl font-bold text-ink">딜 파이프라인</h2>
+        <span className="text-xs text-muted-foreground hidden sm:inline">카드를 드래그해 단계를 이동할 수 있습니다</span>
+      </div>
 
       {/* Kanban Board */}
       <div className="flex gap-4 overflow-x-auto pb-4">
@@ -695,9 +771,27 @@ function DealsPipelineView({ deals, clients }: { deals: any[]; clients: any[] })
                   <span className="text-xs text-muted-foreground">{stageDeals.length}</span>
                 </div>
               </div>
-              <div className="space-y-2 min-h-[200px] bg-paper-warm/50 rounded-lg p-2">
+              <div
+                className="space-y-2 min-h-[200px] bg-paper-warm/50 rounded-lg p-2 transition-colors"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const id = Number(e.dataTransfer.getData("text/plain"));
+                  const d = deals.find((x: any) => x.id === id);
+                  if (id && d && d.stage !== stage.value) {
+                    updateDeal.mutate({ id, stage: stage.value as any });
+                  }
+                  setDraggingId(null);
+                }}
+              >
                 {stageDeals.map((deal: any) => (
-                  <Card key={deal.id} className="border-border/50 bg-white cursor-pointer hover:border-gold/30 transition-colors">
+                  <Card
+                    key={deal.id}
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.setData("text/plain", String(deal.id)); setDraggingId(deal.id); }}
+                    onDragEnd={() => setDraggingId(null)}
+                    className={`border-border/50 bg-white cursor-move hover:border-gold/30 transition-all ${draggingId === deal.id ? "opacity-40" : ""}`}
+                  >
                     <CardContent className="p-3">
                       <p className="font-medium text-sm text-ink mb-1 line-clamp-1">{deal.title}</p>
                       <p className="text-xs text-muted-foreground mb-2">{clientMap[deal.clientId] || "미지정"}</p>
