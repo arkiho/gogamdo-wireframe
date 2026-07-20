@@ -17,6 +17,7 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   // 예약 작업(스케줄러)이 무인 API 호출 시 사용하는 공유 시크릿
   scheduledTaskSecret: process.env.SCHEDULED_TASK_SECRET ?? "",
 };
