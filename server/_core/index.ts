@@ -7,7 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { storagePut } from "../storage";
+import { storagePut, STORAGE_DIR } from "../storage";
 import sensorApiRouter from "../routers/sensorApi";
 import { generateInsightHandler } from "../routers/scheduledInsight";
 import sitemapRouter from "../routers/sitemap";
@@ -261,6 +261,12 @@ async function startServer() {
   });
 
   // Dynamic sitemap.xml and robots.txt
+  // 로컬 디스크(Railway 볼륨)에 저장된 업로드 이미지 정적 서빙
+  app.use("/uploads", express.static(STORAGE_DIR, {
+    maxAge: "7d",
+    fallthrough: true,
+  }));
+
   app.use(sitemapRouter);
 
   // Scheduled cron callbacks (must be before tRPC middleware)
