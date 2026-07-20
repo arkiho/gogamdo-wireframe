@@ -215,6 +215,27 @@ export default function HowWeWork() {
         path="/how-we-work"
       />
 
+      {/* HowTo 구조화 데이터 (AEO) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "HowTo",
+            name: "고감도 사무실 인테리어 진행 프로세스",
+            description: "데이터 기반 진단부터 사후 관리까지, 고감도의 체계적인 인테리어 프로세스",
+            totalTime: "P6W",
+            step: PROCESS_STEPS.map((step, i) => ({
+              "@type": "HowToStep",
+              position: i + 1,
+              name: step.title,
+              text: step.description,
+              url: `https://kokamdo.co.kr/how-we-work#step-${step.number}`,
+            })),
+          }),
+        }}
+      />
+
       {/* ==================== HERO ==================== */}
       <section className="relative py-24 lg:py-36 bg-ink text-white overflow-hidden">
         <div className="absolute top-8 right-8 lg:right-16 opacity-[0.04] select-none pointer-events-none">

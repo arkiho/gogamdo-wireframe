@@ -76,6 +76,37 @@ export default function PortfolioDbDetail() {
         image={coverImage?.processedUrl || coverImage?.originalUrl}
       />
 
+      {/* CreativeWork + ImageGallery 구조화 데이터 (AEO) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CreativeWork",
+            name: project.title,
+            headline: project.title,
+            description: project.description || project.aiDescription || `${project.title} 사무실 인테리어 시공 사례`,
+            image: images.map((img: any) => img.processedUrl || img.originalUrl).filter(Boolean),
+            creator: { "@type": "Organization", name: "(주)고감도", url: "https://kokamdo.co.kr" },
+            genre: project.category || undefined,
+            locationCreated: project.location ? { "@type": "Place", name: project.location } : undefined,
+            url: `https://kokamdo.co.kr/portfolio/p/${project.id}`,
+            ...(images.length > 0
+              ? {
+                  associatedMedia: {
+                    "@type": "ImageGallery",
+                    name: `${project.title} 시공 사진`,
+                    image: images
+                      .map((img: any) => img.processedUrl || img.originalUrl)
+                      .filter(Boolean)
+                      .map((url: string) => ({ "@type": "ImageObject", contentUrl: url, caption: project.title })),
+                  },
+                }
+              : {}),
+          }),
+        }}
+      />
+
       {/* Hero */}
       <section className="pt-28 lg:pt-36 pb-12 lg:pb-16">
         <div className="container">

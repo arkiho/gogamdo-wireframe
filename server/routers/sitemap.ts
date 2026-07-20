@@ -27,6 +27,12 @@ const STATIC_PAGES = [
   { path: "/contact", changefreq: "monthly", priority: "0.7" },
   { path: "/privacy", changefreq: "yearly", priority: "0.3" },
   { path: "/terms", changefreq: "yearly", priority: "0.3" },
+  { path: "/office-interior/seoul", changefreq: "monthly", priority: "0.8" },
+  { path: "/office-interior/gangnam", changefreq: "monthly", priority: "0.8" },
+  { path: "/office-interior/yeouido", changefreq: "monthly", priority: "0.8" },
+  { path: "/office-interior/pangyo", changefreq: "monthly", priority: "0.8" },
+  { path: "/office-interior/gyeonggi", changefreq: "monthly", priority: "0.8" },
+  { path: "/office-interior/incheon", changefreq: "monthly", priority: "0.8" },
 ];
 
 function formatDate(date: Date | string | null): string {

@@ -89,6 +89,30 @@ const ROUTE_META: Record<string, { title: string; description: string }> = {
     title: "이용약관 | 고감도 KOKAMDO",
     description: "(주)고감도 홈페이지 이용약관입니다.",
   },
+  "/office-interior/seoul": {
+    title: "서울 사무실 인테리어 전문 | 35년 경력 고감도 KOKAMDO",
+    description: "서울 사무실 인테리어는 35년 경력·2,800건+ 프로젝트의 고감도. 서울 사무공간 설계·시공, AI 예상 견적까지 원스톱 제공. 데이터 기반 설계로 공간 효율을 극대화합니다.",
+  },
+  "/office-interior/gangnam": {
+    title: "강남 사무실 인테리어 전문 | 35년 경력 고감도 KOKAMDO",
+    description: "강남 사무실 인테리어는 35년 경력·2,800건+ 프로젝트의 고감도. 강남 사무공간 설계·시공, AI 예상 견적까지 원스톱 제공. 데이터 기반 설계로 공간 효율을 극대화합니다.",
+  },
+  "/office-interior/yeouido": {
+    title: "여의도 사무실 인테리어 전문 | 35년 경력 고감도 KOKAMDO",
+    description: "여의도 사무실 인테리어는 35년 경력·2,800건+ 프로젝트의 고감도. 여의도 사무공간 설계·시공, AI 예상 견적까지 원스톱 제공. 데이터 기반 설계로 공간 효율을 극대화합니다.",
+  },
+  "/office-interior/pangyo": {
+    title: "판교 사무실 인테리어 전문 | 35년 경력 고감도 KOKAMDO",
+    description: "판교 사무실 인테리어는 35년 경력·2,800건+ 프로젝트의 고감도. 판교 사무공간 설계·시공, AI 예상 견적까지 원스톱 제공. 데이터 기반 설계로 공간 효율을 극대화합니다.",
+  },
+  "/office-interior/gyeonggi": {
+    title: "경기 사무실 인테리어 전문 | 35년 경력 고감도 KOKAMDO",
+    description: "경기 사무실 인테리어는 35년 경력·2,800건+ 프로젝트의 고감도. 경기 사무공간 설계·시공, AI 예상 견적까지 원스톱 제공. 데이터 기반 설계로 공간 효율을 극대화합니다.",
+  },
+  "/office-interior/incheon": {
+    title: "인천 사무실 인테리어 전문 | 35년 경력 고감도 KOKAMDO",
+    description: "인천 사무실 인테리어는 35년 경력·2,800건+ 프로젝트의 고감도. 인천 사무공간 설계·시공, AI 예상 견적까지 원스톱 제공. 데이터 기반 설계로 공간 효율을 극대화합니다.",
+  },
 };
 
 function injectMeta(html: string, pathname: string): string {
@@ -139,6 +163,7 @@ const SPA_ROUTES = new Set([
 
 // Route prefixes that match dynamic segments (e.g. /portfolio/p/:id)
 const SPA_ROUTE_PREFIXES = [
+  "/office-interior/",
   "/portfolio/p/", "/insights/", "/review/", "/unsubscribe/",
   "/my/project/", "/survey/",
   "/admin", "/ops", "/partner",

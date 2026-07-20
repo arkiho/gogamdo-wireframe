@@ -29,6 +29,7 @@ const AIRedesign = lazy(() => import("./pages/AIRedesign"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const OpsXProcess = lazy(() => import("./pages/OpsXProcess"));
 const HowWeWork = lazy(() => import("./pages/HowWeWork"));
+const RegionInterior = lazy(() => import("./pages/RegionInterior"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const PwaInstallBanner = lazy(() => import("./components/PwaInstallBanner"));
@@ -126,6 +127,7 @@ function PublicRouter() {
           <Route path="/ai-redesign" component={AIRedesign} />
           <Route path="/faq" component={FAQ} />
           <Route path="/how-we-work" component={HowWeWork} />
+          <Route path="/office-interior/:region" component={RegionInterior} />
           <Route path="/opsx" component={OpsXProcess} />
           <Route path="/contact" component={Contact} />
           <Route path="/privacy" component={Privacy} />

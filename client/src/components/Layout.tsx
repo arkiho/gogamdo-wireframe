@@ -787,6 +787,31 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
+        {/* 지역별 인테리어 (Local SEO 내부 링크) */}
+        <div className="border-t border-white/5">
+          <div className="container py-6">
+            <h4 className="font-heading text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">
+              지역별 사무실 인테리어
+            </h4>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {[
+                { label: "서울 사무실 인테리어", href: "/office-interior/seoul" },
+                { label: "강남 사무실 인테리어", href: "/office-interior/gangnam" },
+                { label: "여의도 사무실 인테리어", href: "/office-interior/yeouido" },
+                { label: "판교 사무실 인테리어", href: "/office-interior/pangyo" },
+                { label: "경기 사무실 인테리어", href: "/office-interior/gyeonggi" },
+                { label: "인천 사무실 인테리어", href: "/office-interior/incheon" },
+              ].map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <span className="text-xs text-white/35 hover:text-gold transition-colors">
+                    {item.label}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Copyright */}
         <div className="border-t border-white/5">
           <div className="container py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
