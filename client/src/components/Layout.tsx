@@ -700,6 +700,16 @@ export default function Layout({ children }: { children: ReactNode }) {
                 데이터 기반 원활한 소통,<br />
                 그 공간 가치를 경험하다.
               </p>
+              <a
+                href="https://blog.naver.com/kokamdodesign"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 text-sm text-white/50 hover:text-[#03C75A] transition-colors"
+                aria-label="고감도 네이버 블로그"
+              >
+                <span className="flex items-center justify-center w-5 h-5 rounded bg-[#03C75A] text-white text-[11px] font-extrabold leading-none">N</span>
+                네이버 블로그
+              </a>
             </div>
 
             {/* Services */}
