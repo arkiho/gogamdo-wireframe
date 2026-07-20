@@ -666,6 +666,12 @@ export default function AdminPortfolios() {
                                 보관
                               </Button>
                             )}
+                            {draft.status === "archived" && (
+                              <Button variant="outline" size="sm" onClick={() => publishDraft.mutate({ id: draft.id })}>
+                                <Send className="w-3.5 h-3.5 mr-1.5" />
+                                재게시
+                              </Button>
+                            )}
                             <Button
                               variant="ghost" size="sm"
                               className="text-destructive hover:text-destructive"
