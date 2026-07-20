@@ -11,6 +11,7 @@ import { storagePut } from "../storage";
 import sensorApiRouter from "../routers/sensorApi";
 import { generateInsightHandler } from "../routers/scheduledInsight";
 import sitemapRouter from "../routers/sitemap";
+import { startInsightScheduler } from "./insightScheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -294,6 +295,8 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     // Run table creation in background after server is up
     ensureTables().catch((err) => console.warn("[DB] Background migration failed:", err));
+    // 인사이트 자동 발행 스케줄러 (프로덕션에서만, 화·금 09:00 KST)
+    startInsightScheduler();
   });
 }
 

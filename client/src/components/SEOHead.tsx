@@ -50,12 +50,18 @@ export default function SEOHead({ title, description, path = "/", image, type = 
     setMeta("og:description", fullDesc);
     setMeta("og:url", fullUrl);
     setMeta("og:image", fullImage);
+    setMeta("og:image:secure_url", fullImage);
+    setMeta("og:image:width", "1200");
+    setMeta("og:image:height", "630");
+    setMeta("og:image:alt", fullTitle);
     setMeta("og:type", type);
 
     // Twitter
     setMeta("twitter:title", fullTitle);
     setMeta("twitter:description", fullDesc);
     setMeta("twitter:image", fullImage);
+    setMeta("twitter:image:alt", fullTitle);
+    setMeta("twitter:card", "summary_large_image");
 
     // Canonical
     let canonical = document.querySelector('link[rel="canonical"]');

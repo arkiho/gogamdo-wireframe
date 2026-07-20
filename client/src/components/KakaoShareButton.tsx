@@ -3,17 +3,19 @@
  * AI 보고서 및 전사 서베이 링크를 카카오톡으로 공유할 수 있는 버튼입니다.
  */
 
-import { useKakaoShare, ShareReportParams, ShareSurveyParams } from "@/hooks/useKakaoShare";
+import { useKakaoShare, ShareReportParams, ShareSurveyParams, ShareContentParams } from "@/hooks/useKakaoShare";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface KakaoShareButtonProps {
-  /** 공유 유형: report (보고서) 또는 survey (전사 서베이) */
-  type: "report" | "survey";
+  /** 공유 유형: report (보고서), survey (전사 서베이), content (일반 페이지) */
+  type: "report" | "survey" | "content";
   /** 보고서 공유 시 필요한 파라미터 */
   reportParams?: ShareReportParams;
   /** 서베이 공유 시 필요한 파라미터 */
   surveyParams?: ShareSurveyParams;
+  /** 일반 콘텐츠(인사이트/사례) 공유 시 필요한 파라미터 */
+  contentParams?: ShareContentParams;
   /** 버튼 크기 */
   size?: "sm" | "default" | "lg" | "icon";
   /** 추가 클래스 */
@@ -26,11 +28,12 @@ export default function KakaoShareButton({
   type,
   reportParams,
   surveyParams,
+  contentParams,
   size = "sm",
   className = "",
   label,
 }: KakaoShareButtonProps) {
-  const { isReady, shareReport, shareSurvey } = useKakaoShare();
+  const { isReady, shareReport, shareSurvey, shareContent } = useKakaoShare();
 
   const handleShare = () => {
     let success = false;
@@ -39,11 +42,18 @@ export default function KakaoShareButton({
       success = shareReport(reportParams);
     } else if (type === "survey" && surveyParams) {
       success = shareSurvey(surveyParams);
+    } else if (type === "content" && contentParams) {
+      success = shareContent(contentParams);
     }
 
     if (!success) {
       // SDK가 준비되지 않은 경우 URL 복사 폴백
-      const url = type === "report" ? reportParams?.pageUrl : surveyParams?.surveyUrl;
+      const url =
+        type === "report"
+          ? reportParams?.pageUrl
+          : type === "survey"
+          ? surveyParams?.surveyUrl
+          : contentParams?.pageUrl;
       if (url) {
         navigator.clipboard.writeText(url);
         toast.info("카카오톡 SDK를 불러오는 중입니다. 링크가 클립보드에 복사되었습니다.");
@@ -51,7 +61,7 @@ export default function KakaoShareButton({
     }
   };
 
-  const buttonLabel = label || (type === "report" ? "카카오톡 공유" : "카카오톡으로 공유");
+  const buttonLabel = label || "카카오톡 공유";
 
   return (
     <Button

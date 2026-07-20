@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import { RelatedInsights } from "@/components/RelatedContent";
+import KakaoShareButton from "@/components/KakaoShareButton";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -435,6 +436,24 @@ export default function PortfolioDbDetail() {
                 </span>
               </Link>
             </div>
+            {project && (
+              <div className="mt-8 flex justify-center">
+                <KakaoShareButton
+                  type="content"
+                  size="sm"
+                  contentParams={{
+                    title: project.title,
+                    description: `${project.category || ""} ${project.area || ""} ${project.location || ""} 사무실 인테리어 시공 사례`.trim(),
+                    imageUrl:
+                      (project.images?.find((im: any) => im.isCover === "yes") || project.images?.[0])?.processedUrl ||
+                      (project.images?.find((im: any) => im.isCover === "yes") || project.images?.[0])?.originalUrl ||
+                      undefined,
+                    pageUrl: `https://kokamdo.co.kr/portfolio/p/${id}`,
+                    buttonTitle: "사례 보기",
+                  }}
+                />
+              </div>
+            )}
           </FadeUp>
         </div>
       </section>

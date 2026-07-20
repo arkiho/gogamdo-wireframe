@@ -60,6 +60,14 @@ export interface ShareSurveyParams {
   buttonTitle?: string;
 }
 
+export interface ShareContentParams {
+  title: string;
+  description: string;
+  imageUrl?: string;
+  pageUrl: string;
+  buttonTitle?: string;
+}
+
 export function useKakaoShare() {
   const initialized = useRef(false);
 
@@ -156,5 +164,35 @@ export function useKakaoShare() {
     return true;
   }, [isReady]);
 
-  return { isReady, shareReport, shareSurvey };
+  /**
+   * 일반 콘텐츠(인사이트 글, 고객 사례 등)를 카카오톡으로 공유
+   */
+  const shareContent = useCallback(({ title, description, imageUrl, pageUrl, buttonTitle }: ShareContentParams) => {
+    if (!isReady()) {
+      navigator.clipboard.writeText(pageUrl);
+      return false;
+    }
+
+    const link = { mobileWebUrl: pageUrl, webUrl: pageUrl };
+
+    window.Kakao.Share.sendDefault({
+      objectType: "feed",
+      content: {
+        title,
+        description,
+        imageUrl: imageUrl || `${window.location.origin}/og-image.jpg`,
+        link,
+      },
+      buttons: [
+        {
+          title: buttonTitle || "자세히 보기",
+          link,
+        },
+      ],
+    });
+
+    return true;
+  }, [isReady]);
+
+  return { isReady, shareReport, shareSurvey, shareContent };
 }

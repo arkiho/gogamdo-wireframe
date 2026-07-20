@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Streamdown } from "streamdown";
 import SEOHead from "@/components/SEOHead";
+import KakaoShareButton from "@/components/KakaoShareButton";
 import { RelatedPortfolios } from "@/components/RelatedContent";
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -103,6 +104,7 @@ export default function InsightDetail() {
         title={`${article.title} | \uace0\uac10\ub3c4 \uc778\uc0ac\uc774\ud2b8`}
         description={article.excerpt}
         path={`/insights/${slug}`}
+        image={article.coverImageUrl || undefined}
         type="article"
       />
 
@@ -195,13 +197,26 @@ export default function InsightDetail() {
                 <p className="text-xs text-muted-foreground">(주)고감도 인테리어</p>
               </div>
             </div>
-            <button
-              onClick={handleShare}
-              className="p-2 text-muted-foreground hover:text-gold transition-colors"
-              title="공유하기"
-            >
-              <Share2 className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <KakaoShareButton
+                type="content"
+                size="sm"
+                contentParams={{
+                  title: article.title,
+                  description: article.excerpt || "",
+                  imageUrl: article.coverImageUrl || undefined,
+                  pageUrl: `https://kokamdo.co.kr/insights/${slug}`,
+                  buttonTitle: "인사이트 보기",
+                }}
+              />
+              <button
+                onClick={handleShare}
+                className="p-2 text-muted-foreground hover:text-gold transition-colors"
+                title="공유하기"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </motion.section>

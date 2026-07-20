@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
+import { getInsightArticleBySlug, getPortfolioDraft, listDraftImages } from "../db";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -176,6 +177,102 @@ function isSpaRoute(url: string): boolean {
   return SPA_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+function htmlEscapeAttr(str: string): string {
+  return (str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/** og:image / twitter:image 를 주어진 URL로 교체합니다 (카카오/OG 스크래퍼용). */
+function injectImageMeta(html: string, imageUrl: string): string {
+  const safe = htmlEscapeAttr(imageUrl);
+  html = html.replace(
+    /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:image" content="${safe}" />`
+  );
+  html = html.replace(
+    /<meta\s+property="og:image:secure_url"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:image:secure_url" content="${safe}" />`
+  );
+  html = html.replace(
+    /<meta\s+property="twitter:image"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="twitter:image" content="${safe}" />`
+  );
+  return html;
+}
+
+/** 제목/설명 계열 메타를 주어진 값으로 교체합니다. */
+function injectTitleDesc(html: string, title?: string, description?: string): string {
+  if (title) {
+    const t = htmlEscapeAttr(title);
+    html = html.replace(/<title>[^<]*<\/title>/, `<title>${t}</title>`);
+    html = html.replace(
+      /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:title" content="${t}" />`
+    );
+    html = html.replace(
+      /<meta\s+property="twitter:title"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="twitter:title" content="${t}" />`
+    );
+  }
+  if (description) {
+    const d = htmlEscapeAttr(description);
+    html = html.replace(
+      /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
+      `<meta name="description" content="${d}" />`
+    );
+    html = html.replace(
+      /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:description" content="${d}" />`
+    );
+    html = html.replace(
+      /<meta\s+property="twitter:description"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="twitter:description" content="${d}" />`
+    );
+  }
+  return html;
+}
+
+/** 동적 상세 페이지(인사이트/포트폴리오)의 페이지별 메타를 DB에서 조회합니다. */
+async function getDynamicMeta(
+  pathname: string
+): Promise<{ title?: string; description?: string; image?: string } | null> {
+  try {
+    const insightMatch = pathname.match(/^\/insights\/([^/]+)\/?$/);
+    if (insightMatch) {
+      const slug = decodeURIComponent(insightMatch[1]);
+      const a = await getInsightArticleBySlug(slug);
+      if (!a) return null;
+      return {
+        title: `${a.title} | 고감도 KOKAMDO`,
+        description: (a.metaDescription || a.excerpt || "") as string,
+        image: (a.coverImageUrl || undefined) as string | undefined,
+      };
+    }
+    const portfolioMatch = pathname.match(/^\/portfolio\/p\/(\d+)\/?$/);
+    if (portfolioMatch) {
+      const id = parseInt(portfolioMatch[1]);
+      const d = await getPortfolioDraft(id);
+      if (!d || d.status !== "published") return null;
+      const images = await listDraftImages(id);
+      const cover = images.find((img: any) => img.isCover === "yes") || images[0];
+      const image = cover?.processedUrl || cover?.originalUrl || undefined;
+      const parts = [d.category, d.area, d.location].filter(Boolean).join(" ");
+      return {
+        title: `${d.title} | 고객 사례 | 고감도 KOKAMDO`,
+        description: `${d.title} - ${parts} 사무실 인테리어 시공 사례`,
+        image,
+      };
+    }
+    return null;
+  } catch (err) {
+    console.warn("[Meta] Dynamic meta lookup failed:", err);
+    return null;
+  }
+}
+
 export function serveStatic(app: Express) {
   const distPath =
     process.env.NODE_ENV === "development"
@@ -190,15 +287,23 @@ export function serveStatic(app: Express) {
   app.use(express.static(distPath));
 
   // Serve index.html for known SPA routes; return 404 for unknown paths
-  app.use("*", (req, res) => {
+  app.use("*", async (req, res) => {
     const indexPath = path.resolve(distPath, "index.html");
     const pathname = req.originalUrl.split("?")[0];
     const statusCode = isSpaRoute(req.originalUrl) ? 200 : 404;
 
-    // Inject route-specific meta tags for SEO
+    // Inject route-specific meta tags for SEO (정적 라우트 + 동적 상세 페이지)
     try {
       let html = fs.readFileSync(indexPath, "utf-8");
       html = injectMeta(html, pathname);
+
+      // 인사이트/포트폴리오 상세: DB에서 페이지별 제목·설명·이미지 주입 (카카오/OG 스크래퍼 대응)
+      const dyn = await getDynamicMeta(pathname);
+      if (dyn) {
+        html = injectTitleDesc(html, dyn.title, dyn.description);
+        if (dyn.image) html = injectImageMeta(html, dyn.image);
+      }
+
       res.status(statusCode).set({ "Content-Type": "text/html" }).send(html);
     } catch {
       res.status(statusCode).sendFile(indexPath);
