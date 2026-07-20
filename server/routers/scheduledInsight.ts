@@ -8,10 +8,27 @@
  * 인증: sdk.authenticateRequest → isCron === true
  */
 import type { Request, Response } from "express";
-import { sdk } from "../_core/sdk";
+import { timingSafeEqual } from "crypto";
 import { invokeLLM } from "../_core/llm";
 import { generateImage } from "../_core/imageGeneration";
 import { createInsightArticle } from "../db";
+import { ENV } from "../_core/env";
+
+/** 상수 시간 비교로 시크릿 토큰을 검증합니다. */
+function verifyScheduledSecret(req: Request): boolean {
+  const expected = ENV.scheduledTaskSecret;
+  if (!expected) return false; // 시크릿 미설정 시 항상 거부
+  const auth = req.headers["authorization"];
+  const bearer = typeof auth === "string" && auth.startsWith("Bearer ")
+    ? auth.slice(7)
+    : "";
+  const headerToken = (req.headers["x-cron-secret"] as string) || bearer || "";
+  if (!headerToken) return false;
+  const a = Buffer.from(headerToken);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 // SEO/AEO/GEO 최적화 키워드 풀
 const SEO_KEYWORDS = [
@@ -45,10 +62,12 @@ const CATEGORIES = ["trend", "cost_guide", "case_study", "tip", "news"] as const
 
 export async function generateInsightHandler(req: Request, res: Response) {
   try {
-    // 인증: cron 전용 확인
-    const user = await sdk.authenticateRequest(req);
-    if (!(user as { isCron?: boolean }).isCron) {
-      return res.status(403).json({ error: "cron-only endpoint" });
+    // 인증: 공유 시크릿 토큰 확인 (Railway 환경변수 SCHEDULED_TASK_SECRET)
+    if (!ENV.scheduledTaskSecret) {
+      return res.status(503).json({ error: "scheduler-not-configured: SCHEDULED_TASK_SECRET 미설정" });
+    }
+    if (!verifyScheduledSecret(req)) {
+      return res.status(401).json({ error: "unauthorized" });
     }
 
     // AGENT cron에서 전달한 트렌드 정보 수신
@@ -58,7 +77,12 @@ export async function generateInsightHandler(req: Request, res: Response) {
       targetAudience,
       trendContext,
       keywords,
+      draft,       // true면 초안으로만 저장 (기본: 자동 발행)
+      autoPublish, // 명시적으로 false를 주면 초안 유지
     } = req.body || {};
+
+    // 스케줄러 경로는 기본적으로 즉시 발행합니다. draft:true 또는 autoPublish:false면 초안 유지.
+    const publishNow = !(draft === true || autoPublish === false);
 
     // 카테고리 결정 (AGENT가 지정하지 않으면 랜덤)
     const selectedCategory = (category && CATEGORIES.includes(category))
@@ -206,10 +230,11 @@ ${topicInstruction}${trendInfo}
       metaDescription: parsed.metaDescription || null,
       isAiGenerated: true,
       featured: false,
-      status: "draft",
+      status: publishNow ? "published" : "draft",
+      publishedAt: publishNow ? new Date() : null,
     } as any);
 
-    console.log(`[Scheduled Insight] Article generated: id=${articleId}, title="${parsed.title}"`);
+    console.log(`[Scheduled Insight] Article generated: id=${articleId}, status=${publishNow ? "published" : "draft"}, title="${parsed.title}"`);
 
     return res.json({
       ok: true,
@@ -217,7 +242,7 @@ ${topicInstruction}${trendInfo}
       slug,
       title: parsed.title,
       category: selectedCategory,
-      status: "draft",
+      status: publishNow ? "published" : "draft",
     });
   } catch (err: any) {
     console.error("[Scheduled Insight] Error:", err);
@@ -226,7 +251,7 @@ ${topicInstruction}${trendInfo}
       stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
       context: {
         url: req.url,
-        taskUid: req.headers["x-manus-cron-task-uid"] || null,
+        taskUid: (req.headers["x-cron-task-id"] as string) || null,
       },
       timestamp: new Date().toISOString(),
     });

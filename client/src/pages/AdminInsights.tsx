@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
@@ -46,14 +47,20 @@ export default function AdminInsights() {
   const [aiTopic, setAiTopic] = useState("");
   const [aiCategory, setAiCategory] = useState<string>("trend");
   const [aiAudience, setAiAudience] = useState("");
+  const [aiAutoPublish, setAiAutoPublish] = useState(false);
 
   const { data: articles, isLoading, refetch } = trpc.insight.all.useQuery(undefined, { enabled: !!user });
   const aiGenerateMutation = trpc.insight.aiGenerate.useMutation({
-    onSuccess: () => {
-      toast.success("AI 아티클이 생성되었습니다 (초안)");
+    onSuccess: (res: any) => {
+      toast.success(
+        res?.status === "published"
+          ? "AI 아티클이 생성되어 즉시 발행되었습니다"
+          : "AI 아티클이 생성되었습니다 (초안)"
+      );
       refetch();
       setShowAiDialog(false);
       setAiTopic("");
+      setAiAutoPublish(false);
     },
     onError: (err) => toast.error(`생성 실패: ${err.message}`),
   });
@@ -308,7 +315,17 @@ export default function AdminInsights() {
                 onChange={(e) => setAiAudience(e.target.value)}
               />
             </div>
-            <Button
+            <div className="flex items-center gap-2 rounded-md border border-border/60 p-3">
+              <Checkbox
+                id="ai-auto-publish"
+                checked={aiAutoPublish}
+                onCheckedChange={(v) => setAiAutoPublish(v === true)}
+              />
+              <label htmlFor="ai-auto-publish" className="text-sm text-ink cursor-pointer select-none">
+                생성 후 즉시 발행 (검토 없이 바로 공개)
+              </label>
+            </div>
+                        <Button
               className="w-full bg-gold text-ink hover:bg-gold/90"
               disabled={aiGenerateMutation.isPending}
               onClick={() => {
@@ -316,6 +333,7 @@ export default function AdminInsights() {
                   topic: aiTopic || undefined,
                   category: aiCategory as any,
                   targetAudience: aiAudience || undefined,
+                  autoPublish: aiAutoPublish,
                 });
               }}
             >
@@ -326,7 +344,9 @@ export default function AdminInsights() {
               )}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              생성된 아티클은 초안 상태로 저장됩니다. 검토 후 발행해주세요.
+              {aiAutoPublish
+                ? "생성 즉시 발행되어 공개됩니다. 자동화(cron)에서도 이 옵션으로 자동 발행됩니다."
+                : "생성된 아티클은 초안 상태로 저장됩니다. 검토 후 발행해주세요."}
             </p>
           </div>
         </DialogContent>

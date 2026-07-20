@@ -2113,6 +2113,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
         topic: z.string().optional(),
         category: z.enum(["trend", "cost_guide", "case_study", "tip", "news"]).optional(),
         targetAudience: z.string().optional(),
+        autoPublish: z.boolean().optional(),
       }))
       .mutation(async ({ input }) => {
         const category = input.category || "trend";
@@ -2229,7 +2230,8 @@ ${topicPrompt}
           console.error("[AI Article] Cover image generation failed:", err);
         }
 
-        // DB에 초안으로 저장
+        // 자동 발행 옵션: true면 즉시 published(+publishedAt), 아니면 초안(draft)
+        const publishNow = input.autoPublish === true;
         const articleId = await createInsightArticle({
           slug,
           title: parsed.title,
@@ -2245,7 +2247,8 @@ ${topicPrompt}
           metaDescription: parsed.metaDescription || null,
           isAiGenerated: true,
           featured: false,
-          status: "draft",
+          status: publishNow ? "published" : "draft",
+          publishedAt: publishNow ? new Date() : null,
         } as any);
 
         return {
@@ -2254,7 +2257,7 @@ ${topicPrompt}
           title: parsed.title,
           excerpt: parsed.excerpt,
           category,
-          status: "draft",
+          status: publishNow ? "published" : "draft",
         };
       }),
   }),

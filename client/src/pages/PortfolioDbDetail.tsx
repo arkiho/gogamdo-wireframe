@@ -13,6 +13,7 @@ import {
   SplitSquareHorizontal, Grid3X3, X, Star, MessageSquare, Quote, Shield,
 } from "lucide-react";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
+import { RelatedInsights } from "@/components/RelatedContent";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -407,6 +408,9 @@ export default function PortfolioDbDetail() {
 
       {/* Client Review Section */}
       <ReviewSection portfolioId={id} />
+
+      {/* 관련 인사이트 (내부 링크) */}
+      <RelatedInsights tags={(project?.tags as string[]) ?? []} />
 
       {/* CTA */}
       <section className="py-20 lg:py-28 bg-ink text-white">

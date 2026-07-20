@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Streamdown } from "streamdown";
 import SEOHead from "@/components/SEOHead";
+import { RelatedPortfolios } from "@/components/RelatedContent";
 
 const CATEGORY_LABEL: Record<string, string> = {
   trend: "트렌드",
@@ -263,6 +264,9 @@ export default function InsightDetail() {
           </div>
         </section>
       )}
+
+      {/* 관련 고객 사례 (내부 링크) */}
+      <RelatedPortfolios tags={tags} />
 
       {/* Newsletter CTA */}
       <section className="pb-20 lg:pb-28">
