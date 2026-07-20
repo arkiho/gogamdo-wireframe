@@ -177,6 +177,15 @@ function isSpaRoute(url: string): boolean {
   return SPA_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+/**
+ * 폐지된 공개 경로 → 대체 경로 301 영구 리다이렉트.
+ * SPA fallback은 알 수 없는 경로에도 index.html을 200으로 내주므로(soft 404),
+ * 색인된 구 경로는 여기서 명시적으로 넘겨야 검색 색인이 이전된다.
+ */
+const PERMANENT_REDIRECTS: Record<string, string> = {
+  "/opsx": "/solutions",
+};
+
 function htmlEscapeAttr(str: string): string {
   return (str || "")
     .replace(/&/g, "&amp;")
@@ -290,6 +299,14 @@ export function serveStatic(app: Express) {
   app.use("*", async (req, res) => {
     const indexPath = path.resolve(distPath, "index.html");
     const pathname = req.originalUrl.split("?")[0];
+
+    // 폐지된 경로는 SPA fallback보다 먼저 301로 넘긴다 (쿼리스트링 보존)
+    const redirectTo = PERMANENT_REDIRECTS[pathname.replace(/\/$/, "") || "/"];
+    if (redirectTo) {
+      const query = req.originalUrl.slice(pathname.length);
+      return res.redirect(301, redirectTo + query);
+    }
+
     const statusCode = isSpaRoute(req.originalUrl) ? 200 : 404;
 
     // Inject route-specific meta tags for SEO (정적 라우트 + 동적 상세 페이지)
