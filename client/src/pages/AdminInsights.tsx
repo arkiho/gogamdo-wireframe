@@ -19,6 +19,7 @@ import {
   Archive, FileText, Clock, BarChart3, Tag, BookOpen
 } from "lucide-react";
 import { Streamdown } from "streamdown";
+import { sanitizeInsightMarkdown } from "@/lib/markdown";
 
 const CATEGORY_LABELS: Record<string, string> = {
   trend: "트렌드",
@@ -378,7 +379,7 @@ export default function AdminInsights() {
                 <p className="text-lg text-muted-foreground mb-4">{previewArticle.subtitle}</p>
               )}
               <div className="prose prose-sm max-w-none">
-                <Streamdown>{previewArticle.content}</Streamdown>
+                <Streamdown>{sanitizeInsightMarkdown(previewArticle.content)}</Streamdown>
               </div>
               {previewArticle.tags && previewArticle.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-6 pt-4 border-t">

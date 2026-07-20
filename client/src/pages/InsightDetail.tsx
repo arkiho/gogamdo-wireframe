@@ -12,6 +12,7 @@ import { trpc } from "@/lib/trpc";
 import { Streamdown } from "streamdown";
 import SEOHead from "@/components/SEOHead";
 import KakaoShareButton from "@/components/KakaoShareButton";
+import { sanitizeInsightMarkdown } from "@/lib/markdown";
 import { RelatedPortfolios } from "@/components/RelatedContent";
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -254,7 +255,7 @@ export default function InsightDetail() {
             prose-table:border prose-th:bg-paper-warm prose-th:p-3 prose-td:p-3 prose-td:border
             prose-a:text-gold prose-a:no-underline hover:prose-a:underline
           ">
-            <Streamdown>{article.content}</Streamdown>
+            <Streamdown>{sanitizeInsightMarkdown(article.content)}</Streamdown>
           </div>
 
           {/* AI 작성 표시 */}

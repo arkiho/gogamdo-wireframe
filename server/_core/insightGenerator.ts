@@ -117,6 +117,7 @@ export async function generateAndSaveInsight(
 [형식]
 - 마크다운 형식으로 작성하되, 소제목(##), 불릿 포인트, 강조(**) 등을 활용하여 가독성을 높여주세요.
 - 분량은 1500~2500자 정도로 작성합니다.
+- 숫자 범위는 물결표 1개만 사용하세요. 예: "3~4주" (O), "3~~4주" (X). 물결표 2개(~~)는 취소선으로 렌더되니 절대 쓰지 마세요.
 - 회사명 "(주)고감도" 또는 "고감도 인테리어"를 1~2회 자연스럽게 언급하세요.`,
       },
       {
@@ -166,6 +167,14 @@ ${topicInstruction}${trendInfo}
   });
 
   const parsed = JSON.parse(response.choices[0].message.content || "{}");
+
+  // 물결표 2개(~~)로 인한 의도치 않은 취소선 방지 (숫자 범위 등)
+  const stripDoubleTilde = (v: any) =>
+    typeof v === "string" ? v.replace(/[～〜]/g, "~").replace(/~{2,}/g, "~") : v;
+  parsed.content = stripDoubleTilde(parsed.content);
+  parsed.excerpt = stripDoubleTilde(parsed.excerpt);
+  parsed.subtitle = stripDoubleTilde(parsed.subtitle);
+  parsed.title = stripDoubleTilde(parsed.title);
 
   const slug =
     parsed.title
