@@ -619,41 +619,22 @@ export default function AdminPortfolios() {
 
                           {/* Actions */}
                           <div className="flex flex-wrap gap-2 mt-3">
-                            <Button variant="outline" size="sm" onClick={() => startEdit(draft)}>
-                              <Pencil className="w-3.5 h-3.5 mr-1.5" />
-                              수정
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => { setImageUploadDraftId(draft.id); fileInputRef.current?.click(); }}>
-                              <Upload className="w-3.5 h-3.5 mr-1.5" />
-                              이미지
-                              {uploadImage.isPending && imageUploadDraftId === draft.id && (
-                                <Loader2 className="w-3 h-3 ml-1 animate-spin" />
-                              )}
-                            </Button>
                             <Link href={`/admin/portfolio/${draft.id}`}>
                               <Button variant="outline" size="sm" asChild>
                                 <span>
-                                  <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                  상세
+                                  <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                                  수정
                                 </span>
                               </Button>
                             </Link>
-                            <Button
-                              variant="outline" size="sm"
-                              onClick={() => generateDesc.mutate({
-                                id: draft.id,
-                                title: draft.title,
-                                category: draft.category || undefined,
-                                client: draft.client || undefined,
-                                area: draft.area || undefined,
-                                location: draft.location || undefined,
-                              })}
-                              disabled={generateDesc.isPending}
-                            >
-                              <Wand2 className="w-3.5 h-3.5 mr-1.5" />
-                              AI 설명
-                              {generateDesc.isPending && <Loader2 className="w-3 h-3 ml-1 animate-spin" />}
-                            </Button>
+                            <a href={`/portfolio/p/${draft.id}`} target="_blank" rel="noopener noreferrer">
+                              <Button variant="outline" size="sm" asChild>
+                                <span>
+                                  <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                  미리보기
+                                </span>
+                              </Button>
+                            </a>
                             {draft.status === "draft" && (
                               <Button variant="outline" size="sm" onClick={() => publishDraft.mutate({ id: draft.id })}>
                                 <Send className="w-3.5 h-3.5 mr-1.5" />
