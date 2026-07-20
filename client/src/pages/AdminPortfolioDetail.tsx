@@ -12,6 +12,8 @@ import {
   Sparkles, GripVertical, AlertCircle, SplitSquareHorizontal,
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
+import BlogDraftButton from "@/components/BlogDraftButton";
+import { buildPortfolioBlogDraft } from "@/lib/blogDraft";
 import Logo from "@/components/Logo";
 
 function formatDate(d: Date | string | null) {
@@ -256,6 +258,12 @@ export default function AdminPortfolioDetail() {
                 <Archive className="w-4 h-4 mr-1" /> 보관
               </Button>
             )}
+            <BlogDraftButton
+              size="sm"
+              variant="outline"
+              label="블로그 초안"
+              getDraft={() => buildPortfolioBlogDraft(d as any)}
+            />
           </div>
         </div>
       </header>

@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { sanitizeInsightMarkdown } from "@/lib/markdown";
+import BlogDraftButton from "@/components/BlogDraftButton";
+import { buildInsightBlogDraft } from "@/lib/blogDraft";
 
 const CATEGORY_LABELS: Record<string, string> = {
   trend: "트렌드",
@@ -230,6 +232,12 @@ export default function AdminInsights() {
                     </div>
                     {/* Actions */}
                     <div className="flex gap-1 flex-shrink-0">
+                      <BlogDraftButton
+                        size="sm"
+                        variant="ghost"
+                        label=""
+                        getDraft={() => buildInsightBlogDraft(article)}
+                      />
                       <Button size="sm" variant="ghost" onClick={() => setShowPreview(article.id)}>
                         <Eye className="w-4 h-4" />
                       </Button>
