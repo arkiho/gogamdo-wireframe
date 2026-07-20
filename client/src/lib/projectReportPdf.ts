@@ -117,7 +117,7 @@ export function generateProjectReportPdf(data: ProjectReportData, trackingCode?:
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      `KOKAMDO OpsX Monthly Report | Generated ${new Date().toLocaleDateString()} | Confidential`,
+      `KOKAMDO Monthly Report | Generated ${new Date().toLocaleDateString()} | Confidential`,
       pageWidth / 2,
       footerY,
       { align: "center" }

@@ -552,7 +552,7 @@ export default function AdminSettings() {
                     <ul className="text-xs text-blue-600 mt-1 space-y-1">
                       <li><strong>마스터</strong>: 모든 관리자 기능 + 관리자/마스터 역할 부여 권한 (최고 권한)</li>
                       <li><strong>관리자</strong>: 대시보드, 사이트 설정, 콘텐츠 관리, 직원 관리 (일반 사용자로만 변경 가능)</li>
-                      <li><strong>일반 사용자</strong>: OpsX 직원 대시보드, 프로젝트 관리 등 기본 기능만 접근 가능</li>
+                      <li><strong>일반 사용자</strong>: 직원 대시보드, 프로젝트 관리 등 기본 기능만 접근 가능</li>
                     </ul>
                   </div>
                 </div>

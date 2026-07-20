@@ -300,7 +300,7 @@ function LoginDropdown({ isTransparent }: { isTransparent: boolean }) {
                     <Link href="/ops">
                       <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-light hover:bg-gold/5 hover:text-gold transition-colors">
                         <HardHat className="w-4 h-4" />
-                        직원 콘솔 (OpsX)
+                        직원 콘솔
                       </span>
                     </Link>
                   </>
@@ -371,7 +371,7 @@ function MobileLoginButtons() {
             <Link href="/ops">
               <span className="flex items-center gap-3 py-3 text-lg font-medium text-ink hover:text-gold transition-colors">
                 <HardHat className="w-5 h-5" />
-                직원 콘솔 (OpsX)
+                직원 콘솔
               </span>
             </Link>
           )}
@@ -721,7 +721,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                 {[
                   { label: "사무실 인테리어", href: "/solutions" },
                   { label: "상업공간 설계", href: "/solutions" },
-                  { label: "OpsX 컨설팅", href: "/opsx" },
                   ...(aiSetting?.estimator ? [{ label: "AI 견적", href: "/estimator" }] : []),
                 ].map((item) => (
                   <li key={item.label}>

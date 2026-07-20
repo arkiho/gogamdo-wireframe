@@ -265,7 +265,7 @@ export default function AdminPostOccupancy() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground font-heading">사후관리 &amp; OpsX Insight</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground font-heading">사후관리</h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
           입주 후 만족도 → 정기 방문 → 하자 보수 → 공간 최적화 구독
         </p>
@@ -506,7 +506,7 @@ export default function AdminPostOccupancy() {
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
-                          <Repeat className="w-5 h-5" />OpsX Insight 구독
+                          <Repeat className="w-5 h-5" />정기 관리 구독
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -586,7 +586,7 @@ export default function AdminPostOccupancy() {
                   <Card>
                     <CardContent className="py-12 text-center">
                       <Repeat className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                      <h3 className="font-medium mb-2">OpsX Insight 구독이 없습니다</h3>
+                      <h3 className="font-medium mb-2">정기 관리 구독이 없습니다</h3>
                       <p className="text-sm text-muted-foreground mb-4">정기적으로 공간 최적화 제안을 받아보세요.</p>
                       <Button className="gap-2" onClick={() => setShowCreateSubscription(true)}>
                         <Plus className="w-4 h-4" />구독 생성
@@ -697,7 +697,7 @@ export default function AdminPostOccupancy() {
       {/* 구독 생성 다이얼로그 */}
       <Dialog open={showCreateSubscription} onOpenChange={setShowCreateSubscription}>
         <DialogContent>
-          <DialogHeader><DialogTitle>OpsX Insight 구독 생성</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>정기 관리 구독 생성</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
               <label className="text-xs text-muted-foreground">플랜</label>

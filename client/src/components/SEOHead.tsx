@@ -93,11 +93,6 @@ export const SEO_CONFIG = {
     description: "공간 설계, 3D 렌더링, 시공 관리까지 원스톱 인테리어 솔루션. 업무 효율과 브랜드 아이덴티티를 반영한 맞춤형 공간을 제안합니다.",
     path: "/solutions",
   },
-  opsx: {
-    title: "OpsX 컨설팅 프로세스",
-    description: "데이터 기반 사무환경 진단부터 원스톱 구축까지. OpsX 인사이트 서비스의 8단계 프로세스로 최적의 오피스를 완성합니다.",
-    path: "/opsx",
-  },
   portfolio: {
     title: "고객 사례",
     description: "고감도는 고객사의 보안을 최우선으로 합니다. 고객사로부터 공개 승인을 받은 프로젝트만 선별하여 소개합니다.",

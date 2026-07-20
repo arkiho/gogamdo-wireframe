@@ -493,7 +493,7 @@ export default function AdminDashboard() {
               <Card className="border-teal-300/30 bg-teal-50/30 cursor-pointer hover:border-teal-400/50 hover:shadow-md transition-all" onClick={() => navigate("/ops")}>
                 <CardContent className="py-5 flex flex-col items-center text-center gap-3">
                   <div className="w-11 h-11 rounded-lg bg-teal-100 flex items-center justify-center"><HardHat className="w-5 h-5 text-teal-600" /></div>
-                  <div><h3 className="font-heading font-bold text-ink text-sm">OpsX 직원 포털</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">프로젝트, 공정표, 카메라</p></div>
+                  <div><h3 className="font-heading font-bold text-ink text-sm">직원 포털</h3><p className="text-[11px] text-muted-foreground mt-1 leading-tight">프로젝트, 공정표, 카메라</p></div>
                 </CardContent>
               </Card>
             </div>

@@ -1205,7 +1205,7 @@ export default function ClientProjectDetail() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  입주 후 만족도 설문, 미세 조정 방문 예약, OpsX Insight 구독 서비스를 이용할 수 있습니다.
+                  입주 후 만족도 설문, 미세 조정 방문 예약, 정기 관리 구독 서비스를 이용할 수 있습니다.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="border rounded-lg p-4 text-center">

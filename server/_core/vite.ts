@@ -152,7 +152,7 @@ function injectMeta(html: string, pathname: string): string {
 const SPA_ROUTES = new Set([
   "/", "/about", "/solutions", "/portfolio", "/contact",
   "/estimator", "/insights", "/resources", "/faq",
-  "/how-we-work", "/opsx", "/ai-chat", "/ai-style", "/ai-redesign",
+  "/how-we-work", "/ai-chat", "/ai-style", "/ai-redesign",
   "/privacy", "/terms", "/portal", "/my", "/404", "/offline",
   "/client/login", "/client/register", "/client/verify-email",
   "/client/forgot-password", "/client/reset-password",

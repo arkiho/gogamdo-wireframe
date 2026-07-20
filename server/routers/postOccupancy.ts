@@ -215,7 +215,7 @@ export const postOccupancyRouter = router({
       if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       
       await notifyOwner({
-        title: "OpsX Insight 구독 시작",
+        title: "정기 관리 구독 시작",
         content: `프로젝트 #${input.clientProjectId} - ${input.plan} 플랜 구독이 시작되었습니다.`,
       });
       

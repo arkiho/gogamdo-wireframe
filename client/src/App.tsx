@@ -27,7 +27,6 @@ const AIChat = lazy(() => import("./pages/AIChat"));
 const AIStyle = lazy(() => import("./pages/AIStyle"));
 const AIRedesign = lazy(() => import("./pages/AIRedesign"));
 const FAQ = lazy(() => import("./pages/FAQ"));
-const OpsXProcess = lazy(() => import("./pages/OpsXProcess"));
 const HowWeWork = lazy(() => import("./pages/HowWeWork"));
 const RegionInterior = lazy(() => import("./pages/RegionInterior"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -128,7 +127,6 @@ function PublicRouter() {
           <Route path="/faq" component={FAQ} />
           <Route path="/how-we-work" component={HowWeWork} />
           <Route path="/office-interior/:region" component={RegionInterior} />
-          <Route path="/opsx" component={OpsXProcess} />
           <Route path="/contact" component={Contact} />
           <Route path="/privacy" component={Privacy} />
           <Route path="/terms" component={Terms} />
@@ -170,7 +168,7 @@ function Router() {
         <Route path="/partner/login" component={PartnerLogin} />
         {/* 개발자 문서 */}
         <Route path="/developer/sensor-api" component={SensorApiDocs} />
-        {/* OpsX 직원 대시보드 */}
+        {/* 직원 대시보드 */}
         <Route path="/ops" component={OpsHome} />
         <Route path="/ops/project/:id" component={OpsProjectDetail} />
         <Route path="/ops/staff" component={OpsStaffManagement} />

@@ -1,17 +1,13 @@
 /*
  * DESIGN: Precision Studio — Solutions Page
  * Neurodesign: Progressive disclosure, 3-choice rule, anchoring effect
- * Sections: Hero → Service Cards → Process → OpsX Integration → CTA
+ * Sections: Hero → Service Cards → Process → CTA
  */
 
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Ruler, PenTool, HardHat, Sofa, MonitorSmartphone, ExternalLink, CheckCircle2, ChevronRight } from "lucide-react";
-import { SOLUTION_CONSULT_IMG } from "@/lib/images";
-import { analytics } from "@/lib/analytics";
+import { ArrowUpRight, Ruler, PenTool, HardHat, Sofa, CheckCircle2, ChevronRight } from "lucide-react";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
-
-const SOLUTION_IMG = SOLUTION_CONSULT_IMG;
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -43,7 +39,7 @@ const SERVICES = [
   {
     icon: <HardHat className="w-7 h-7" />,
     title: "시공 관리",
-    desc: "자체 시공팀과 검증된 협력사 네트워크로 품질과 일정을 보장합니다. OpsX로 실시간 진행 현황을 공유합니다.",
+    desc: "자체 시공팀과 검증된 협력사 네트워크로 품질과 일정을 보장합니다. 자체 시스템으로 실시간 진행 현황을 공유합니다.",
     features: ["자체 시공팀 운영", "품질 관리 체크리스트", "실시간 진행 현황 공유", "하자 보수 보증"],
   },
   {
@@ -135,63 +131,6 @@ export default function Solutions() {
                 </div>
               </FadeUp>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* OpsX Integration */}
-      <section className="py-20 lg:py-28">
-        <div className="container">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-            <FadeUp>
-              <div className="aspect-[4/3] overflow-hidden">
-                <img src={SOLUTION_IMG} alt="OpsX 프로젝트 관리" className="w-full h-full object-cover" />
-              </div>
-            </FadeUp>
-            <FadeUp delay={0.2}>
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <MonitorSmartphone className="w-5 h-5 text-gold" />
-                  <p className="text-xs font-medium tracking-widest uppercase text-gold">
-                    OpsX Integration
-                  </p>
-                </div>
-                <h2 className="font-heading text-2xl lg:text-4xl font-bold text-ink mb-6 leading-tight">
-                  프로젝트 진행 현황을
-                  <br />실시간으로 확인하세요
-                </h2>
-                <p className="text-muted-foreground leading-relaxed mb-6">
-                  고감도의 프로젝트 관리 플랫폼 OpsX를 통해 설계 진행률, 시공 일정, 변경 사항, 비용 현황을
-                  실시간으로 확인할 수 있습니다. 더 이상 전화나 이메일로 진행 상황을 확인할 필요가 없습니다.
-                </p>
-                <ul className="space-y-3 mb-8">
-                  {["실시간 공정률 대시보드", "변경 요청 및 승인 워크플로", "비용 추적 및 예산 관리", "사진/도면 공유 및 코멘트"].map((f, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-ink/70">
-                      <CheckCircle2 className="w-4 h-4 text-gold flex-shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex flex-wrap gap-3">
-                  <Link href="/opsx">
-                    <span className="inline-flex items-center gap-2 px-6 py-3 bg-gold text-ink font-semibold text-sm hover:bg-gold-light transition-colors">
-                      OpsX 프로세스 상세
-                      <ChevronRight className="w-4 h-4" />
-                    </span>
-                  </Link>
-                  <a
-                    href="https://opsx.co.kr"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-ink text-white font-medium text-sm hover:bg-ink/90 transition-colors"
-                    onClick={() => analytics.solutionClick("OpsX")}
-                  >
-                    OpsX 사이트 방문
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-            </FadeUp>
           </div>
         </div>
       </section>

@@ -387,14 +387,14 @@ export default function AdminPipelineOverview() {
           </CardContent>
         </Card>
 
-        {/* OpsX 시공 현황 */}
+        {/* 시공 현황 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="border-border/50">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="font-heading text-lg flex items-center gap-2">
                   <Activity className="w-5 h-5 text-orange-500" />
-                  OpsX 시공 현황
+                  시공 현황
                 </CardTitle>
                 <Link href="/ops">
                   <Button variant="ghost" size="sm" className="text-gold hover:text-gold-dark">
