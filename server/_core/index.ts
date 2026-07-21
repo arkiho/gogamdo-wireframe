@@ -203,6 +203,10 @@ async function ensureTables() {
       INDEX idx_sor_subscription (subscriptionId)
     )`);
 
+    // 확장 테이블(CRM/OpsX/설문/KPI 등 103개) — schema.ts엔 있으나 그동안 미생성되던 것들
+    const { ensureExtendedTables } = await import("./extendedTables");
+    await ensureExtendedTables(conn);
+
     await conn.end();
     console.log("[DB] Tables ensured successfully.");
   } catch (err: any) {
