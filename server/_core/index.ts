@@ -207,6 +207,10 @@ async function ensureTables() {
     const { ensureExtendedTables } = await import("./extendedTables");
     await ensureExtendedTables(conn);
 
+    // 기존 테이블 컬럼 드리프트 보정 (announcements 등 옛 DDL과 schema.ts 불일치)
+    const { ensureColumnPatches } = await import("./columnPatches");
+    await ensureColumnPatches(conn);
+
     await conn.end();
     console.log("[DB] Tables ensured successfully.");
   } catch (err: any) {
