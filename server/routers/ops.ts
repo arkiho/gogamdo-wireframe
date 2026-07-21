@@ -11,7 +11,7 @@ import {
 } from "../db";
 import { sendReviewRequestEmail } from "../email";
 import {
-  createOpsProject, listOpsProjects, getOpsProject, updateOpsProject, deleteOpsProject,
+  createOpsProject, getNextProjectCode, listOpsProjects, getOpsProject, updateOpsProject, deleteOpsProject,
   createScheduleItem, listScheduleItems, listAllScheduleItems, updateScheduleItem, deleteScheduleItem,
   createWorkReport, listWorkReports, getWorkReport, updateWorkReport, deleteWorkReport,
   createMeetingNote, listMeetingNotes, getMeetingNote, updateMeetingNote, deleteMeetingNote,
@@ -151,7 +151,8 @@ export const opsRouter = router({
     create: staffProcedure
       .input(z.object({
         name: z.string().min(1),
-        code: z.string().min(1),
+        // 문서번호 자동생성(KKD-YYYYMMDD-N). 비우면 서버가 부여, 직접 입력 시 그대로 사용.
+        code: z.string().optional(),
         clientName: z.string().min(1),
         clientContact: z.string().optional(),
         clientEmail: z.string().optional(),
@@ -167,9 +168,10 @@ export const opsRouter = router({
         description: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        const result = await createOpsProject(input as any);
+        const code = input.code?.trim() || (await getNextProjectCode());
+        const result = await createOpsProject({ ...input, code } as any);
         if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        return { id: result.id };
+        return { id: result.id, code };
       }),
 
     update: staffProcedure

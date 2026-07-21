@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import NotificationBell from "@/components/NotificationBell";
 import { MonthlyExpenseChart, ProjectStatusChart, ExpenseCategoryChart } from "@/components/OpsCharts";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
+import { isMyProject } from "@/lib/opsPermissions";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   planning: { label: "기획", color: "bg-slate-100 text-slate-700" },
@@ -80,12 +81,13 @@ export default function OpsHome() {
   });
 
   const handleCreate = () => {
-    if (!form.name || !form.code || !form.clientName) {
-      toast.error("프로젝트명, 코드, 고객사명은 필수입니다.");
+    if (!form.name || !form.clientName) {
+      toast.error("프로젝트명, 고객사명은 필수입니다.");
       return;
     }
     createProject.mutate({
       ...form,
+      code: form.code.trim() || undefined, // 비우면 서버가 KKD-YYYYMMDD-N 자동부여
       totalArea: form.totalArea || undefined,
       contractAmount: form.contractAmount || undefined,
       startDate: form.startDate || undefined,
@@ -142,8 +144,8 @@ export default function OpsHome() {
                   <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="예: 승일일렉트로닉스 본사" />
                 </div>
                 <div>
-                  <Label>프로젝트 코드 *</Label>
-                  <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="예: GGD-2026-001" />
+                  <Label>문서번호</Label>
+                  <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} placeholder="비우면 자동생성 (KKD-YYYYMMDD-N)" />
                 </div>
               </div>
               <div>
@@ -320,7 +322,7 @@ export default function OpsHome() {
         <ExpenseCategoryChart />
       </div>
 
-      {/* Project List */}
+      {/* Project List — 내 담당 현장 상단, 전체 현장 하단 */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">프로젝트 목록</CardTitle>
@@ -334,41 +336,75 @@ export default function OpsHome() {
               <p className="text-muted-foreground">아직 프로젝트가 없습니다.</p>
               <p className="text-sm text-muted-foreground/70 mt-1">새 프로젝트를 생성하여 시작하세요.</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {projects.data.map(p => {
-                const s = STATUS_LABELS[p.status] ?? { label: p.status, color: "bg-gray-100 text-gray-600" };
-                return (
-                  <div
-                    key={p.id}
-                    className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors active:bg-accent/70"
-                    onClick={() => setLocation(`/ops/project/${p.id}`)}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-                        <span className="font-semibold truncate text-sm sm:text-base">{p.name}</span>
-                        <Badge variant="outline" className="text-[10px] sm:text-xs">{p.code}</Badge>
-                        <Badge className={`text-[10px] sm:text-xs ${s.color} border-0`}>{s.label}</Badge>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1"><Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.clientName}</span>
-                        {p.siteAddress && <span className="flex items-center gap-1 truncate max-w-[150px] sm:max-w-none"><MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.siteAddress}</span>}
-                        {p.startDate && <span className="flex items-center gap-1"><Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.startDate}</span>}
-                      </div>
+          ) : (() => {
+            const mine = projects.data.filter(p => isMyProject(user, p));
+            const others = projects.data.filter(p => !isMyProject(user, p));
+            return (
+              <div className="space-y-6">
+                {mine.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-1 h-4 rounded bg-gold" />
+                      <h3 className="text-sm font-semibold text-ink">내 담당 현장</h3>
+                      <Badge variant="secondary" className="text-[10px]">{mine.length}</Badge>
                     </div>
-                    {p.contractAmount && (
-                      <div className="text-left sm:text-right flex-shrink-0">
-                        <p className="font-semibold text-xs sm:text-sm">{Number(p.contractAmount).toLocaleString()}원</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">계약금액</p>
-                      </div>
-                    )}
+                    <div className="space-y-3">
+                      {mine.map(p => renderProjectCard(p, true))}
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                )}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-1 h-4 rounded bg-muted-foreground/40" />
+                    <h3 className="text-sm font-semibold text-muted-foreground">
+                      {mine.length > 0 ? "전체 현장" : "현장 목록"}
+                    </h3>
+                    <Badge variant="secondary" className="text-[10px]">{others.length}</Badge>
+                  </div>
+                  {others.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">그 외 현장이 없습니다.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {others.map(p => renderProjectCard(p, false))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>
   );
+
+  function renderProjectCard(p: any, mine: boolean) {
+    const s = STATUS_LABELS[p.status] ?? { label: p.status, color: "bg-gray-100 text-gray-600" };
+    return (
+      <div
+        key={p.id}
+        className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors active:bg-accent/70 ${mine ? "border-gold/40 bg-gold/5" : ""}`}
+        onClick={() => setLocation(`/ops/project/${p.id}`)}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+            <span className="font-semibold truncate text-sm sm:text-base">{p.name}</span>
+            <Badge variant="outline" className="text-[10px] sm:text-xs">{p.code}</Badge>
+            <Badge className={`text-[10px] sm:text-xs ${s.color} border-0`}>{s.label}</Badge>
+            {mine && <Badge className="text-[10px] sm:text-xs bg-gold/20 text-gold-dark border-0">담당</Badge>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+            <span className="flex items-center gap-1"><Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.clientName}</span>
+            {p.siteAddress && <span className="flex items-center gap-1 truncate max-w-[150px] sm:max-w-none"><MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.siteAddress}</span>}
+            {p.startDate && <span className="flex items-center gap-1"><Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.startDate}</span>}
+          </div>
+        </div>
+        {p.contractAmount && (
+          <div className="text-left sm:text-right flex-shrink-0">
+            <p className="font-semibold text-xs sm:text-sm">{Number(p.contractAmount).toLocaleString()}원</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">계약금액</p>
+          </div>
+        )}
+      </div>
+    );
+  }
 }

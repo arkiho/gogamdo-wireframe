@@ -17,6 +17,32 @@ import {
 } from "../../drizzle/schema";
 
 // ============ OPS PROJECTS ============
+
+/**
+ * 프로젝트 문서번호 KKD-YYYYMMDD-N 다음 값 계산.
+ * 그 날짜(YYYYMMDD) 접두사를 가진 기존 code 중 최대 순번 +1.
+ * (삭제로 생긴 공백은 건너뛰고 항상 최대값 다음을 반환)
+ */
+export async function getNextProjectCode(now: Date = new Date()): Promise<string> {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  const prefix = `KKD-${y}${m}${d}-`;
+  const db = await getDb();
+  if (!db) return `${prefix}1`;
+  const rows = await db
+    .select({ code: opsProjects.code })
+    .from(opsProjects)
+    .where(sql`${opsProjects.code} LIKE ${prefix + "%"}`);
+  let maxN = 0;
+  for (const r of rows) {
+    const suffix = (r.code ?? "").slice(prefix.length);
+    const n = parseInt(suffix, 10);
+    if (Number.isFinite(n) && n > maxN) maxN = n;
+  }
+  return `${prefix}${maxN + 1}`;
+}
+
 export async function createOpsProject(data: InsertOpsProject) {
   const db = await getDb();
   if (!db) return null;
