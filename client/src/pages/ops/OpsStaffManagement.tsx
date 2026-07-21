@@ -21,6 +21,16 @@ const DEPT_LABELS: Record<string, { label: string; color: string }> = {
   none: { label: "미배정", color: "bg-gray-100 text-gray-500" },
 };
 
+// 4팀 조직 구조 (STAFF_UI)
+const TEAM_LABELS: Record<string, { label: string; color: string }> = {
+  executive: { label: "대표자", color: "bg-rose-100 text-rose-700" },
+  management: { label: "경영지원", color: "bg-purple-100 text-purple-700" },
+  construction: { label: "공사팀", color: "bg-amber-100 text-amber-700" },
+  design: { label: "설계팀", color: "bg-blue-100 text-blue-700" },
+};
+const TEAM_ORDER = ["executive", "management", "construction", "design"] as const;
+const NO_TEAM = "__none__"; // Select에서 "미배정"을 표현하는 sentinel (빈 문자열 대신)
+
 const OPS_ROLE_LABELS: Record<string, string> = {
   pm: "프로젝트 매니저",
   designer: "설계 담당",
@@ -52,6 +62,7 @@ export default function OpsStaffManagement() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editDept, setEditDept] = useState("none");
   const [editOpsRole, setEditOpsRole] = useState("staff");
+  const [editTeam, setEditTeam] = useState<string>(NO_TEAM);
   const [activeTab, setActiveTab] = useState<"staff" | "applications" | "invitations">("staff");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
@@ -110,6 +121,12 @@ export default function OpsStaffManagement() {
     return acc;
   }, {} as Record<string, number>) ?? {};
 
+  const teamCounts = staff.data?.reduce((acc, m) => {
+    const t = (m as any).team ?? "__none__";
+    acc[t] = (acc[t] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>) ?? {};
+
   if (user?.role !== "admin" && user?.role !== "master") {
     return (
       <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
@@ -160,16 +177,40 @@ export default function OpsStaffManagement() {
 
       {activeTab === "staff" && (
       <>
-      {/* Department Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {Object.entries(DEPT_LABELS).map(([key, { label, color }]) => (
-          <Card key={key}>
+      {/* Team Summary (4팀 조직) */}
+      <div>
+        <p className="text-xs font-medium text-muted-foreground mb-2">팀 (조직 구조)</p>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {TEAM_ORDER.map((key) => (
+            <Card key={key}>
+              <CardContent className="pt-3 pb-2 text-center">
+                <Badge className={`${TEAM_LABELS[key].color} border-0 text-xs mb-1`}>{TEAM_LABELS[key].label}</Badge>
+                <p className="text-xl font-bold">{teamCounts[key] ?? 0}명</p>
+              </CardContent>
+            </Card>
+          ))}
+          <Card>
             <CardContent className="pt-3 pb-2 text-center">
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-xl font-bold">{deptCounts[key] ?? 0}명</p>
+              <span className="text-xs text-muted-foreground">미배정</span>
+              <p className="text-xl font-bold">{teamCounts["__none__"] ?? 0}명</p>
             </CardContent>
           </Card>
-        ))}
+        </div>
+      </div>
+
+      {/* Department Summary */}
+      <div>
+        <p className="text-xs font-medium text-muted-foreground mb-2">부서 (기능별)</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {Object.entries(DEPT_LABELS).map(([key, { label }]) => (
+            <Card key={key}>
+              <CardContent className="pt-3 pb-2 text-center">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="text-xl font-bold">{deptCounts[key] ?? 0}명</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Permission Guide */}
@@ -225,6 +266,7 @@ export default function OpsStaffManagement() {
                     <th className="pb-2 font-medium">이름</th>
                     <th className="pb-2 font-medium">이메일</th>
                     <th className="pb-2 font-medium">시스템 권한</th>
+                    <th className="pb-2 font-medium">팀</th>
                     <th className="pb-2 font-medium">부서</th>
                     <th className="pb-2 font-medium">OpsX 역할</th>
                     <th className="pb-2 font-medium">최근 접속</th>
@@ -241,6 +283,13 @@ export default function OpsStaffManagement() {
                         <td className="py-3 text-muted-foreground">{m.email ?? "-"}</td>
                         <td className="py-3">
                           <Badge className={`${role.color} border-0 text-xs`}>{role.label}</Badge>
+                        </td>
+                        <td className="py-3">
+                          {m.team && TEAM_LABELS[m.team] ? (
+                            <Badge className={`${TEAM_LABELS[m.team].color} border-0 text-xs`}>{TEAM_LABELS[m.team].label}</Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">미배정</span>
+                          )}
                         </td>
                         <td className="py-3">
                           <Badge className={`${dept.color} border-0 text-xs`}>{dept.label}</Badge>
@@ -262,16 +311,29 @@ export default function OpsStaffManagement() {
                                     setEditingUser(m);
                                     setEditDept(m.department);
                                     setEditOpsRole(m.opsRole);
+                                    setEditTeam(m.team ?? NO_TEAM);
                                   }}
                                 >
-                                  <Building2 className="w-3 h-3 mr-1" />부서
+                                  <Building2 className="w-3 h-3 mr-1" />팀·부서
                                 </Button>
                               </DialogTrigger>
                               <DialogContent>
                                 <DialogHeader>
-                                  <DialogTitle>{m.name ?? "직원"} - 부서/역할 변경</DialogTitle>
+                                  <DialogTitle>{m.name ?? "직원"} - 팀/부서/역할 변경</DialogTitle>
                                 </DialogHeader>
                                 <div className="space-y-4 mt-2">
+                                  <div>
+                                    <Label>팀 (조직)</Label>
+                                    <Select value={editTeam} onValueChange={setEditTeam}>
+                                      <SelectTrigger><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value={NO_TEAM}>미배정</SelectItem>
+                                        {TEAM_ORDER.map((k) => (
+                                          <SelectItem key={k} value={k}>{TEAM_LABELS[k].label}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
                                   <div>
                                     <Label>부서</Label>
                                     <Select value={editDept} onValueChange={setEditDept}>
@@ -312,6 +374,7 @@ export default function OpsStaffManagement() {
                                           userId: editingUser.id,
                                           department: editDept as any,
                                           opsRole: editOpsRole as any,
+                                          team: editTeam === NO_TEAM ? null : (editTeam as any),
                                         });
                                       }
                                     }}

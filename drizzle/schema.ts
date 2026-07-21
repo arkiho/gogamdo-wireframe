@@ -22,6 +22,13 @@ export const users = mysqlTable("users", {
     "sales",         // 영업팀
     "none",          // 미배정
   ]).default("none"),
+  // 4팀 조직 구조 (STAFF_UI). nullable — 미배정 허용.
+  team: mysqlEnum("team", [
+    "executive",     // 대표자
+    "management",    // 경영지원
+    "construction",  // 공사팀
+    "design",        // 설계팀
+  ]),
   opsRole: mysqlEnum("opsRole", [
     "pm",            // 프로젝트 매니저
     "designer",      // 설계 담당

@@ -1692,10 +1692,12 @@ export async function listStaffMembers() {
   return db.select().from(users).orderBy(users.name);
 }
 
-export async function updateUserDepartment(userId: number, department: string, opsRole: string) {
+export async function updateUserDepartment(userId: number, department: string, opsRole: string, team?: string | null) {
   const db = await getDb();
   if (!db) return;
-  await db.update(users).set({ department: department as any, opsRole: opsRole as any }).where(eq(users.id, userId));
+  const patch: any = { department: department as any, opsRole: opsRole as any };
+  if (team !== undefined) patch.team = team; // null이면 미배정으로 해제
+  await db.update(users).set(patch).where(eq(users.id, userId));
 }
 
 export async function updateUserRole(userId: number, role: "user" | "admin" | "master") {

@@ -122,3 +122,6 @@ uploads/
 
 # DB 백업 (실데이터 포함, 커밋 금지)
 backups/
+OPS_UI_TASK.md
+PORTAL_TASK.md
+STAFF_UI_TASK.md

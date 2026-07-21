@@ -77,6 +77,8 @@ async function ensureTables() {
     };
     await addColumnIfMissing("users", "naverId", "naverId VARCHAR(128) UNIQUE");
     await addColumnIfMissing("users", "kakaoId", "kakaoId VARCHAR(128) UNIQUE");
+    // 4팀 조직 구조 (STAFF_UI): 대표자/경영지원/공사팀/설계팀
+    await addColumnIfMissing("users", "team", "team ENUM('executive','management','construction','design') NULL");
 
     await conn.execute(`CREATE TABLE IF NOT EXISTS inquiries (
       id INT AUTO_INCREMENT PRIMARY KEY,

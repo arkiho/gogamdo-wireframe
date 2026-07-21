@@ -80,6 +80,30 @@ const accountingProcedure = deptProcedure(["accounting", "management"]); // 경�
 const constructionProcedure = deptProcedure(["construction", "design"]); // 시공팀/설계팀
 const designProcedure = deptProcedure(["design"]); // 설계팀만;
 
+/**
+ * 현장(프로젝트) 편집 권한 판정 (STAFF_UI 확정 규칙).
+ * - 전 직원: 열람 가능(별도 체크 없음)
+ * - 편집: 담당자(managerId===본인) 또는 팀원(teamMembers 포함)만
+ * - admin/master: 전체 편집
+ * 서버 mutation에서 이 헬퍼로 강제한다. (클라 UI는 canEditProject로 버튼 숨김)
+ */
+export function canEditOpsProject(user: { id: number; role?: string }, project: { managerId?: number | null; teamMembers?: unknown } | null | undefined): boolean {
+  if (!project) return false;
+  if (user.role === "admin" || user.role === "master") return true;
+  if (project.managerId != null && project.managerId === user.id) return true;
+  if (Array.isArray(project.teamMembers) && (project.teamMembers as number[]).includes(user.id)) return true;
+  return false;
+}
+
+async function assertCanEditProject(ctx: any, projectId: number) {
+  const project = await getOpsProject(projectId);
+  if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "현장을 찾을 수 없습니다." });
+  if (!canEditOpsProject(ctx.user, project)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "이 현장의 담당자만 수정할 수 있습니다." });
+  }
+  return project;
+}
+
 export const opsRouter = router({
   // ============ STATS ============
   stats: staffProcedure.query(async () => {
@@ -168,14 +192,11 @@ export const opsRouter = router({
         description: z.string().optional(),
         notes: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
 
-        // 상태 변경 전 기존 프로젝트 정보 조회
-        let previousProject: any = null;
-        if (data.status === "completed") {
-          previousProject = await getOpsProject(id);
-        }
+        // 편집 권한: 담당자/팀원/admin만 (전 직원 열람, 편집은 담당자만)
+        const previousProject: any = await assertCanEditProject(ctx, id);
 
         await updateOpsProject(id, data as any);
 
@@ -1412,6 +1433,7 @@ export const opsRouter = router({
         role: m.role,
         department: (m as any).department ?? "none",
         opsRole: (m as any).opsRole ?? "staff",
+        team: (m as any).team ?? null,
         phone: (m as any).phone ?? null,
         isActive: (m as any).isActive ?? 1,
         lastSignedIn: m.lastSignedIn,
@@ -1423,9 +1445,10 @@ export const opsRouter = router({
         userId: z.number(),
         department: z.enum(["design", "construction", "accounting", "management", "sales", "none"]),
         opsRole: z.enum(["pm", "designer", "site_manager", "accountant", "director", "staff"]),
+        team: z.enum(["executive", "management", "construction", "design"]).nullable().optional(),
       }))
       .mutation(async ({ input }) => {
-        await updateUserDepartment(input.userId, input.department, input.opsRole);
+        await updateUserDepartment(input.userId, input.department, input.opsRole, input.team);
         return { success: true };
       }),
     updateRole: adminProcedure
@@ -1449,6 +1472,7 @@ export const opsRouter = router({
           role: u.role,
           department: (u as any).department ?? "none",
           opsRole: (u as any).opsRole ?? "staff",
+          team: (u as any).team ?? null,
           phone: (u as any).phone ?? null,
           lastSignedIn: u.lastSignedIn,
           createdAt: u.createdAt,
@@ -1460,6 +1484,7 @@ export const opsRouter = router({
       return {
         department: (u as any)?.department ?? "none",
         opsRole: (u as any)?.opsRole ?? "staff",
+        team: (u as any)?.team ?? null,
       };
     }),
   }),
