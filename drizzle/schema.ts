@@ -1436,6 +1436,24 @@ export const opsExpenses = mysqlTable("ops_expenses", {
     remarks?: string;
   }>>().notNull(),
   totalAmount: decimal("totalAmount", { precision: 15, scale: 0 }).notNull(),
+  // 결의서 유형 + 세무 자동계산 (STAFF_UI 3). nullable — 기존 데이터 호환.
+  expenseType: mysqlEnum("expenseType", [
+    "tax_invoice",         // 세금계산서
+    "withholding",         // 사업소득세(3.3%)
+    "withholding_expense", // 사업소득세(경비포함)
+    "daily_worker",        // 일용직
+  ]),
+  // 세무 계산 결과 보존(담당자 수정 가능). 유형별 필드 자유 저장.
+  taxDetail: json("taxDetail").$type<Record<string, number>>(),
+  // 지급 일정(계약금·중도금·잔금). 세금계산서 유형에서 특히 사용.
+  paymentSchedule: json("paymentSchedule").$type<Array<{
+    kind: "contract" | "interim" | "balance"; // 계약금/중도금/잔금
+    amount: number;
+    dueDate?: string;                           // 지급예정일 (YYYY-MM-DD)
+    status: "scheduled" | "billed" | "paid";    // 예정/청구/지급
+  }>>(),
+  // 공정 태깅 — 실행정산(STAFF_UI 6) 연동
+  scheduleItemId: int("scheduleItemId"),
   paymentMethod: mysqlEnum("paymentMethod", ["bank_transfer", "card", "cash", "check"]).default("bank_transfer"),
   payeeName: varchar("payeeName", { length: 200 }), // 수취인
   payeeBank: varchar("payeeBank", { length: 100 }), // 은행명

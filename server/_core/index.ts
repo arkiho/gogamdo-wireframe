@@ -79,6 +79,11 @@ async function ensureTables() {
     await addColumnIfMissing("users", "kakaoId", "kakaoId VARCHAR(128) UNIQUE");
     // 4팀 조직 구조 (STAFF_UI): 대표자/경영지원/공사팀/설계팀
     await addColumnIfMissing("users", "team", "team ENUM('executive','management','construction','design') NULL");
+    // 지출결의서 세무유형·계산결과·지급일정·공정태깅 (STAFF_UI 3)
+    await addColumnIfMissing("ops_expenses", "expenseType", "expenseType ENUM('tax_invoice','withholding','withholding_expense','daily_worker') NULL");
+    await addColumnIfMissing("ops_expenses", "taxDetail", "taxDetail JSON NULL");
+    await addColumnIfMissing("ops_expenses", "paymentSchedule", "paymentSchedule JSON NULL");
+    await addColumnIfMissing("ops_expenses", "scheduleItemId", "scheduleItemId INT NULL");
 
     await conn.execute(`CREATE TABLE IF NOT EXISTS inquiries (
       id INT AUTO_INCREMENT PRIMARY KEY,
