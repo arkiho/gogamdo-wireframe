@@ -210,6 +210,24 @@ async function ensureTables() {
       INDEX idx_sor_subscription (subscriptionId)
     )`);
 
+    // 거래처 계좌 등록부 (STAFF_UI 4)
+    await conn.execute(`CREATE TABLE IF NOT EXISTS ops_vendors (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(200) NOT NULL,
+      category VARCHAR(100),
+      businessNumber VARCHAR(20),
+      bankName VARCHAR(100),
+      accountHolder VARCHAR(100),
+      accountNumber VARCHAR(50),
+      contactName VARCHAR(100),
+      contactPhone VARCHAR(30),
+      notes TEXT,
+      isActive TINYINT NOT NULL DEFAULT 1,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_vendor_name (name)
+    )`);
+
     // 확장 테이블(CRM/OpsX/설문/KPI 등 103개) — schema.ts엔 있으나 그동안 미생성되던 것들
     const { ensureExtendedTables } = await import("./extendedTables");
     await ensureExtendedTables(conn);

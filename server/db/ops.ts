@@ -5,6 +5,7 @@ import {
   opsApprovalLines, opsExpenses, opsApprovalSteps,
   opsSubcontractors, opsSubInvites, opsSubQuotes, opsSubWorkReports,
   opsEstimates, opsContracts, opsCostItems, opsClientInvites, opsCameras,
+  opsVendors, type InsertOpsVendor,
   type InsertOpsProject, type InsertOpsScheduleItem, type InsertOpsWorkReport,
   type InsertOpsMeetingNote, type InsertOpsApprovalLine, type InsertOpsExpense,
   type InsertOpsApprovalStep, type InsertOpsSubcontractor, type InsertOpsSubInvite,
@@ -73,6 +74,39 @@ export async function deleteOpsProject(id: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(opsProjects).where(eq(opsProjects.id, id));
+}
+
+// ============ 거래처 계좌 등록부 (STAFF_UI 4) ============
+export async function listVendors() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(opsVendors).orderBy(desc(opsVendors.isActive), opsVendors.name);
+}
+
+export async function getVendor(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(opsVendors).where(eq(opsVendors.id, id));
+  return row ?? null;
+}
+
+export async function createVendor(data: InsertOpsVendor) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(opsVendors).values(data).$returningId();
+  return result;
+}
+
+export async function updateVendor(id: number, data: Partial<InsertOpsVendor>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(opsVendors).set(data).where(eq(opsVendors.id, id));
+}
+
+export async function deleteVendor(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(opsVendors).where(eq(opsVendors.id, id));
 }
 
 // ============ SCHEDULE ITEMS ============

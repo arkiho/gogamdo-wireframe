@@ -1525,6 +1525,29 @@ export type OpsSubcontractor = typeof opsSubcontractors.$inferSelect;
 export type InsertOpsSubcontractor = typeof opsSubcontractors.$inferInsert;
 
 /**
+ * 거래처 계좌 등록부 (STAFF_UI 4)
+ * 지출결의서 지급처 자동입력용. 계좌번호=민감정보(공개 repo 커밋 금지).
+ */
+export const opsVendors = mysqlTable("ops_vendors", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),       // 거래처명
+  category: varchar("category", { length: 100 }),          // 분류(가구/전기/도장/블라인드 등)
+  businessNumber: varchar("businessNumber", { length: 20 }),
+  bankName: varchar("bankName", { length: 100 }),
+  accountHolder: varchar("accountHolder", { length: 100 }), // 예금주
+  accountNumber: varchar("accountNumber", { length: 50 }),  // 계좌번호(민감)
+  contactName: varchar("contactName", { length: 100 }),
+  contactPhone: varchar("contactPhone", { length: 30 }),
+  notes: text("notes"),
+  isActive: tinyint("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpsVendor = typeof opsVendors.$inferSelect;
+export type InsertOpsVendor = typeof opsVendors.$inferInsert;
+
+/**
  * 하도급 초대(Subcontractor Invites)
  * 하도급 업체를 프로젝트에 초대하는 토큰
  */

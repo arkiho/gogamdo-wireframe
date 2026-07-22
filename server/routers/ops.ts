@@ -12,6 +12,7 @@ import {
 import { sendReviewRequestEmail } from "../email";
 import {
   createOpsProject, getNextProjectCode, listOpsProjects, getOpsProject, updateOpsProject, deleteOpsProject,
+  listVendors, getVendor, createVendor, updateVendor, deleteVendor,
   createScheduleItem, listScheduleItems, listAllScheduleItems, updateScheduleItem, deleteScheduleItem,
   createWorkReport, listWorkReports, getWorkReport, updateWorkReport, deleteWorkReport,
   createMeetingNote, listMeetingNotes, getMeetingNote, updateMeetingNote, deleteMeetingNote,
@@ -79,6 +80,7 @@ function deptProcedure(allowedDepts: string[]) {
 const accountingProcedure = deptProcedure(["accounting", "management"]); // 경리부/경영지원
 const constructionProcedure = deptProcedure(["construction", "design"]); // 시공팀/설계팀
 const designProcedure = deptProcedure(["design"]); // 설계팀만;
+const managementProcedure = deptProcedure(["management"]); // 경영지원 (+admin/master)
 
 /**
  * 현장(프로젝트) 편집 권한 판정 (STAFF_UI 확정 규칙).
@@ -816,6 +818,67 @@ export const opsRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return listApprovalSteps("expense", input.id);
+      }),
+  }),
+
+  // ============ 거래처 계좌 등록부 (STAFF_UI 4) ============
+  // 조회: 전 직원(결의서 지급처 선택용). 편집: admin/master/경영지원.
+  vendor: router({
+    list: staffProcedure.query(async () => {
+      return listVendors();
+    }),
+
+    get: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const v = await getVendor(input.id);
+        if (!v) throw new TRPCError({ code: "NOT_FOUND" });
+        return v;
+      }),
+
+    create: managementProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        category: z.string().optional(),
+        businessNumber: z.string().optional(),
+        bankName: z.string().optional(),
+        accountHolder: z.string().optional(),
+        accountNumber: z.string().optional(),
+        contactName: z.string().optional(),
+        contactPhone: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await createVendor(input as any);
+        if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        return { id: result.id };
+      }),
+
+    update: managementProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        category: z.string().optional(),
+        businessNumber: z.string().optional(),
+        bankName: z.string().optional(),
+        accountHolder: z.string().optional(),
+        accountNumber: z.string().optional(),
+        contactName: z.string().optional(),
+        contactPhone: z.string().optional(),
+        notes: z.string().optional(),
+        isActive: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateVendor(id, data as any);
+        return { success: true };
+      }),
+
+    delete: managementProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteVendor(input.id);
+        return { success: true };
       }),
   }),
 
