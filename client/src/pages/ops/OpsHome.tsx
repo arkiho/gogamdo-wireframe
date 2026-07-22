@@ -379,31 +379,53 @@ export default function OpsHome() {
 
   function renderProjectCard(p: any, mine: boolean) {
     const s = STATUS_LABELS[p.status] ?? { label: p.status, color: "bg-gray-100 text-gray-600" };
+    const progress = p.avgProgress ?? 0;
+    // D-day (종료일 기준)
+    let dday: { label: string; cls: string } | null = null;
+    if (p.endDate && p.status !== "completed" && p.status !== "closed") {
+      const end = new Date(p.endDate);
+      const diff = Math.ceil((end.getTime() - Date.now()) / 86400000);
+      if (!isNaN(diff)) {
+        dday = diff < 0
+          ? { label: `D+${Math.abs(diff)} 지연`, cls: "bg-red-100 text-red-700" }
+          : { label: diff === 0 ? "D-day" : `D-${diff}`, cls: diff <= 7 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600" };
+      }
+    }
     return (
       <div
         key={p.id}
-        className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors active:bg-accent/70 ${mine ? "border-gold/40 bg-gold/5" : ""}`}
+        className={`flex flex-col gap-2 p-3 sm:p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors active:bg-accent/70 ${mine ? "border-gold/40 bg-gold/5" : ""}`}
         onClick={() => setLocation(`/ops/project/${p.id}`)}
       >
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-            <span className="font-semibold truncate text-sm sm:text-base">{p.name}</span>
-            <Badge variant="outline" className="text-[10px] sm:text-xs">{p.code}</Badge>
-            <Badge className={`text-[10px] sm:text-xs ${s.color} border-0`}>{s.label}</Badge>
-            {mine && <Badge className="text-[10px] sm:text-xs bg-gold/20 text-gold-dark border-0">담당</Badge>}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+              <span className="font-semibold truncate text-sm sm:text-base">{p.name}</span>
+              <Badge variant="outline" className="text-[10px] sm:text-xs font-mono">{p.code}</Badge>
+              <Badge className={`text-[10px] sm:text-xs ${s.color} border-0`}>{s.label}</Badge>
+              {mine && <Badge className="text-[10px] sm:text-xs bg-gold/20 text-gold-dark border-0">담당</Badge>}
+              {dday && <Badge className={`text-[10px] sm:text-xs border-0 ${dday.cls}`}>{dday.label}</Badge>}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+              <span className="flex items-center gap-1"><Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.clientName}</span>
+              {p.siteAddress && <span className="flex items-center gap-1 truncate max-w-[150px] sm:max-w-none"><MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.siteAddress}</span>}
+              {p.endDate && <span className="flex items-center gap-1"><Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />~{p.endDate}</span>}
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-            <span className="flex items-center gap-1"><Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.clientName}</span>
-            {p.siteAddress && <span className="flex items-center gap-1 truncate max-w-[150px] sm:max-w-none"><MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.siteAddress}</span>}
-            {p.startDate && <span className="flex items-center gap-1"><Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />{p.startDate}</span>}
-          </div>
+          {p.contractAmount && (
+            <div className="text-left sm:text-right flex-shrink-0">
+              <p className="font-semibold text-xs sm:text-sm">{Number(p.contractAmount).toLocaleString()}원</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">계약금액</p>
+            </div>
+          )}
         </div>
-        {p.contractAmount && (
-          <div className="text-left sm:text-right flex-shrink-0">
-            <p className="font-semibold text-xs sm:text-sm">{Number(p.contractAmount).toLocaleString()}원</p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">계약금액</p>
+        {/* 공정률 바 */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className={`h-full rounded-full transition-all ${progress >= 100 ? "bg-emerald-500" : "bg-gold"}`} style={{ width: `${Math.min(progress, 100)}%` }} />
           </div>
-        )}
+          <span className="text-[10px] sm:text-xs text-muted-foreground w-16 text-right">공정 {progress}%</span>
+        </div>
       </div>
     );
   }

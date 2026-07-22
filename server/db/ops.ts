@@ -54,7 +54,15 @@ export async function createOpsProject(data: InsertOpsProject) {
 export async function listOpsProjects() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(opsProjects).orderBy(desc(opsProjects.createdAt));
+  const projects = await db.select().from(opsProjects).orderBy(desc(opsProjects.createdAt));
+  // 공정 평균 진행률 집계 (additive 필드)
+  const progressRows = await db
+    .select({ projectId: opsScheduleItems.projectId, avg: sql<number>`AVG(${opsScheduleItems.progress})` })
+    .from(opsScheduleItems)
+    .groupBy(opsScheduleItems.projectId);
+  const progressMap = new Map<number, number>();
+  for (const r of progressRows) progressMap.set(r.projectId, Math.round(Number(r.avg) || 0));
+  return projects.map((p) => ({ ...p, avgProgress: progressMap.get(p.id) ?? 0 }));
 }
 
 export async function getOpsProject(id: number) {
