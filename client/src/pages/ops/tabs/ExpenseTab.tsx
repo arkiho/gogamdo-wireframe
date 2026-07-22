@@ -9,12 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useRef, useState } from "react";
-import { Plus, Receipt, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, FileDown, Trash2, Upload, Paperclip, X } from "lucide-react";
+import { Plus, Receipt, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, FileDown, Trash2, Upload, Paperclip, X, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { generateExpensePdf } from "@/lib/expensePdf";
 import { IPConsentModal } from "@/components/IPConsentModal";
 import { uploadFile } from "@/lib/uploadFile";
 import { parseAmountInput } from "@/lib/formula";
+import { parseExpenseExcel } from "@/lib/parseExpenseExcel";
 import {
   EXPENSE_TYPE_LABELS, type ExpenseType,
   calcTaxInvoice, calcWithholding, calcWithholdingWithExpense, calcDailyWorker,
@@ -79,7 +80,9 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const logDownload = trpc.ipProtection.logDownload.useMutation();
   const fileRef = useRef<HTMLInputElement>(null);
+  const excelRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [parsingExcel, setParsingExcel] = useState(false);
 
   const [items, setItems] = useState<ExpenseItem[]>([
     { description: "", quantity: 1, unitPrice: 0, amount: 0 },
@@ -203,6 +206,26 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleExcelPick = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setParsingExcel(true);
+    try {
+      const parsed = await parseExpenseExcel(file);
+      if (parsed.length === 0) {
+        toast.error("엑셀에서 내역표를 인식하지 못했습니다. 적요·금액 컬럼이 있는지 확인하세요.");
+        return;
+      }
+      setItems(parsed.map(p => ({ description: p.description, quantity: p.quantity, unitPrice: p.unitPrice, amount: p.amount, remarks: p.remarks })));
+      toast.success(`${parsed.length}개 항목을 불러왔습니다. 확인 후 수정하세요.`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "엑셀 파싱 실패");
+    } finally {
+      setParsingExcel(false);
+      if (excelRef.current) excelRef.current.value = "";
     }
   };
 
@@ -351,9 +374,15 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                 {/* 일반: 지출 항목 테이블 */}
                 {expenseType === GENERAL && (
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2 gap-2">
                       <Label>지출 항목 <span className="text-[11px] text-muted-foreground font-normal">(수량·단가에 =수식 입력 가능)</span></Label>
-                      <Button type="button" size="sm" variant="outline" onClick={addItem}><Plus className="w-3 h-3 mr-1" />항목 추가</Button>
+                      <div className="flex gap-1.5">
+                        <input ref={excelRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => handleExcelPick(e.target.files)} />
+                        <Button type="button" size="sm" variant="outline" onClick={() => excelRef.current?.click()} disabled={parsingExcel}>
+                          <FileSpreadsheet className="w-3 h-3 mr-1" />{parsingExcel ? "불러오는 중..." : "엑셀 불러오기"}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={addItem}><Plus className="w-3 h-3 mr-1" />항목 추가</Button>
+                      </div>
                     </div>
                     <div className="border rounded-lg overflow-hidden">
                       <table className="w-full text-sm">
