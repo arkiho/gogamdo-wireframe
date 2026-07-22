@@ -1477,6 +1477,9 @@ export const opsRouter = router({
         name: z.string().min(1),
         location: z.string().optional(),
         streamUrl: z.string().optional(),
+        viewerUrl: z.string().optional(),
+        simInfo: z.string().optional(),
+        notes: z.string().optional(),
         thumbnailUrl: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -1491,6 +1494,9 @@ export const opsRouter = router({
         name: z.string().optional(),
         location: z.string().optional(),
         streamUrl: z.string().optional(),
+        viewerUrl: z.string().optional(),
+        simInfo: z.string().optional(),
+        notes: z.string().optional(),
         thumbnailUrl: z.string().optional(),
         isOnline: z.number().optional(),
       }))

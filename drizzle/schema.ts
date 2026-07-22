@@ -1767,6 +1767,9 @@ export const opsCameras = mysqlTable("ops_cameras", {
   go2rtcStreamName: varchar("go2rtcStreamName", { length: 100 }), // go2rtc 스트림 이름
   go2rtcServerUrl: text("go2rtcServerUrl"), // go2rtc 서버 URL (예: http://서버:1984)
   thumbnailUrl: text("thumbnailUrl"), // 최근 스냅샷
+  viewerUrl: text("viewerUrl"), // 제조사 웹 뷰어 URL (iframe 임베드/외부링크) - STAFF_UI 7
+  simInfo: varchar("simInfo", { length: 200 }), // 유심/회선 정보 (통신사·번호 등)
+  notes: text("notes"),
   isOnline: tinyint("isOnline").default(0),
   batteryLevel: int("batteryLevel"), // 배터리 잔량 (0~100, null이면 유선)
   lastOnlineAt: timestamp("lastOnlineAt"),
