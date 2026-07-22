@@ -104,6 +104,7 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
 
   const expenses = trpc.ops.expense.list.useQuery({ projectId: Number(projectId) });
   const approvalLines = trpc.ops.approvalLine.list.useQuery();
+  const vendors = trpc.ops.vendor.list.useQuery();
 
   const createExpense = trpc.ops.expense.create.useMutation({
     onSuccess: () => {
@@ -494,6 +495,24 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                     ))}
                   </div>
                 </div>
+
+                {/* 거래처 선택 → 지급정보 자동입력 */}
+                {(vendors.data?.length ?? 0) > 0 && (
+                  <div>
+                    <Label>거래처 선택 <span className="text-[11px] text-muted-foreground font-normal">(계좌 자동입력)</span></Label>
+                    <Select value="" onValueChange={(v) => {
+                      const vendor = vendors.data?.find((x: any) => String(x.id) === v);
+                      if (vendor) setForm(f => ({ ...f, payeeName: vendor.accountHolder || vendor.name || "", payeeBank: vendor.bankName || "", payeeAccount: vendor.accountNumber || "" }));
+                    }}>
+                      <SelectTrigger className="h-11 sm:h-9"><SelectValue placeholder="거래처를 선택하면 계좌가 자동 입력됩니다" /></SelectTrigger>
+                      <SelectContent>
+                        {vendors.data?.filter((v: any) => v.isActive ?? 1).map((v: any) => (
+                          <SelectItem key={v.id} value={String(v.id)}>{v.name}{v.bankName ? ` · ${v.bankName}` : ""}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* 지급 정보 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

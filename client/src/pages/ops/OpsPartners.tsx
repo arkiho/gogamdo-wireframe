@@ -13,7 +13,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   Building2, Plus, FileText, ClipboardList, Send, Search,
   CheckCircle2, XCircle, Clock, UserCheck, Shield,
-  PenTool, Upload, ArrowLeft, ShoppingCart, Eye,
+  PenTool, Upload, ArrowLeft, ShoppingCart, Eye, Landmark, Pencil, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -971,6 +971,138 @@ function TradeCategoriesTab() {
   );
 }
 
+// ============ 거래처 계좌 등록부 (STAFF_UI 4) ============
+const EMPTY_VENDOR = { name: "", category: "", businessNumber: "", bankName: "", accountHolder: "", accountNumber: "", contactName: "", contactPhone: "", notes: "" };
+
+function VendorsTab() {
+  const { user } = useAuth();
+  const canEdit = user?.role === "admin" || user?.role === "master" || (user as any)?.department === "management";
+  const vendors = trpc.ops.vendor.list.useQuery();
+  const utils = trpc.useUtils();
+  const [search, setSearch] = useState("");
+  const [openForm, setOpenForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({ ...EMPTY_VENDOR });
+
+  const reset = () => { setForm({ ...EMPTY_VENDOR }); setEditingId(null); };
+
+  const createVendor = trpc.ops.vendor.create.useMutation({
+    onSuccess: () => { utils.ops.vendor.list.invalidate(); setOpenForm(false); reset(); toast.success("거래처가 등록되었습니다."); },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateVendor = trpc.ops.vendor.update.useMutation({
+    onSuccess: () => { utils.ops.vendor.list.invalidate(); setOpenForm(false); reset(); toast.success("거래처가 수정되었습니다."); },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteVendor = trpc.ops.vendor.delete.useMutation({
+    onSuccess: () => { utils.ops.vendor.list.invalidate(); toast.success("거래처가 삭제되었습니다."); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const openCreate = () => { reset(); setOpenForm(true); };
+  const openEdit = (v: any) => {
+    setEditingId(v.id);
+    setForm({
+      name: v.name ?? "", category: v.category ?? "", businessNumber: v.businessNumber ?? "",
+      bankName: v.bankName ?? "", accountHolder: v.accountHolder ?? "", accountNumber: v.accountNumber ?? "",
+      contactName: v.contactName ?? "", contactPhone: v.contactPhone ?? "", notes: v.notes ?? "",
+    });
+    setOpenForm(true);
+  };
+  const submit = () => {
+    if (!form.name.trim()) { toast.error("거래처명은 필수입니다."); return; }
+    const payload: any = { ...form };
+    Object.keys(payload).forEach(k => { if (payload[k] === "") payload[k] = undefined; });
+    if (editingId) updateVendor.mutate({ id: editingId, ...payload });
+    else createVendor.mutate(payload);
+  };
+
+  const filtered = (vendors.data ?? []).filter((v: any) =>
+    !search || v.name?.toLowerCase().includes(search.toLowerCase()) || v.category?.toLowerCase().includes(search.toLowerCase()) || v.accountHolder?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h3 className="font-semibold flex items-center gap-2"><Landmark className="w-4 h-4" />거래처 계좌 등록부</h3>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="거래처·예금주 검색" className="pl-8 h-9 w-48" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          {canEdit && <Button size="sm" onClick={openCreate}><Plus className="w-4 h-4 mr-1" />거래처 추가</Button>}
+        </div>
+      </div>
+
+      {!canEdit && <p className="text-xs text-muted-foreground">계좌 정보 열람만 가능합니다. 등록·수정은 경영지원/관리자 권한이 필요합니다.</p>}
+
+      {vendors.isLoading ? (
+        <p className="text-center text-muted-foreground py-8">로딩 중...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-muted-foreground py-8">{(vendors.data?.length ?? 0) === 0 ? "등록된 거래처가 없습니다." : "검색 결과가 없습니다."}</p>
+      ) : (
+        <div className="border rounded-lg overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-3 py-2 text-left font-medium">거래처명</th>
+                <th className="px-3 py-2 text-left font-medium">분류</th>
+                <th className="px-3 py-2 text-left font-medium">은행</th>
+                <th className="px-3 py-2 text-left font-medium">예금주</th>
+                <th className="px-3 py-2 text-left font-medium">계좌번호</th>
+                <th className="px-3 py-2 text-left font-medium">연락처</th>
+                {canEdit && <th className="px-3 py-2 w-20"></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((v: any) => (
+                <tr key={v.id} className="border-t hover:bg-accent/30">
+                  <td className="px-3 py-2 font-medium">{v.name}</td>
+                  <td className="px-3 py-2">{v.category ? <Badge variant="outline" className="text-[11px]">{v.category}</Badge> : "-"}</td>
+                  <td className="px-3 py-2">{v.bankName ?? "-"}</td>
+                  <td className="px-3 py-2">{v.accountHolder ?? "-"}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{v.accountNumber ?? "-"}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">{v.contactPhone ?? v.contactName ?? "-"}</td>
+                  {canEdit && (
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1 justify-end">
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(v)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500" onClick={() => { if (confirm(`'${v.name}' 거래처를 삭제할까요?`)) deleteVendor.mutate({ id: v.id }); }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Dialog open={openForm} onOpenChange={(o) => { setOpenForm(o); if (!o) reset(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editingId ? "거래처 수정" : "거래처 등록"}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+            <div className="sm:col-span-2"><Label>거래처명 *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="예: 대한사무용가구" /></div>
+            <div><Label>분류</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="예: 가구/전기/도장" /></div>
+            <div><Label>사업자번호</Label><Input value={form.businessNumber} onChange={e => setForm(f => ({ ...f, businessNumber: e.target.value }))} /></div>
+            <div><Label>은행</Label><Input value={form.bankName} onChange={e => setForm(f => ({ ...f, bankName: e.target.value }))} placeholder="예: 국민은행" /></div>
+            <div><Label>예금주</Label><Input value={form.accountHolder} onChange={e => setForm(f => ({ ...f, accountHolder: e.target.value }))} /></div>
+            <div className="sm:col-span-2"><Label>계좌번호</Label><Input value={form.accountNumber} onChange={e => setForm(f => ({ ...f, accountNumber: e.target.value }))} placeholder="숫자만" /></div>
+            <div><Label>담당자</Label><Input value={form.contactName} onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))} /></div>
+            <div><Label>연락처</Label><Input value={form.contactPhone} onChange={e => setForm(f => ({ ...f, contactPhone: e.target.value }))} /></div>
+            <div className="sm:col-span-2"><Label>메모</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} /></div>
+          </div>
+          <DialogFooter className="mt-3">
+            <Button className="w-full" onClick={submit} disabled={createVendor.isPending || updateVendor.isPending}>
+              {createVendor.isPending || updateVendor.isPending ? "저장 중..." : editingId ? "수정 저장" : "거래처 등록"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ============ MAIN PAGE ============
 export default function OpsPartners() {
   const { user } = useAuth();
@@ -997,7 +1129,7 @@ export default function OpsPartners() {
       {/* Content */}
       <div className="container py-6">
         <Tabs defaultValue="registrations">
-          <TabsList className="w-full grid grid-cols-4 mb-6">
+          <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 mb-6">
             <TabsTrigger value="registrations" className="text-xs sm:text-sm">
               <Building2 className="w-4 h-4 mr-1 hidden sm:inline" />업체 등록
             </TabsTrigger>
@@ -1010,12 +1142,16 @@ export default function OpsPartners() {
             <TabsTrigger value="trades" className="text-xs sm:text-sm">
               <ClipboardList className="w-4 h-4 mr-1 hidden sm:inline" />공종 관리
             </TabsTrigger>
+            <TabsTrigger value="vendors" className="text-xs sm:text-sm">
+              <Landmark className="w-4 h-4 mr-1 hidden sm:inline" />거래처 계좌
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="registrations"><RegistrationTab /></TabsContent>
           <TabsContent value="contracts"><ContractsTab /></TabsContent>
           <TabsContent value="purchase-orders"><PurchaseOrdersTab /></TabsContent>
           <TabsContent value="trades"><TradeCategoriesTab /></TabsContent>
+          <TabsContent value="vendors"><VendorsTab /></TabsContent>
         </Tabs>
       </div>
     </div>
