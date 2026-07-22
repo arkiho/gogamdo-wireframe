@@ -9,7 +9,7 @@ import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import {
   FileCheck, Search, ArrowLeft, Filter, Receipt,
-  CheckCircle, XCircle, Clock, CreditCard, Banknote,
+  CheckCircle, XCircle, Clock, CreditCard, Banknote, GitBranch,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 
@@ -93,10 +93,15 @@ export default function OpsApproval() {
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container py-4">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
             <Link href="/ops">
               <Button variant="ghost" size="sm" className="gap-1">
                 <ArrowLeft className="w-4 h-4" /> 돌아가기
+              </Button>
+            </Link>
+            <Link href="/ops/approval-lines">
+              <Button variant="outline" size="sm" className="gap-1">
+                <GitBranch className="w-4 h-4" /> 결재라인 관리
               </Button>
             </Link>
           </div>

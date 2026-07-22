@@ -63,6 +63,7 @@ const OpsFieldMeasure = lazy(() => import("./pages/ops/OpsFieldMeasure"));
 const OpsProjects = lazy(() => import("./pages/ops/OpsProjects"));
 const OpsSchedule = lazy(() => import("./pages/ops/OpsSchedule"));
 const OpsApproval = lazy(() => import("./pages/ops/OpsApproval"));
+const OpsApprovalLines = lazy(() => import("./pages/ops/OpsApprovalLines"));
 
 // Lazy-loaded admin pages
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -181,6 +182,7 @@ function Router() {
         <Route path="/ops/projects" component={OpsProjects} />
         <Route path="/ops/schedule" component={OpsSchedule} />
         <Route path="/ops/approval" component={OpsApproval} />
+        <Route path="/ops/approval-lines" component={OpsApprovalLines} />
         {/* 협력업체 포털 */}
         <Route path="/partner-portal" component={PartnerPortal} />
         {/* 직원 가입 신청 */}
