@@ -96,6 +96,11 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
   const [expenseType, setExpenseType] = useState<string>(GENERAL);
   const [approvalLineId, setApprovalLineId] = useState<string>("");
   const [receiptUrls, setReceiptUrls] = useState<string[]>([]);
+  const [isInternal, setIsInternal] = useState(false);
+  type SchedKind = "contract" | "interim" | "balance";
+  type SchedStatus = "scheduled" | "billed" | "paid";
+  const [paymentSchedule, setPaymentSchedule] = useState<Array<{ kind: SchedKind; amount: string; dueDate: string; status: SchedStatus }>>([]);
+  const canInternal = user?.role === "admin" || user?.role === "master" || (user as any)?.department === "management";
 
   // 세무 유형별 입력값(문자열 — 수식 허용)
   const [tax, setTax] = useState({ supplyAmount: "", paymentAmount: "", expenseAmount: "", dailyWage: "", days: "" });
@@ -133,6 +138,8 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
     setApprovalLineId("");
     setScheduleItemId("");
     setReceiptUrls([]);
+    setIsInternal(false);
+    setPaymentSchedule([]);
     setTax({ supplyAmount: "", paymentAmount: "", expenseAmount: "", dailyWage: "", days: "" });
     setTaxResult({});
   }
@@ -248,6 +255,10 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
       receiptUrls: receiptUrls.length ? receiptUrls : undefined,
       approvalLineId: approvalLineId ? Number(approvalLineId) : undefined,
       scheduleItemId: scheduleItemId ? Number(scheduleItemId) : undefined,
+      isInternal: isInternal || undefined,
+      paymentSchedule: paymentSchedule.length
+        ? paymentSchedule.map(s => ({ kind: s.kind, amount: parseAmountInput(s.amount) ?? 0, dueDate: s.dueDate || undefined, status: s.status }))
+        : undefined,
     };
 
     if (expenseType === GENERAL) {
@@ -347,6 +358,12 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>지출결의서 작성</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-2">
+                {canInternal && (
+                  <label className="flex items-center gap-2 text-sm cursor-pointer bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <input type="checkbox" checked={isInternal} onChange={e => setIsInternal(e.target.checked)} />
+                    <span>🔒 고감도 내부 지출 (특정 현장 아님) — 체크 시 이 현장 목록이 아닌 <b>관리 화면 &gt; 고감도 내부</b>에 표시됩니다.</span>
+                  </label>
+                )}
                 {/* 유형 + 제목 + 구분 */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
@@ -539,6 +556,45 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                   <div><Label>계좌번호</Label><Input value={form.payeeAccount} onChange={e => setForm(f => ({ ...f, payeeAccount: e.target.value }))} placeholder="계좌번호" className="h-11 sm:h-9" /></div>
                 </div>
 
+                {/* 지급 일정 (계약금·중도금·잔금) */}
+                <div className="border rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>지급 일정 <span className="text-[11px] text-muted-foreground font-normal">(계약금·중도금·잔금, 선택)</span></Label>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setPaymentSchedule(prev => [...prev, { kind: prev.length === 0 ? "contract" : prev.length === 1 ? "interim" : "balance", amount: "", dueDate: "", status: "scheduled" }])}>
+                      <Plus className="w-3 h-3 mr-1" />회차 추가
+                    </Button>
+                  </div>
+                  {paymentSchedule.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">세금계산서 등 분할 지급 시 회차를 추가하세요.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {paymentSchedule.map((s, i) => (
+                        <div key={i} className="grid grid-cols-[90px_1fr_130px_100px_auto] gap-1.5 items-center">
+                          <Select value={s.kind} onValueChange={v => setPaymentSchedule(prev => prev.map((x, idx) => idx === i ? { ...x, kind: v as SchedKind } : x))}>
+                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contract">계약금</SelectItem>
+                              <SelectItem value="interim">중도금</SelectItem>
+                              <SelectItem value="balance">잔금</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <AmountInput value={s.amount} onChange={v => setPaymentSchedule(prev => prev.map((x, idx) => idx === i ? { ...x, amount: v } : x))} className="h-9 text-right" placeholder="금액" />
+                          <Input type="date" value={s.dueDate} onChange={e => setPaymentSchedule(prev => prev.map((x, idx) => idx === i ? { ...x, dueDate: e.target.value } : x))} className="h-9" />
+                          <Select value={s.status} onValueChange={v => setPaymentSchedule(prev => prev.map((x, idx) => idx === i ? { ...x, status: v as SchedStatus } : x))}>
+                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="scheduled">예정</SelectItem>
+                              <SelectItem value="billed">청구</SelectItem>
+                              <SelectItem value="paid">지급</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button type="button" size="sm" variant="ghost" className="h-9 w-9 p-0" onClick={() => setPaymentSchedule(prev => prev.filter((_, idx) => idx !== i))}><X className="w-4 h-4" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* 공정 태깅 (실행정산 연동) */}
                 {(scheduleItems.data?.length ?? 0) > 0 && (
                   <div>
@@ -645,6 +701,23 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-0.5 text-muted-foreground">
                               {Object.entries((e as any).taxDetail as Record<string, number>).map(([k, v]) => (
                                 <div key={k} className="flex justify-between"><span>{TAX_FIELD_LABELS[k] ?? k}</span><span className="font-mono text-foreground">{Number(v).toLocaleString()}</span></div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 지급 일정 */}
+                        {Array.isArray((e as any).paymentSchedule) && (e as any).paymentSchedule.length > 0 && (
+                          <div className="border rounded p-2 text-xs">
+                            <p className="font-medium mb-1">지급 일정</p>
+                            <div className="space-y-0.5">
+                              {((e as any).paymentSchedule as any[]).map((s, i) => (
+                                <div key={i} className="flex items-center justify-between gap-2">
+                                  <span>{s.kind === "contract" ? "계약금" : s.kind === "interim" ? "중도금" : "잔금"}</span>
+                                  <span className="text-muted-foreground">{s.dueDate || "-"}</span>
+                                  <span className="font-mono">{Number(s.amount).toLocaleString()}원</span>
+                                  <Badge variant="outline" className="text-[10px]">{s.status === "scheduled" ? "예정" : s.status === "billed" ? "청구" : "지급"}</Badge>
+                                </div>
                               ))}
                             </div>
                           </div>
