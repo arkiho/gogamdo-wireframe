@@ -8,7 +8,7 @@ import { useState } from "react";
 import {
   ArrowLeft, Building2, MapPin, Calendar, Ruler, Banknote,
   BarChart3, ClipboardList, FileText, Receipt, Users, FileSpreadsheet,
-  FileSignature, Calculator, Camera, Link2, Star, Download, CheckCircle2, Sparkles,
+  FileSignature, Calculator, Wallet, Camera, Link2, Star, Download, CheckCircle2, Sparkles,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -27,6 +27,7 @@ import SubcontractorTab from "./tabs/SubcontractorTab";
 import EstimateTab from "./tabs/EstimateTab";
 import ContractTab from "./tabs/ContractTab";
 import CostTab from "./tabs/CostTab";
+import SettlementTab from "./tabs/SettlementTab";
 import EvaluationTab from "./tabs/EvaluationTab";
 import CameraTabComponent from "./tabs/CameraTab";
 import { CostExecutionChart, ScheduleProgressChart, ExpenseCategoryChart } from "@/components/OpsCharts";
@@ -278,6 +279,7 @@ export default function OpsProjectDetail() {
             <TabsTrigger value="estimates" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileSpreadsheet className="w-3 h-3 sm:w-3.5 sm:h-3.5" />견적서</TabsTrigger>
             <TabsTrigger value="contracts" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileSignature className="w-3 h-3 sm:w-3.5 sm:h-3.5" />계약서</TabsTrigger>
             <TabsTrigger value="cost" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Calculator className="w-3 h-3 sm:w-3.5 sm:h-3.5" />원가</TabsTrigger>
+            <TabsTrigger value="settlement" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Wallet className="w-3 h-3 sm:w-3.5 sm:h-3.5" />실행정산</TabsTrigger>
             <TabsTrigger value="evaluation" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Star className="w-3 h-3 sm:w-3.5 sm:h-3.5" />평가</TabsTrigger>
             <TabsTrigger value="camera" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Camera className="w-3 h-3 sm:w-3.5 sm:h-3.5" />카메라</TabsTrigger>
           </TabsList>
@@ -309,6 +311,9 @@ export default function OpsProjectDetail() {
         </TabsContent>
         <TabsContent value="cost" className="mt-4">
           <CostTab projectId={id!} />
+        </TabsContent>
+        <TabsContent value="settlement" className="mt-4">
+          <SettlementTab projectId={id!} />
         </TabsContent>
         <TabsContent value="evaluation" className="mt-4">
           <EvaluationTab projectId={id!} />

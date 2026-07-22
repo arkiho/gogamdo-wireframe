@@ -21,7 +21,7 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     taskName: "", category: "other", startDate: "", endDate: "",
-    assignee: "", progress: "0", sortOrder: "0",
+    assignee: "", progress: "0", sortOrder: "0", budgetAmount: "",
   });
 
   const schedules = trpc.ops.schedule.list.useQuery({ projectId: Number(projectId) });
@@ -29,7 +29,7 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
     onSuccess: () => {
       schedules.refetch();
       setOpen(false);
-      setForm({ taskName: "", category: "other", startDate: "", endDate: "", assignee: "", progress: "0", sortOrder: "0" });
+      setForm({ taskName: "", category: "other", startDate: "", endDate: "", assignee: "", progress: "0", sortOrder: "0", budgetAmount: "" });
       toast.success("공정이 추가되었습니다.");
     },
     onError: (err) => toast.error(err.message),
@@ -56,6 +56,7 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
       assignedTo: form.assignee || undefined,
       progress: parseInt(form.progress) || 0,
       sortOrder: parseInt(form.sortOrder) || 0,
+      budgetAmount: form.budgetAmount ? String(parseInt(form.budgetAmount.replace(/,/g, "")) || 0) : undefined,
     });
   };
 
@@ -106,6 +107,10 @@ export default function ScheduleTab({ projectId }: { projectId: string }) {
                   <Label>진행률 (%)</Label>
                   <Input type="number" min="0" max="100" value={form.progress} onChange={e => setForm(f => ({ ...f, progress: e.target.value }))} className="h-11 sm:h-9" />
                 </div>
+              </div>
+              <div>
+                <Label>실행예산 (원) <span className="text-[11px] text-muted-foreground font-normal">실행정산 대비용</span></Label>
+                <Input inputMode="numeric" value={form.budgetAmount} onChange={e => setForm(f => ({ ...f, budgetAmount: e.target.value }))} placeholder="예: 3000000" className="h-11 sm:h-9" />
               </div>
               <Button onClick={handleCreate} className="w-full h-12 sm:h-9 text-base sm:text-sm" disabled={createSchedule.isPending}>
                 {createSchedule.isPending ? "추가 중..." : "공정 추가"}

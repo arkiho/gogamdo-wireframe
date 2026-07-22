@@ -105,6 +105,8 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
   const expenses = trpc.ops.expense.list.useQuery({ projectId: Number(projectId) });
   const approvalLines = trpc.ops.approvalLine.list.useQuery();
   const vendors = trpc.ops.vendor.list.useQuery();
+  const scheduleItems = trpc.ops.schedule.list.useQuery({ projectId: Number(projectId) });
+  const [scheduleItemId, setScheduleItemId] = useState<string>("");
 
   const createExpense = trpc.ops.expense.create.useMutation({
     onSuccess: () => {
@@ -129,6 +131,7 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
     setItems([{ description: "", quantity: 1, unitPrice: 0, amount: 0 }]);
     setExpenseType(GENERAL);
     setApprovalLineId("");
+    setScheduleItemId("");
     setReceiptUrls([]);
     setTax({ supplyAmount: "", paymentAmount: "", expenseAmount: "", dailyWage: "", days: "" });
     setTaxResult({});
@@ -244,6 +247,7 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
       notes: form.notes || undefined,
       receiptUrls: receiptUrls.length ? receiptUrls : undefined,
       approvalLineId: approvalLineId ? Number(approvalLineId) : undefined,
+      scheduleItemId: scheduleItemId ? Number(scheduleItemId) : undefined,
     };
 
     if (expenseType === GENERAL) {
@@ -534,6 +538,22 @@ export default function ExpenseTab({ projectId, projectName }: { projectId: stri
                   <div><Label>은행명</Label><Input value={form.payeeBank} onChange={e => setForm(f => ({ ...f, payeeBank: e.target.value }))} placeholder="예: 국민은행" className="h-11 sm:h-9" /></div>
                   <div><Label>계좌번호</Label><Input value={form.payeeAccount} onChange={e => setForm(f => ({ ...f, payeeAccount: e.target.value }))} placeholder="계좌번호" className="h-11 sm:h-9" /></div>
                 </div>
+
+                {/* 공정 태깅 (실행정산 연동) */}
+                {(scheduleItems.data?.length ?? 0) > 0 && (
+                  <div>
+                    <Label>공정 태깅 <span className="text-[11px] text-muted-foreground font-normal">(실행정산 대비용, 선택)</span></Label>
+                    <Select value={scheduleItemId || "none"} onValueChange={v => setScheduleItemId(v === "none" ? "" : v)}>
+                      <SelectTrigger className="h-11 sm:h-9"><SelectValue placeholder="공정 선택" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">태깅 안함</SelectItem>
+                        {scheduleItems.data?.map((s: any) => (
+                          <SelectItem key={s.id} value={String(s.id)}>{s.name}{s.category ? ` (${s.category})` : ""}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* 결재라인 */}
                 <div>

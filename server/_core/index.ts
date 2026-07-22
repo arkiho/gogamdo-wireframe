@@ -84,6 +84,8 @@ async function ensureTables() {
     await addColumnIfMissing("ops_expenses", "taxDetail", "taxDetail JSON NULL");
     await addColumnIfMissing("ops_expenses", "paymentSchedule", "paymentSchedule JSON NULL");
     await addColumnIfMissing("ops_expenses", "scheduleItemId", "scheduleItemId INT NULL");
+    // 공정별 실행예산 (STAFF_UI 6)
+    await addColumnIfMissing("ops_schedule_items", "budgetAmount", "budgetAmount DECIMAL(15,0) NULL");
 
     await conn.execute(`CREATE TABLE IF NOT EXISTS inquiries (
       id INT AUTO_INCREMENT PRIMARY KEY,

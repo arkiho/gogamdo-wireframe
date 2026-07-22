@@ -1317,6 +1317,7 @@ export const opsScheduleItems = mysqlTable("ops_schedule_items", {
   endDate: varchar("endDate", { length: 20 }),
   progress: int("progress").default(0), // 진행률 0-100%
   status: mysqlEnum("status", ["not_started", "in_progress", "delayed", "completed", "on_hold"]).default("not_started").notNull(),
+  budgetAmount: decimal("budgetAmount", { precision: 15, scale: 0 }), // 실행예산 (STAFF_UI 6)
   assignedTo: varchar("assignedTo", { length: 200 }), // 담당자/업체명
   subcontractorId: int("subcontractorId"), // 하도급 업체 ID
   sortOrder: int("sortOrder").default(0),
