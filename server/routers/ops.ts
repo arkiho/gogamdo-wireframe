@@ -13,6 +13,7 @@ import { sendReviewRequestEmail } from "../email";
 import {
   createOpsProject, getNextProjectCode, listOpsProjects, getOpsProject, updateOpsProject, deleteOpsProject,
   listVendors, getVendor, createVendor, updateVendor, deleteVendor,
+  getNextExpenseNumber, listInternalExpenses,
   createScheduleItem, listScheduleItems, listAllScheduleItems, updateScheduleItem, deleteScheduleItem,
   createWorkReport, listWorkReports, getWorkReport, updateWorkReport, deleteWorkReport,
   createMeetingNote, listMeetingNotes, getMeetingNote, updateMeetingNote, deleteMeetingNote,
@@ -620,6 +621,7 @@ export const opsRouter = router({
     create: staffProcedure
       .input(z.object({
         projectId: z.number(),
+        isInternal: z.boolean().optional(), // 고감도 내부 지출
         approvalLineId: z.number().optional(),
         title: z.string().min(1),
         category: z.enum(["material", "labor", "subcontract", "equipment", "transportation", "utility", "office", "meal", "other"]).optional(),
@@ -649,12 +651,19 @@ export const opsRouter = router({
         notes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Auto-generate expense number
-        const now = new Date();
-        const expenseNumber = `EXP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getTime()).slice(-4)}`;
-        
+        // 내부 지출은 admin/master/경영지원만 작성 가능
+        const u = ctx.user as any;
+        const canInternal = u.role === "admin" || u.role === "master" || u.department === "management";
+        if (input.isInternal && !canInternal) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "내부 지출은 경영지원/관리자만 작성할 수 있습니다." });
+        }
+        // 문서번호 EXP-YYYYMMDD-N (순번)
+        const expenseNumber = await getNextExpenseNumber();
+
         const result = await createExpense({
           ...input,
+          projectId: input.isInternal ? 0 : input.projectId,
+          isInternal: input.isInternal ? 1 : 0,
           expenseNumber,
           authorId: ctx.user.id,
         } as any);
@@ -776,7 +785,7 @@ export const opsRouter = router({
       .input(z.object({ id: z.number(), comment: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
         const rejExpense = await getExpense(input.id);
-        await updateExpense(input.id, { status: "rejected" } as any);
+        await updateExpense(input.id, { status: "rejected", rejectionReason: input.comment ?? null } as any);
         const rejSteps = await listApprovalSteps("expense", input.id);
         for (const step of rejSteps) {
           if (step.approverId === ctx.user.id && step.status === "pending") {
@@ -820,6 +829,33 @@ export const opsRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return listApprovalSteps("expense", input.id);
+      }),
+
+    // 고감도 내부 지출결의서 목록 (admin/master/경영지원만)
+    listInternal: managementProcedure.query(async () => {
+      return listInternalExpenses();
+    }),
+
+    // 반려된 결의서 보완 후 재상신 (문서번호 유지, 원본 수정)
+    resubmit: staffProcedure
+      .input(z.object({ id: z.number(), comment: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const e = await getExpense(input.id);
+        if (!e) throw new TRPCError({ code: "NOT_FOUND" });
+        if (e.status !== "rejected") throw new TRPCError({ code: "BAD_REQUEST", message: "반려된 결의서만 재상신할 수 있습니다." });
+        // 상태 초기화(재상신), 반려사유 유지(이력). 결재단계 pending으로 리셋.
+        await updateExpense(input.id, { status: "submitted", submittedAt: new Date() } as any);
+        const steps = await listApprovalSteps("expense", input.id);
+        for (const step of steps) {
+          await updateApprovalStep(step.id, { status: "pending", actionAt: null } as any);
+        }
+        await notifyAdminsAndPMs({
+          type: "expense_submitted",
+          title: "지출결의서 재상신",
+          message: `지출결의서 "${e.title}"이 보완 후 재상신되었습니다.${input.comment ? ` (${input.comment})` : ""}`,
+          link: `/ops/project/${e.projectId}?tab=expenses`,
+        });
+        return { success: true };
       }),
   }),
 
@@ -2291,7 +2327,11 @@ export const opsRouter = router({
   allSchedules: staffProcedure.query(async () => {
     return listAllScheduleItems();
   }),
-  allExpenses: staffProcedure.query(async () => {
-    return listAllExpenses();
+  allExpenses: staffProcedure.query(async ({ ctx }) => {
+    const all = await listAllExpenses();
+    const u = ctx.user as any;
+    const canInternal = u.role === "admin" || u.role === "master" || u.department === "management";
+    // 내부 지출은 권한자에게만 노출
+    return canInternal ? all : all.filter((e: any) => !e.isInternal);
   }),
 });

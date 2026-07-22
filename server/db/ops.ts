@@ -172,8 +172,13 @@ export async function listAllExpenses() {
     category: opsExpenses.category,
     totalAmount: opsExpenses.totalAmount,
     status: opsExpenses.status,
+    expenseType: opsExpenses.expenseType,
+    isInternal: opsExpenses.isInternal,
+    rejectionReason: opsExpenses.rejectionReason,
+    paymentSchedule: opsExpenses.paymentSchedule,
     submittedAt: opsExpenses.submittedAt,
     approvedAt: opsExpenses.approvedAt,
+    paidAt: opsExpenses.paidAt,
     createdAt: opsExpenses.createdAt,
     projectName: opsProjects.name,
     projectCode: opsProjects.code,
@@ -293,6 +298,36 @@ export async function createExpense(data: InsertOpsExpense) {
   if (!db) return null;
   const [result] = await db.insert(opsExpenses).values(data).$returningId();
   return result;
+}
+
+/** 결의서 문서번호 EXP-YYYYMMDD-N (그날 순번 +1). 반려·재상신 시 번호 유지. */
+export async function getNextExpenseNumber(now: Date = new Date()): Promise<string> {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  const prefix = `EXP-${y}${m}${d}-`;
+  const db = await getDb();
+  if (!db) return `${prefix}1`;
+  const rows = await db
+    .select({ n: opsExpenses.expenseNumber })
+    .from(opsExpenses)
+    .where(sql`${opsExpenses.expenseNumber} LIKE ${prefix + "%"}`);
+  let maxN = 0;
+  for (const r of rows) {
+    const suffix = (r.n ?? "").slice(prefix.length);
+    const n = parseInt(suffix, 10);
+    if (Number.isFinite(n) && n > maxN) maxN = n;
+  }
+  return `${prefix}${maxN + 1}`;
+}
+
+/** 고감도 내부 지출결의서 (projectId=0, isInternal=1) */
+export async function listInternalExpenses() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(opsExpenses)
+    .where(eq(opsExpenses.isInternal, 1))
+    .orderBy(desc(opsExpenses.createdAt));
 }
 
 export async function listExpenses(projectId: number) {

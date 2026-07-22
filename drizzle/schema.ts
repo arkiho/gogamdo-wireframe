@@ -1455,6 +1455,10 @@ export const opsExpenses = mysqlTable("ops_expenses", {
   }>>(),
   // 공정 태깅 — 실행정산(STAFF_UI 6) 연동
   scheduleItemId: int("scheduleItemId"),
+  // 고감도 내부 지출(특정 현장 아님). true면 projectId=0. (STAFF_UI 3-1)
+  isInternal: tinyint("isInternal").default(0),
+  // 반려 사유 (반려·보완 재상신)
+  rejectionReason: text("rejectionReason"),
   paymentMethod: mysqlEnum("paymentMethod", ["bank_transfer", "card", "cash", "check"]).default("bank_transfer"),
   payeeName: varchar("payeeName", { length: 200 }), // 수취인
   payeeBank: varchar("payeeBank", { length: 100 }), // 은행명

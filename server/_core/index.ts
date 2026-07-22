@@ -84,6 +84,9 @@ async function ensureTables() {
     await addColumnIfMissing("ops_expenses", "taxDetail", "taxDetail JSON NULL");
     await addColumnIfMissing("ops_expenses", "paymentSchedule", "paymentSchedule JSON NULL");
     await addColumnIfMissing("ops_expenses", "scheduleItemId", "scheduleItemId INT NULL");
+    // 내부지출·반려사유 (STAFF_UI 3-1)
+    await addColumnIfMissing("ops_expenses", "isInternal", "isInternal TINYINT DEFAULT 0");
+    await addColumnIfMissing("ops_expenses", "rejectionReason", "rejectionReason TEXT NULL");
     // 공정별 실행예산 (STAFF_UI 6)
     await addColumnIfMissing("ops_schedule_items", "budgetAmount", "budgetAmount DECIMAL(15,0) NULL");
     // 유심 LTE 카메라 뷰어/회선 정보 (STAFF_UI 7)
