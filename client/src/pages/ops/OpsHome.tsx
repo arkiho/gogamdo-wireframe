@@ -42,6 +42,26 @@ export default function OpsHome() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
 
+  // 모든 훅은 조건부 return보다 위에 선언해야 함 (React hooks 규칙 — #310 방지)
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    name: "", code: "", clientName: "", clientContact: "",
+    clientEmail: "", siteAddress: "", totalArea: "", contractAmount: "",
+    startDate: "", endDate: "", status: "planning" as const, description: "",
+  });
+
+  const stats = trpc.ops.stats.useQuery(undefined, { enabled: !!user });
+  const projects = trpc.ops.project.list.useQuery(undefined, { enabled: !!user });
+  const createProject = trpc.ops.project.create.useMutation({
+    onSuccess: () => {
+      projects.refetch();
+      setOpen(false);
+      setForm({ name: "", code: "", clientName: "", clientContact: "", clientEmail: "", siteAddress: "", totalArea: "", contractAmount: "", startDate: "", endDate: "", status: "planning", description: "" });
+      toast.success("프로젝트가 생성되었습니다.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -55,30 +75,12 @@ export default function OpsHome() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md px-6">
           <h1 className="text-2xl font-bold">로그인 필요</h1>
-          <p className="text-muted-foreground text-sm">OpsX에 접근하려면 로그인이 필요합니다.</p>
+          <p className="text-muted-foreground text-sm">직원 콘솔에 접근하려면 로그인이 필요합니다.</p>
           <Button onClick={() => setLocation("/")}>홈으로 돌아가기</Button>
         </div>
       </div>
     );
   }
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: "", code: "", clientName: "", clientContact: "",
-    clientEmail: "", siteAddress: "", totalArea: "", contractAmount: "",
-    startDate: "", endDate: "", status: "planning" as const, description: "",
-  });
-
-  const stats = trpc.ops.stats.useQuery();
-  const projects = trpc.ops.project.list.useQuery();
-  const createProject = trpc.ops.project.create.useMutation({
-    onSuccess: () => {
-      projects.refetch();
-      setOpen(false);
-      setForm({ name: "", code: "", clientName: "", clientContact: "", clientEmail: "", siteAddress: "", totalArea: "", contractAmount: "", startDate: "", endDate: "", status: "planning", description: "" });
-      toast.success("프로젝트가 생성되었습니다.");
-    },
-    onError: (err) => toast.error(err.message),
-  });
 
   const handleCreate = () => {
     if (!form.name || !form.clientName) {
