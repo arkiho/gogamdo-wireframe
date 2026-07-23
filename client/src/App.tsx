@@ -86,6 +86,7 @@ const AdminKpiOkr = lazy(() => import("./pages/AdminKpiOkr"));
 const AdminPipelineOverview = lazy(() => import("./pages/AdminPipelineOverview"));
 const AdminJourneyAnalytics = lazy(() => import("./pages/AdminJourneyAnalytics"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const AdminFinance = lazy(() => import("./pages/AdminFinance"));
 
 // Auth pages
 const AuthLogin = lazy(() => import("./pages/AuthLogin"));
@@ -180,6 +181,7 @@ function AdminRouter() {
           <Route path="/admin/kpi-okr" component={AdminKpiOkr} />
           <Route path="/admin/pipeline" component={AdminPipelineOverview} />
           <Route path="/admin/journey-analytics" component={AdminJourneyAnalytics} />
+          <Route path="/admin/finance" component={AdminFinance} />
           <Route component={NotFound} />
         </Switch>
       </Suspense>

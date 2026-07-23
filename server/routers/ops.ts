@@ -196,6 +196,14 @@ export const opsRouter = router({
         teamMembers: z.array(z.number()).optional(),
         description: z.string().optional(),
         notes: z.string().optional(),
+        billingSchedule: z.array(z.object({
+          kind: z.enum(["contract", "progress", "balance"]),
+          label: z.string().optional(),
+          amount: z.number(),
+          dueDate: z.string().optional(),
+          status: z.enum(["scheduled", "billed", "paid"]),
+          paidDate: z.string().optional(),
+        })).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;

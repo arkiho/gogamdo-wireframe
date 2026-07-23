@@ -89,6 +89,8 @@ async function ensureTables() {
     await addColumnIfMissing("ops_expenses", "rejectionReason", "rejectionReason TEXT NULL");
     // 공정별 실행예산 (STAFF_UI 6)
     await addColumnIfMissing("ops_schedule_items", "budgetAmount", "budgetAmount DECIMAL(15,0) NULL");
+    // 고객 수금 일정 (계약금·기성·잔금) — 결제·경비 현황 (C-7)
+    await addColumnIfMissing("ops_projects", "billingSchedule", "billingSchedule JSON NULL");
     // 유심 LTE 카메라 뷰어/회선 정보 (STAFF_UI 7)
     await addColumnIfMissing("ops_cameras", "viewerUrl", "viewerUrl TEXT NULL");
     await addColumnIfMissing("ops_cameras", "simInfo", "simInfo VARCHAR(200) NULL");

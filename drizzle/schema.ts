@@ -1296,6 +1296,15 @@ export const opsProjects = mysqlTable("ops_projects", {
   teamMembers: json("teamMembers").$type<number[]>(), // 팀원 user IDs
   description: text("description"),
   notes: text("notes"),
+  // 고객 수금 일정 (계약금·기성·잔금) — 결제·경비 현황 (C-7)
+  billingSchedule: json("billingSchedule").$type<Array<{
+    kind: "contract" | "progress" | "balance"; // 계약금/기성/잔금
+    label?: string;                              // 예: "기성 2차"
+    amount: number;
+    dueDate?: string;                            // 청구/예정일 YYYY-MM-DD
+    status: "scheduled" | "billed" | "paid";     // 예정/청구/수금
+    paidDate?: string;                           // 수금일
+  }>>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

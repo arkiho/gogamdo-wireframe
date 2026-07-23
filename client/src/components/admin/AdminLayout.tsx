@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Inbox, Users, GitBranch, BarChart3, Activity,
   FileText, Mail, Image as ImageIcon, Star, Megaphone,
   HardHat, HeartHandshake, Sparkles, ClipboardList, Package,
-  MessageSquare, Wand2, UserCog, Target, Download, Receipt, Bell, HardDrive,
+  MessageSquare, Wand2, UserCog, Target, Download, Receipt, Bell, HardDrive, Banknote,
   Settings, ScrollText, Search, Menu, X, Loader2, ExternalLink, LogOut,
 } from "lucide-react";
 
@@ -64,6 +64,7 @@ const NAV: NavGroup[] = [
   {
     title: "조직 · 경영",
     items: [
+      { label: "결제 · 경비 현황", href: "/admin/finance", icon: Banknote },
       { label: "직원 관리", href: "/admin/employee", icon: UserCog },
       { label: "KPI · OKR", href: "/admin/kpi-okr", icon: Target },
     ],
