@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { uploadFile } from "@/lib/uploadFile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   Building2, Plus, FileText, ClipboardList, Send, Search,
   CheckCircle2, XCircle, Clock, UserCheck, Shield,
-  PenTool, Upload, ArrowLeft, ShoppingCart, Eye, Landmark, Pencil, Trash2,
+  PenTool, Upload, ArrowLeft, ShoppingCart, Eye, Landmark, Pencil, Trash2, Paperclip,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -972,7 +973,7 @@ function TradeCategoriesTab() {
 }
 
 // ============ 거래처 계좌 등록부 (STAFF_UI 4) ============
-const EMPTY_VENDOR = { name: "", category: "", businessNumber: "", bankName: "", accountHolder: "", accountNumber: "", contactName: "", contactPhone: "", notes: "" };
+const EMPTY_VENDOR = { name: "", category: "", businessNumber: "", bankName: "", accountHolder: "", accountNumber: "", contactName: "", contactPhone: "", notes: "", bankbookUrl: "", businessCertUrl: "" };
 
 function VendorsTab() {
   const { user } = useAuth();
@@ -983,8 +984,22 @@ function VendorsTab() {
   const [openForm, setOpenForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...EMPTY_VENDOR });
+  const [uploading, setUploading] = useState<"bankbook" | "cert" | null>(null);
+  const bankbookRef = useRef<HTMLInputElement>(null);
+  const certRef = useRef<HTMLInputElement>(null);
 
   const reset = () => { setForm({ ...EMPTY_VENDOR }); setEditingId(null); };
+
+  const handleVendorFile = async (kind: "bankbook" | "cert", file?: File | null) => {
+    if (!file) return;
+    setUploading(kind);
+    try {
+      const { url } = await uploadFile(file, kind === "bankbook" ? "bankbook" : "bizcert");
+      setForm(f => ({ ...f, [kind === "bankbook" ? "bankbookUrl" : "businessCertUrl"]: url }));
+      toast.success("파일이 첨부되었습니다.");
+    } catch (e: any) { toast.error(e?.message ?? "업로드 실패"); }
+    finally { setUploading(null); }
+  };
 
   const createVendor = trpc.ops.vendor.create.useMutation({
     onSuccess: () => { utils.ops.vendor.list.invalidate(); setOpenForm(false); reset(); toast.success("거래처가 등록되었습니다."); },
@@ -1006,6 +1021,7 @@ function VendorsTab() {
       name: v.name ?? "", category: v.category ?? "", businessNumber: v.businessNumber ?? "",
       bankName: v.bankName ?? "", accountHolder: v.accountHolder ?? "", accountNumber: v.accountNumber ?? "",
       contactName: v.contactName ?? "", contactPhone: v.contactPhone ?? "", notes: v.notes ?? "",
+      bankbookUrl: v.bankbookUrl ?? "", businessCertUrl: v.businessCertUrl ?? "",
     });
     setOpenForm(true);
   };
@@ -1051,6 +1067,8 @@ function VendorsTab() {
                 <th className="px-3 py-2 text-left font-medium">예금주</th>
                 <th className="px-3 py-2 text-left font-medium">계좌번호</th>
                 <th className="px-3 py-2 text-left font-medium">연락처</th>
+                <th className="px-3 py-2 text-left font-medium">첨부</th>
+                <th className="px-3 py-2 text-left font-medium">평가</th>
                 {canEdit && <th className="px-3 py-2 w-20"></th>}
               </tr>
             </thead>
@@ -1063,6 +1081,18 @@ function VendorsTab() {
                   <td className="px-3 py-2">{v.accountHolder ?? "-"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{v.accountNumber ?? "-"}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{v.contactPhone ?? v.contactName ?? "-"}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-1">
+                      {v.bankbookUrl && <a href={v.bankbookUrl} target="_blank" rel="noreferrer" title="통장사본"><Badge variant="outline" className="text-[10px] hover:bg-accent">통장</Badge></a>}
+                      {v.businessCertUrl && <a href={v.businessCertUrl} target="_blank" rel="noreferrer" title="사업자등록증"><Badge variant="outline" className="text-[10px] hover:bg-accent">사업자</Badge></a>}
+                      {!v.bankbookUrl && !v.businessCertUrl && <span className="text-xs text-muted-foreground">-</span>}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    {v.evalCount > 0 ? (
+                      <Badge className={`text-[11px] ${v.evalAvg >= 80 ? "bg-emerald-100 text-emerald-700" : v.evalAvg >= 60 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`} variant="secondary">{v.evalAvg}점 <span className="opacity-60 ml-1">({v.evalCount})</span></Badge>
+                    ) : <span className="text-xs text-muted-foreground">-</span>}
+                  </td>
                   {canEdit && (
                     <td className="px-3 py-2">
                       <div className="flex gap-1 justify-end">
@@ -1091,6 +1121,28 @@ function VendorsTab() {
             <div><Label>담당자</Label><Input value={form.contactName} onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))} /></div>
             <div><Label>연락처</Label><Input value={form.contactPhone} onChange={e => setForm(f => ({ ...f, contactPhone: e.target.value }))} /></div>
             <div className="sm:col-span-2"><Label>메모</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} /></div>
+            <div className="sm:col-span-2 grid grid-cols-2 gap-3 pt-1 border-t">
+              {([
+                { kind: "bankbook" as const, label: "통장사본", url: form.bankbookUrl, ref: bankbookRef },
+                { kind: "cert" as const, label: "사업자등록증", url: form.businessCertUrl, ref: certRef },
+              ]).map(({ kind, label, url, ref }) => (
+                <div key={kind} className="space-y-1">
+                  <Label className="text-xs">{label}</Label>
+                  <input ref={ref} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { handleVendorFile(kind, e.target.files?.[0]); e.target.value = ""; }} />
+                  {url ? (
+                    <div className="flex items-center gap-1">
+                      <a href={url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline flex items-center gap-1 truncate flex-1"><Paperclip className="w-3 h-3 shrink-0" />첨부됨</a>
+                      <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => ref.current?.click()} disabled={uploading === kind}>교체</Button>
+                      <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500" onClick={() => setForm(f => ({ ...f, [kind === "bankbook" ? "bankbookUrl" : "businessCertUrl"]: "" }))}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </div>
+                  ) : (
+                    <Button type="button" size="sm" variant="outline" className="w-full h-8 text-xs" onClick={() => ref.current?.click()} disabled={uploading === kind}>
+                      {uploading === kind ? "업로드 중..." : <><Upload className="w-3.5 h-3.5 mr-1" />파일 선택</>}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
           <DialogFooter className="mt-3">
             <Button className="w-full" onClick={submit} disabled={createVendor.isPending || updateVendor.isPending}>

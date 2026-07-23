@@ -13,6 +13,7 @@ import { sendReviewRequestEmail } from "../email";
 import {
   createOpsProject, getNextProjectCode, listOpsProjects, getOpsProject, updateOpsProject, deleteOpsProject,
   listVendors, getVendor, createVendor, updateVendor, deleteVendor,
+  createVendorEvaluation, listVendorEvaluationsByProject, listVendorEvaluationsByVendor, deleteVendorEvaluation,
   getNextExpenseNumber, listInternalExpenses,
   createScheduleItem, listScheduleItems, listAllScheduleItems, updateScheduleItem, deleteScheduleItem,
   createWorkReport, listWorkReports, getWorkReport, updateWorkReport, deleteWorkReport,
@@ -893,6 +894,8 @@ export const opsRouter = router({
         contactName: z.string().optional(),
         contactPhone: z.string().optional(),
         notes: z.string().optional(),
+        bankbookUrl: z.string().optional(),
+        businessCertUrl: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const result = await createVendor(input as any);
@@ -912,6 +915,8 @@ export const opsRouter = router({
         contactName: z.string().optional(),
         contactPhone: z.string().optional(),
         notes: z.string().optional(),
+        bankbookUrl: z.string().nullable().optional(),
+        businessCertUrl: z.string().nullable().optional(),
         isActive: z.number().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -924,6 +929,41 @@ export const opsRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await deleteVendor(input.id);
+        return { success: true };
+      }),
+
+    // ===== 거래처 평가 (현장별 100점 만점) =====
+    evalByProject: staffProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => listVendorEvaluationsByProject(input.projectId)),
+
+    evalByVendor: staffProcedure
+      .input(z.object({ vendorId: z.number() }))
+      .query(async ({ input }) => listVendorEvaluationsByVendor(input.vendorId)),
+
+    evalCreate: staffProcedure
+      .input(z.object({
+        vendorId: z.number(),
+        projectId: z.number(),
+        quality: z.number().min(0).max(20),
+        schedule: z.number().min(0).max(20),
+        communication: z.number().min(0).max(20),
+        price: z.number().min(0).max(20),
+        reliability: z.number().min(0).max(20),
+        comment: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const totalScore = input.quality + input.schedule + input.communication + input.price + input.reliability;
+        const r = await createVendorEvaluation({
+          ...input, totalScore, evaluatorId: ctx.user.id, evaluatorName: (ctx.user as any).name ?? undefined,
+        } as any);
+        return { id: r?.id, totalScore };
+      }),
+
+    evalDelete: staffProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteVendorEvaluation(input.id);
         return { success: true };
       }),
   }),

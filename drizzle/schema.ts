@@ -1576,6 +1576,9 @@ export const opsVendors = mysqlTable("ops_vendors", {
   contactName: varchar("contactName", { length: 100 }),
   contactPhone: varchar("contactPhone", { length: 30 }),
   notes: text("notes"),
+  // 첨부 파일 (통장사본·사업자등록증)
+  bankbookUrl: text("bankbookUrl"),
+  businessCertUrl: text("businessCertUrl"),
   isActive: tinyint("isActive").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1583,6 +1586,29 @@ export const opsVendors = mysqlTable("ops_vendors", {
 
 export type OpsVendor = typeof opsVendors.$inferSelect;
 export type InsertOpsVendor = typeof opsVendors.$inferInsert;
+
+/**
+ * 거래처(협력사) 평가 — 현장별 100점 만점 (담당자가 현장 마무리 후 평가)
+ */
+export const opsVendorEvaluations = mysqlTable("ops_vendor_evaluations", {
+  id: int("id").autoincrement().primaryKey(),
+  vendorId: int("vendorId").notNull(),
+  projectId: int("projectId").notNull(),
+  evaluatorId: int("evaluatorId"),
+  evaluatorName: varchar("evaluatorName", { length: 100 }),
+  // 5개 항목 각 0~20점 → 합계 100점
+  quality: int("quality").notNull(),        // 품질
+  schedule: int("schedule").notNull(),      // 납기·일정
+  communication: int("communication").notNull(), // 소통
+  price: int("price").notNull(),            // 가격·정산
+  reliability: int("reliability").notNull(), // 신뢰·재거래
+  totalScore: int("totalScore").notNull(),  // 합계 (0~100)
+  comment: text("comment"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OpsVendorEvaluation = typeof opsVendorEvaluations.$inferSelect;
+export type InsertOpsVendorEvaluation = typeof opsVendorEvaluations.$inferInsert;
 
 /**
  * 하도급 초대(Subcontractor Invites)

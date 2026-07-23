@@ -6,6 +6,7 @@ import {
   opsSubcontractors, opsSubInvites, opsSubQuotes, opsSubWorkReports,
   opsEstimates, opsContracts, opsCostItems, opsClientInvites, opsCameras,
   opsVendors, type InsertOpsVendor,
+  opsVendorEvaluations, type InsertOpsVendorEvaluation,
   type InsertOpsProject, type InsertOpsScheduleItem, type InsertOpsWorkReport,
   type InsertOpsMeetingNote, type InsertOpsApprovalLine, type InsertOpsExpense,
   type InsertOpsApprovalStep, type InsertOpsSubcontractor, type InsertOpsSubInvite,
@@ -88,7 +89,42 @@ export async function deleteOpsProject(id: number) {
 export async function listVendors() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(opsVendors).orderBy(desc(opsVendors.isActive), opsVendors.name);
+  const vendors = await db.select().from(opsVendors).orderBy(desc(opsVendors.isActive), opsVendors.name);
+  // 평가 평균·건수 집계 (additive)
+  const evalRows = await db
+    .select({ vendorId: opsVendorEvaluations.vendorId, avg: sql<number>`AVG(${opsVendorEvaluations.totalScore})`, cnt: sql<number>`COUNT(*)` })
+    .from(opsVendorEvaluations)
+    .groupBy(opsVendorEvaluations.vendorId);
+  const em = new Map<number, { avg: number; cnt: number }>();
+  for (const r of evalRows) em.set(r.vendorId, { avg: Math.round(Number(r.avg) || 0), cnt: Number(r.cnt) || 0 });
+  return vendors.map((v) => ({ ...v, evalAvg: em.get(v.id)?.avg ?? null, evalCount: em.get(v.id)?.cnt ?? 0 }));
+}
+
+// ===== 거래처 평가 =====
+export async function createVendorEvaluation(data: InsertOpsVendorEvaluation) {
+  const db = await getDb();
+  if (!db) return null;
+  const [r] = await db.insert(opsVendorEvaluations).values(data).$returningId();
+  return r;
+}
+export async function listVendorEvaluationsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(opsVendorEvaluations)
+    .where(eq(opsVendorEvaluations.projectId, projectId))
+    .orderBy(desc(opsVendorEvaluations.createdAt));
+}
+export async function listVendorEvaluationsByVendor(vendorId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(opsVendorEvaluations)
+    .where(eq(opsVendorEvaluations.vendorId, vendorId))
+    .orderBy(desc(opsVendorEvaluations.createdAt));
+}
+export async function deleteVendorEvaluation(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(opsVendorEvaluations).where(eq(opsVendorEvaluations.id, id));
 }
 
 export async function getVendor(id: number) {

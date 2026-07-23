@@ -91,6 +91,17 @@ async function ensureTables() {
     await addColumnIfMissing("ops_schedule_items", "budgetAmount", "budgetAmount DECIMAL(15,0) NULL");
     // 고객 수금 일정 (계약금·기성·잔금) — 결제·경비 현황 (C-7)
     await addColumnIfMissing("ops_projects", "billingSchedule", "billingSchedule JSON NULL");
+    // 거래처 첨부(통장사본·사업자등록증) + 현장별 평가
+    await addColumnIfMissing("ops_vendors", "bankbookUrl", "bankbookUrl TEXT NULL");
+    await addColumnIfMissing("ops_vendors", "businessCertUrl", "businessCertUrl TEXT NULL");
+    await conn.execute(`CREATE TABLE IF NOT EXISTS ops_vendor_evaluations (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      vendorId INT NOT NULL, projectId INT NOT NULL, evaluatorId INT, evaluatorName VARCHAR(100),
+      quality INT NOT NULL, schedule INT NOT NULL, communication INT NOT NULL, price INT NOT NULL, reliability INT NOT NULL,
+      totalScore INT NOT NULL, comment TEXT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_ve_vendor (vendorId), INDEX idx_ve_project (projectId)
+    )`);
     // 유심 LTE 카메라 뷰어/회선 정보 (STAFF_UI 7)
     await addColumnIfMissing("ops_cameras", "viewerUrl", "viewerUrl TEXT NULL");
     await addColumnIfMissing("ops_cameras", "simInfo", "simInfo VARCHAR(200) NULL");

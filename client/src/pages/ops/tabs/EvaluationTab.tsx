@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { Star, Plus, Award, TrendingUp, Shield, MessageSquare, Sparkles } from "lucide-react";
+import { Star, Plus, Award, TrendingUp, Shield, MessageSquare, Sparkles, Landmark, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const RECOMMENDATION_LABELS: Record<string, { label: string; color: string }> = {
   highly_recommended: { label: "적극 추천", color: "bg-green-100 text-green-700" },
@@ -327,6 +328,149 @@ export default function EvaluationTab({ projectId }: { projectId: string }) {
           )}
         </CardContent>
       </Card>
+
+      {/* 거래처(계좌 등록부) 평가 — 100점 만점 */}
+      <VendorEvaluationSection projectId={pid} />
     </div>
+  );
+}
+
+const VENDOR_CRITERIA: { key: "quality" | "schedule" | "communication" | "price" | "reliability"; label: string; icon: any }[] = [
+  { key: "quality", label: "품질", icon: Sparkles },
+  { key: "schedule", label: "납기·일정", icon: TrendingUp },
+  { key: "communication", label: "소통", icon: MessageSquare },
+  { key: "price", label: "가격·정산", icon: Award },
+  { key: "reliability", label: "신뢰·재거래", icon: Shield },
+];
+
+const EMPTY_VENDOR_EVAL = { vendorId: 0, quality: 15, schedule: 15, communication: 15, price: 15, reliability: 15, comment: "" };
+
+function VendorEvaluationSection({ projectId }: { projectId: number }) {
+  const { user } = useAuth();
+  const canEdit = !!user;
+  const canDelete = user?.role === "admin" || user?.role === "master";
+  const utils = trpc.useUtils();
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ ...EMPTY_VENDOR_EVAL });
+
+  const vendors = trpc.ops.vendor.list.useQuery();
+  const evals = trpc.ops.vendor.evalByProject.useQuery({ projectId });
+
+  const total = form.quality + form.schedule + form.communication + form.price + form.reliability;
+
+  const createEval = trpc.ops.vendor.evalCreate.useMutation({
+    onSuccess: () => {
+      evals.refetch();
+      utils.ops.vendor.list.invalidate();
+      setOpen(false);
+      setForm({ ...EMPTY_VENDOR_EVAL });
+      toast.success("거래처 평가가 등록되었습니다.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteEval = trpc.ops.vendor.evalDelete.useMutation({
+    onSuccess: () => { evals.refetch(); utils.ops.vendor.list.invalidate(); toast.success("평가가 삭제되었습니다."); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const submit = () => {
+    if (!form.vendorId) { toast.error("거래처를 선택해주세요."); return; }
+    createEval.mutate({ projectId, ...form, comment: form.comment || undefined });
+  };
+
+  const vendorName = (id: number) => vendors.data?.find((v: any) => v.id === id)?.name ?? "거래처";
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <CardTitle className="text-xs sm:text-sm flex items-center gap-2"><Landmark className="w-4 h-4" />거래처 평가 <span className="font-normal text-muted-foreground">(100점 만점)</span></CardTitle>
+        {canEdit && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />거래처 평가</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>거래처 평가 (현장 완료 후)</DialogTitle></DialogHeader>
+              <div className="space-y-4 mt-2">
+                <div>
+                  <Label>거래처 선택 *</Label>
+                  <Select value={form.vendorId ? String(form.vendorId) : ""} onValueChange={v => setForm(f => ({ ...f, vendorId: Number(v) }))}>
+                    <SelectTrigger className="h-11 sm:h-9"><SelectValue placeholder="거래처를 선택하세요" /></SelectTrigger>
+                    <SelectContent>
+                      {vendors.data?.map((v: any) => (
+                        <SelectItem key={v.id} value={String(v.id)}>{v.name}{v.category ? ` · ${v.category}` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
+                  {VENDOR_CRITERIA.map(({ key, label, icon: Icon }) => (
+                    <div key={key} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="flex items-center gap-1.5 text-xs sm:text-sm"><Icon className="w-4 h-4" />{label}</Label>
+                        <span className="text-sm font-bold tabular-nums w-10 text-right">{form[key]}<span className="text-muted-foreground font-normal text-xs">/20</span></span>
+                      </div>
+                      <input type="range" min={0} max={20} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: Number(e.target.value) }))} className="w-full accent-amber-500" />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
+                  <span className="text-sm font-medium">총점</span>
+                  <span className={`text-2xl font-extrabold tabular-nums ${total >= 80 ? "text-emerald-600" : total >= 60 ? "text-amber-600" : "text-red-600"}`}>{total}<span className="text-sm text-muted-foreground font-normal">/100</span></span>
+                </div>
+
+                <div>
+                  <Label>의견</Label>
+                  <Textarea value={form.comment} onChange={e => setForm(f => ({ ...f, comment: e.target.value }))} placeholder="평가 사유·특이사항을 작성해주세요" rows={2} />
+                </div>
+
+                <Button onClick={submit} className="w-full h-12 sm:h-9" disabled={createEval.isPending}>
+                  {createEval.isPending ? "등록 중..." : "평가 등록"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </CardHeader>
+      <CardContent>
+        {evals.isLoading ? (
+          <p className="text-center text-muted-foreground py-4">로딩 중...</p>
+        ) : !evals.data?.length ? (
+          <div className="text-center py-8">
+            <Landmark className="w-10 h-10 mx-auto text-muted-foreground/30 mb-2" />
+            <p className="text-muted-foreground text-sm">아직 거래처 평가가 없습니다.</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">현장 완료 후 사용한 거래처를 100점 만점으로 평가해주세요.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {evals.data.map((ev: any) => (
+              <div key={ev.id} className="p-3 sm:p-4 border rounded-lg space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-sm">{vendorName(ev.vendorId)}</span>
+                    {ev.evaluatorName && <span className="text-[11px] text-muted-foreground">평가: {ev.evaluatorName}</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-extrabold text-lg tabular-nums ${ev.totalScore >= 80 ? "text-emerald-600" : ev.totalScore >= 60 ? "text-amber-600" : "text-red-600"}`}>{ev.totalScore}<span className="text-xs text-muted-foreground font-normal">/100</span></span>
+                    {canDelete && <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500" onClick={() => { if (confirm("이 평가를 삭제할까요?")) deleteEval.mutate({ id: ev.id }); }}><Trash2 className="w-3.5 h-3.5" /></Button>}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+                  <div>품질 <span className="font-semibold text-foreground">{ev.quality}</span></div>
+                  <div>납기 <span className="font-semibold text-foreground">{ev.schedule}</span></div>
+                  <div>소통 <span className="font-semibold text-foreground">{ev.communication}</span></div>
+                  <div>가격 <span className="font-semibold text-foreground">{ev.price}</span></div>
+                  <div>신뢰 <span className="font-semibold text-foreground">{ev.reliability}</span></div>
+                </div>
+                {ev.comment && <p className="text-xs sm:text-sm text-muted-foreground">{ev.comment}</p>}
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{new Date(ev.createdAt).toLocaleDateString("ko-KR")}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
