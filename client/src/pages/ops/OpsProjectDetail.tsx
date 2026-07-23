@@ -490,139 +490,216 @@ export default function OpsProjectDetail() {
 
 // Overview Tab - project summary with quick stats
 function OverviewTab({ projectId }: { projectId: string }) {
-  const schedules = trpc.ops.schedule.list.useQuery({ projectId: Number(projectId) });
-  const expenses = trpc.ops.expense.list.useQuery({ projectId: Number(projectId) });
-  const subs = trpc.ops.subcontractor.list.useQuery();
-  const costs = trpc.ops.charts.costExecution.useQuery({ projectId: Number(projectId) });
-  const project = trpc.ops.project.get.useQuery({ id: Number(projectId) });
-
-  const totalSchedules = schedules.data?.length ?? 0;
-  const completedSchedules = schedules.data?.filter(s => s.progress === 100).length ?? 0;
-  const avgProgress = totalSchedules > 0
-    ? Math.round((schedules.data?.reduce((sum, s) => sum + (s.progress ?? 0), 0) ?? 0) / totalSchedules)
-    : 0;
-  const totalExpenseAmount = expenses.data?.reduce((sum, e) => sum + Number(e.totalAmount), 0) ?? 0;
-  const pendingExpenses = expenses.data?.filter(e => e.status === "submitted").length ?? 0;
-  const activeSubs = subs.data?.filter(s => s.isActive === 1).length ?? 0;
-
-  // 예산 소진율 계산
-  const totalBudget = costs.data?.reduce((sum, c) => sum + Number(c.budget), 0) ?? 0;
-  const totalActual = costs.data?.reduce((sum, c) => sum + Number(c.actual), 0) ?? 0;
-  const budgetRate = totalBudget > 0 ? Math.round((totalActual / totalBudget) * 100) : 0;
-
-  // 일정 준수율 (완료된 공정 중 지연 없이 완료된 비율)
-  const delayedSchedules = schedules.data?.filter(s => s.status === "delayed").length ?? 0;
-  const scheduleComplianceRate = totalSchedules > 0
-    ? Math.round(((totalSchedules - delayedSchedules) / totalSchedules) * 100)
-    : 100;
-
-  const contractAmount = Number(project.data?.contractAmount ?? 0);
-  const contractUsageRate = contractAmount > 0 ? Math.round((totalExpenseAmount / contractAmount) * 100) : 0;
-
   const pid = Number(projectId);
+  const schedules = trpc.ops.schedule.list.useQuery({ projectId: pid });
+  const expenses = trpc.ops.expense.list.useQuery({ projectId: pid });
+  const project = trpc.ops.project.get.useQuery({ id: pid });
+  const reports = trpc.ops.workReport.list.useQuery({ projectId: pid });
+  const cameras = trpc.ops.camera.list.useQuery({ projectId: pid });
+
+  const items = schedules.data ?? [];
+  const totalSchedules = items.length;
+  const avgProgress = totalSchedules > 0
+    ? Math.round(items.reduce((s: number, x: any) => s + (x.progress ?? 0), 0) / totalSchedules)
+    : 0;
+
+  // 공정별 실행정산 (승인·지급 결의서만 실집행 반영 — SettlementTab과 동일)
+  const approved = (expenses.data ?? []).filter((e: any) => e.status === "approved" || e.status === "paid");
+  const actualByItem = new Map<number, number>();
+  let untagged = 0;
+  for (const e of approved) {
+    const amt = Number(e.totalAmount ?? 0);
+    const sid = (e as any).scheduleItemId;
+    if (sid) actualByItem.set(sid, (actualByItem.get(sid) ?? 0) + amt);
+    else untagged += amt;
+  }
+  const rows = items.map((it: any) => {
+    const budget = Number(it.budgetAmount ?? 0);
+    const actual = actualByItem.get(it.id) ?? 0;
+    const rate = budget > 0 ? Math.round((actual / budget) * 100) : (actual > 0 ? Infinity : 0);
+    return { id: it.id, name: it.name, budget, actual, remain: budget - actual, rate, over: rate === Infinity || rate > 100 };
+  });
+  const totalBudget = rows.reduce((s: number, r: any) => s + r.budget, 0);
+  const totalActual = rows.reduce((s: number, r: any) => s + r.actual, 0) + untagged;
+  const budgetRate = totalBudget > 0 ? Math.round((totalActual / totalBudget) * 100) : 0;
+  const contractAmount = Number(project.data?.contractAmount ?? 0);
+  const overItem = rows.find((r: any) => r.over);
+
+  // 결재 대기 지출결의서
+  const pending = (expenses.data ?? []).filter((e: any) => ["submitted", "in_review"].includes(e.status));
+
+  // 잔여 공기 (D-day)
+  let dday: number | null = null;
+  if (project.data?.endDate) {
+    const diff = Math.ceil((new Date(project.data.endDate).getTime() - Date.now()) / 86400000);
+    if (!Number.isNaN(diff)) dday = diff;
+  }
+  const ddayLabel = dday == null ? "-" : dday < 0 ? `D+${Math.abs(dday)}` : dday === 0 ? "D-day" : `D-${dday}`;
+
+  const SCH_STATUS: Record<string, { label: string; dot: string; chip: string }> = {
+    completed: { label: "완료", dot: "bg-green-500", chip: "bg-green-100 text-green-700" },
+    in_progress: { label: "진행", dot: "bg-blue-500", chip: "bg-blue-100 text-blue-700" },
+    delayed: { label: "지연", dot: "bg-red-500", chip: "bg-red-100 text-red-700" },
+    on_hold: { label: "보류", dot: "bg-amber-500", chip: "bg-amber-100 text-amber-700" },
+    not_started: { label: "예정", dot: "bg-gray-300", chip: "bg-gray-100 text-gray-500" },
+  };
+  const fmt = (n: number) => n.toLocaleString();
 
   return (
     <div className="space-y-4">
-      {/* Summary Cards - 모바일 2열 */}
+      {/* KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        <Card>
-          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">전체 공정</p>
-            <p className="text-lg sm:text-xl font-bold">{totalSchedules}건</p>
-            {totalSchedules > 0 && (
-              <div className="w-full bg-muted rounded-full h-1.5 mt-2">
-                <div className="bg-green-500 h-1.5 rounded-full transition-all" style={{ width: `${(completedSchedules / totalSchedules) * 100}%` }} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">완료 공정</p>
-            <p className="text-lg sm:text-xl font-bold text-green-600">{completedSchedules}건</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">총 지출</p>
-            <p className="text-lg sm:text-xl font-bold">{totalExpenseAmount.toLocaleString()}원</p>
-            <p className="text-[10px] sm:text-xs text-amber-600 mt-1">결재 대기 {pendingExpenses}건</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-3 pb-2 sm:pt-4 sm:pb-3">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">하도급 업체</p>
-            <p className="text-lg sm:text-xl font-bold">{activeSubs}개사</p>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="pt-4 pb-3">
+          <p className="text-[11px] text-muted-foreground">공정 진행률</p>
+          <p className="text-2xl font-bold mt-1">{avgProgress}<span className="text-sm text-muted-foreground">%</span></p>
+          <div className="h-1.5 bg-muted rounded-full mt-2 overflow-hidden"><div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min(avgProgress, 100)}%` }} /></div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3">
+          <p className="text-[11px] text-muted-foreground">실행예산 집행률</p>
+          <p className={`text-2xl font-bold mt-1 ${budgetRate > 100 ? "text-red-600" : ""}`}>{budgetRate}<span className="text-sm text-muted-foreground">%</span></p>
+          <div className="h-1.5 bg-muted rounded-full mt-2 overflow-hidden"><div className={`h-full rounded-full ${budgetRate > 100 ? "bg-red-500" : "bg-gold"}`} style={{ width: `${Math.min(budgetRate, 100)}%` }} /></div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3">
+          <p className="text-[11px] text-muted-foreground">결재 대기</p>
+          <p className="text-2xl font-bold mt-1 text-amber-600">{pending.length}<span className="text-sm text-muted-foreground">건</span></p>
+          <div className="h-1.5 bg-muted rounded-full mt-2 overflow-hidden"><div className="h-full rounded-full bg-amber-500" style={{ width: pending.length > 0 ? "40%" : "0%" }} /></div>
+        </CardContent></Card>
+        <Card className={dday != null && dday < 0 ? "border-red-300" : ""}><CardContent className="pt-4 pb-3">
+          <p className="text-[11px] text-muted-foreground">잔여 공기</p>
+          <p className={`text-2xl font-bold mt-1 ${dday != null && dday < 0 ? "text-red-600" : "text-green-600"}`}>{ddayLabel}</p>
+          {project.data?.endDate && <p className="text-[10px] text-muted-foreground mt-1">~ {project.data.endDate}</p>}
+        </CardContent></Card>
       </div>
 
-      {/* Gauge Cards - 예산 소진율 + 일정 준수율 + 평균 진행률 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className={`border-l-4 ${budgetRate > 90 ? 'border-l-red-500' : budgetRate > 70 ? 'border-l-amber-500' : 'border-l-blue-500'}`}>
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-muted-foreground">예산 소진율</p>
-              <span className={`text-lg font-bold ${budgetRate > 90 ? 'text-red-600' : budgetRate > 70 ? 'text-amber-600' : 'text-blue-600'}`}>
-                {budgetRate}%
-              </span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-500 ${budgetRate > 90 ? 'bg-red-500' : budgetRate > 70 ? 'bg-amber-500' : 'bg-blue-500'}`}
-                style={{ width: `${Math.min(budgetRate, 100)}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1.5">
-              실적 {totalActual.toLocaleString()}원 / 예산 {totalBudget.toLocaleString()}원
-            </p>
-          </CardContent>
-        </Card>
-        <Card className={`border-l-4 ${scheduleComplianceRate >= 90 ? 'border-l-green-500' : scheduleComplianceRate >= 70 ? 'border-l-amber-500' : 'border-l-red-500'}`}>
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-muted-foreground">일정 준수율</p>
-              <span className={`text-lg font-bold ${scheduleComplianceRate >= 90 ? 'text-green-600' : scheduleComplianceRate >= 70 ? 'text-amber-600' : 'text-red-600'}`}>
-                {scheduleComplianceRate}%
-              </span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-500 ${scheduleComplianceRate >= 90 ? 'bg-green-500' : scheduleComplianceRate >= 70 ? 'bg-amber-500' : 'bg-red-500'}`}
-                style={{ width: `${scheduleComplianceRate}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1.5">
-              지연 {delayedSchedules}건 / 전체 {totalSchedules}건
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-muted-foreground">평균 진행률</p>
-              <span className="text-lg font-bold text-emerald-600">{avgProgress}%</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div
-                className="h-2 rounded-full bg-emerald-500 transition-all duration-500"
-                style={{ width: `${Math.min(avgProgress, 100)}%` }}
-              />
-            </div>
-            {contractAmount > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-1.5">
-                계약금액 대비 지출 {contractUsageRate}%
-              </p>
-            )}
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-4">
+        {/* LEFT */}
+        <div className="space-y-4">
+          {/* 실행정산표 */}
+          <Card>
+            <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><Wallet className="w-4 h-4" />실행정산표 <span className="text-[11px] font-normal text-muted-foreground ml-auto">승인·지급분 기준</span></CardTitle></CardHeader>
+            <CardContent>
+              {rows.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-8">공정표에 공정·실행예산을 먼저 입력하세요.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead><tr className="text-muted-foreground border-b">
+                      <th className="text-left font-medium py-1.5">공정</th>
+                      <th className="text-right font-medium">실행예산</th>
+                      <th className="text-right font-medium">실집행</th>
+                      <th className="text-left font-medium w-20 pl-2">집행률</th>
+                      <th className="text-right font-medium">잔액</th>
+                    </tr></thead>
+                    <tbody>
+                      {rows.map((r: any) => (
+                        <tr key={r.id} className={`border-b last:border-0 ${r.over ? "bg-red-50" : ""}`}>
+                          <td className="py-2">{r.name}</td>
+                          <td className="text-right tabular-nums">{r.budget ? fmt(r.budget) : "-"}</td>
+                          <td className="text-right tabular-nums">{fmt(r.actual)}</td>
+                          <td className="pl-2"><div className="h-1.5 bg-muted rounded overflow-hidden min-w-[60px]"><div className={`h-full ${r.over ? "bg-red-500" : r.rate >= 80 ? "bg-amber-500" : "bg-blue-500"}`} style={{ width: `${r.rate === Infinity ? 100 : Math.min(r.rate, 100)}%` }} /></div></td>
+                          <td className={`text-right tabular-nums ${r.remain < 0 ? "text-red-600 font-semibold" : ""}`}>{fmt(r.remain)}</td>
+                        </tr>
+                      ))}
+                      <tr className="font-bold bg-muted/40"><td className="py-2">합계</td><td className="text-right tabular-nums">{fmt(totalBudget)}</td><td className="text-right tabular-nums">{fmt(totalActual)}</td><td className="pl-2"><div className="h-1.5 bg-muted rounded overflow-hidden"><div className="h-full bg-gold" style={{ width: `${Math.min(budgetRate, 100)}%` }} /></div></td><td className={`text-right tabular-nums ${totalBudget - totalActual < 0 ? "text-red-600" : ""}`}>{fmt(totalBudget - totalActual)}</td></tr>
+                    </tbody>
+                  </table>
+                  {overItem && (
+                    <div className="mt-3 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-red-700">
+                      <b>{overItem.name}</b> 공정이 실행예산을 {fmt(Math.abs(overItem.remain))}원 초과했습니다.
+                      {contractAmount > 0 && <> 계약금액 대비 총 실행률 {Math.round((totalActual / contractAmount) * 100)}%.</>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 공정 진행 미니 */}
+          <Card>
+            <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><ClipboardList className="w-4 h-4" />공정 진행 <span className="text-[11px] font-normal text-muted-foreground ml-auto">전체 {avgProgress}%</span></CardTitle></CardHeader>
+            <CardContent>
+              {items.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-6">등록된 공정이 없습니다.</p>
+              ) : (
+                <div className="space-y-0.5">
+                  {items.slice(0, 6).map((it: any) => {
+                    const st = SCH_STATUS[it.status] ?? SCH_STATUS.not_started;
+                    return (
+                      <div key={it.id} className="flex items-center gap-2.5 py-2 border-b last:border-0 text-xs">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${st.dot}`} />
+                        <div className="flex-1 min-w-0"><div className="font-medium truncate">{it.name}</div><div className="text-muted-foreground text-[11px]">{it.startDate || "-"} ~ {it.endDate || "-"}</div></div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${st.chip}`}>{it.status === "in_progress" ? `진행 ${it.progress ?? 0}%` : st.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* RIGHT */}
+        <div className="space-y-4">
+          {/* 결재 대기 지출결의서 */}
+          <Card>
+            <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><Receipt className="w-4 h-4" />결재 대기 지출결의서 <span className="text-[11px] font-normal text-muted-foreground ml-auto">{pending.length}건</span></CardTitle></CardHeader>
+            <CardContent>
+              {pending.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-6">결재 대기 결의서가 없습니다.</p>
+              ) : (
+                <div className="space-y-0.5">
+                  {pending.slice(0, 5).map((e: any) => (
+                    <div key={e.id} className="flex items-center gap-2 py-2 border-b last:border-0 text-xs">
+                      <div className="flex-1 min-w-0"><div className="font-medium truncate">{e.title}</div><div className="text-muted-foreground text-[11px]">{e.expenseNumber}</div></div>
+                      <span className="font-semibold tabular-nums">{fmt(Number(e.totalAmount ?? 0))}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">결재중</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 최근 작업보고 */}
+          <Card>
+            <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4" />최근 작업보고</CardTitle></CardHeader>
+            <CardContent>
+              {(reports.data?.length ?? 0) === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-6">작업보고가 없습니다.</p>
+              ) : (
+                <div className="space-y-0.5">
+                  {(reports.data ?? []).slice(0, 3).map((r: any) => (
+                    <div key={r.id} className="py-2 border-b last:border-0 text-xs">
+                      <div className="font-medium">{r.reportDate} {r.title}</div>
+                      <div className="text-muted-foreground text-[11px]">{r.workersCount ? `인원 ${r.workersCount}명` : ""}{Array.isArray(r.photoUrls) && r.photoUrls.length ? ` · 사진 ${r.photoUrls.length}` : ""}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 현장 CCTV */}
+          <Card>
+            <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><Camera className="w-4 h-4" />현장 CCTV <span className="text-[11px] font-normal text-muted-foreground ml-auto">{cameras.data?.length ?? 0}대</span></CardTitle></CardHeader>
+            <CardContent>
+              {(cameras.data?.length ?? 0) === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-6">등록된 카메라가 없습니다.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {(cameras.data ?? []).slice(0, 4).map((c: any) => (
+                    <div key={c.id} className="aspect-video bg-gradient-to-br from-[#2a2820] to-[#3a3830] rounded-lg relative flex items-end overflow-hidden">
+                      {c.isOnline ? <span className="absolute top-1.5 right-1.5 text-[8px] text-white bg-red-500 px-1.5 rounded font-bold">● LIVE</span> : null}
+                      <span className="text-[9px] text-white/90 bg-black/45 px-1.5 py-0.5 rounded m-1.5 truncate">{c.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ScheduleProgressChart projectId={pid} />
-        <ExpenseCategoryChart projectId={pid} />
-      </div>
       <CostExecutionChart projectId={pid} />
     </div>
   );
