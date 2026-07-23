@@ -139,6 +139,7 @@ export const appRouter = router({
         budget: z.string().optional(),
         area: z.string().optional(),
         message: z.string().min(1),
+        referralSource: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const result = await createInquiry(input);

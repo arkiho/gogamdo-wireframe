@@ -104,6 +104,8 @@ async function ensureTables() {
       notes TEXT, isDeleted TINYINT NOT NULL DEFAULT 0, deletedAt TIMESTAMP NULL, deletedBy VARCHAR(100), deleteReason TEXT,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`);
+    // 문의 유입경로 (AEO 귀속) — C-10
+    await addColumnIfMissing("inquiries", "referralSource", "referralSource VARCHAR(50) NULL");
 
     await conn.execute(`CREATE TABLE IF NOT EXISTS subscribers (
       id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(320) NOT NULL UNIQUE,

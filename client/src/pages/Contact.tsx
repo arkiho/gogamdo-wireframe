@@ -58,6 +58,7 @@ export default function Contact() {
     type: "",
     area: "",
     message: "",
+    referralSource: "",
   });
 
   const createInquiry = trpc.inquiry.create.useMutation({
@@ -82,6 +83,7 @@ export default function Contact() {
       type: formData.type || undefined,
       area: formData.area || undefined,
       message: formData.message,
+      referralSource: formData.referralSource || undefined,
     });
   };
 
@@ -171,7 +173,7 @@ export default function Contact() {
                       <button
                         onClick={() => {
                           setSubmitted(false);
-                          setFormData({ name: "", company: "", email: "", phone: "", type: "", area: "", message: "" });
+                          setFormData({ name: "", company: "", email: "", phone: "", type: "", area: "", message: "", referralSource: "" });
                         }}
                         className="px-6 py-3 bg-ink text-white text-sm font-medium hover:bg-ink/90 transition-colors"
                       >
@@ -283,6 +285,26 @@ export default function Contact() {
                         className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors resize-none"
                         placeholder="프로젝트에 대해 자유롭게 작성해 주세요. 예산, 일정, 특별 요구사항 등을 포함해 주시면 더 정확한 상담이 가능합니다."
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
+                        어떻게 알게 되셨나요?
+                      </label>
+                      <select
+                        value={formData.referralSource}
+                        onChange={(e) => updateField("referralSource", e.target.value)}
+                        className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors"
+                      >
+                        <option value="">선택 안 함</option>
+                        <option value="search">검색(구글·네이버)</option>
+                        <option value="ai_assistant">AI 어시스턴트(ChatGPT·Claude 등)</option>
+                        <option value="referral">지인·소개</option>
+                        <option value="sns">SNS·블로그</option>
+                        <option value="portfolio">고객 사례·포트폴리오</option>
+                        <option value="ad">광고</option>
+                        <option value="etc">기타</option>
+                      </select>
                     </div>
 
                     <label className="flex items-start gap-3 cursor-pointer">

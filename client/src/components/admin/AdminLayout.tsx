@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Inbox, Users, GitBranch, BarChart3, Activity,
   FileText, Mail, Image as ImageIcon, Star, Megaphone,
   HardHat, HeartHandshake, Sparkles, ClipboardList, Package,
-  MessageSquare, Wand2, UserCog, Target, Download, Receipt, Bell, HardDrive, Banknote,
+  MessageSquare, Wand2, UserCog, Target, Download, Receipt, Bell, HardDrive, Banknote, TrendingUp,
   Settings, ScrollText, Search, Menu, X, Loader2, ExternalLink, LogOut,
 } from "lucide-react";
 
@@ -42,6 +42,7 @@ const NAV: NavGroup[] = [
       { label: "고객 사례(포트폴리오)", href: "/admin/portfolios", icon: ImageIcon },
       { label: "리뷰", href: "/admin/reviews", icon: Star },
       { label: "공지 · 팝업", href: "/admin/announcements", icon: Megaphone },
+      { label: "마케팅 · SEO · AEO", href: "/admin/marketing", icon: TrendingUp },
     ],
   },
   {

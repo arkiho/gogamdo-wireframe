@@ -60,6 +60,8 @@ export const inquiries = mysqlTable("inquiries", {
   budget: varchar("budget", { length: 50 }),
   area: varchar("area", { length: 50 }),
   message: text("message").notNull(),
+  // 유입 경로 (어떻게 알게 되셨나요) — AEO 귀속 추적 (C-10)
+  referralSource: varchar("referralSource", { length: 50 }),
   status: mysqlEnum("status", ["new", "contacted", "in_progress", "completed"]).default("new").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
