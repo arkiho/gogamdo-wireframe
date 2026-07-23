@@ -106,6 +106,19 @@ async function ensureTables() {
     )`);
     // 문의 유입경로 (AEO 귀속) — C-10
     await addColumnIfMissing("inquiries", "referralSource", "referralSource VARCHAR(50) NULL");
+    // 인사이트 콘텐츠 큐 (발행 주제 캘린더) — D-11
+    await conn.execute(`CREATE TABLE IF NOT EXISTS insight_content_queue (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      scheduledDate VARCHAR(20) NOT NULL,
+      category ENUM('trend','cost_guide','case_study','tip','news') NOT NULL DEFAULT 'trend',
+      title VARCHAR(300) NOT NULL,
+      keywords JSON, sources TEXT,
+      status ENUM('planned','generating','published','skipped') NOT NULL DEFAULT 'planned',
+      generatedArticleId INT, createdBy INT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_queue_date (scheduledDate), INDEX idx_queue_status (status)
+    )`);
 
     await conn.execute(`CREATE TABLE IF NOT EXISTS subscribers (
       id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(320) NOT NULL UNIQUE,

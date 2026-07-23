@@ -88,6 +88,7 @@ const AdminJourneyAnalytics = lazy(() => import("./pages/AdminJourneyAnalytics")
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const AdminFinance = lazy(() => import("./pages/AdminFinance"));
 const AdminMarketing = lazy(() => import("./pages/AdminMarketing"));
+const AdminContentCalendar = lazy(() => import("./pages/AdminContentCalendar"));
 
 // Auth pages
 const AuthLogin = lazy(() => import("./pages/AuthLogin"));
@@ -184,6 +185,7 @@ function AdminRouter() {
           <Route path="/admin/journey-analytics" component={AdminJourneyAnalytics} />
           <Route path="/admin/finance" component={AdminFinance} />
           <Route path="/admin/marketing" component={AdminMarketing} />
+          <Route path="/admin/content-calendar" component={AdminContentCalendar} />
           <Route component={NotFound} />
         </Switch>
       </Suspense>

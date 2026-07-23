@@ -41,10 +41,34 @@ export function computeNextFire(nowMs: number): number {
 async function runOnce() {
   try {
     console.log("[InsightScheduler] Firing scheduled insight generation…");
+
+    // 1) 콘텐츠 큐에서 오늘(또는 그 이전) 예정 주제를 우선 사용 (D-11)
+    const { getNextPlannedQueueItem, updateQueueItem } = await import("../db/insightQueue");
+    const todayKst = new Date(Date.now() + KST_OFFSET_MS).toISOString().slice(0, 10);
+    const queued = await getNextPlannedQueueItem(todayKst).catch(() => null);
+
+    if (queued) {
+      await updateQueueItem(queued.id, { status: "generating" }).catch(() => {});
+      try {
+        const result = await generateAndSaveInsight({
+          publish: true,
+          topic: queued.title,
+          category: queued.category,
+          keywords: Array.isArray(queued.keywords) ? queued.keywords : undefined,
+          trendContext: queued.sources ?? undefined,
+        });
+        await updateQueueItem(queued.id, { status: "published", generatedArticleId: result.articleId != null ? Number(result.articleId) : null });
+        console.log(`[InsightScheduler] Done (queue #${queued.id}): id=${result.articleId}, "${result.title}"`);
+        return;
+      } catch (err) {
+        await updateQueueItem(queued.id, { status: "planned" }).catch(() => {}); // 실패 시 되돌림
+        throw err;
+      }
+    }
+
+    // 2) 큐가 비었으면 폴백: 기존 랜덤 자동 주제 생성
     const result = await generateAndSaveInsight({ publish: true });
-    console.log(
-      `[InsightScheduler] Done: id=${result.articleId}, status=${result.status}, title="${result.title}"`
-    );
+    console.log(`[InsightScheduler] Done (random fallback): id=${result.articleId}, status=${result.status}, title="${result.title}"`);
   } catch (err) {
     console.error("[InsightScheduler] Generation failed:", err);
   }

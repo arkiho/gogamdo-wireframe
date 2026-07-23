@@ -62,6 +62,7 @@ import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoF
 import { sendVerificationEmail, sendPasswordResetEmail, sendSurveyReportEmail, sendCompanySurveyInviteEmail } from "./email";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
 import { invokeLLM } from "./_core/llm";
+import { listQueue, createQueueItem, updateQueueItem, deleteQueueItem } from "./db/insightQueue";
 import { generateImage } from "./_core/imageGeneration";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
@@ -3977,6 +3978,66 @@ ${topicPrompt}
     listAll: adminProcedure.query(async () => {
       return listWorkspaceJourneys();
     }),
+  }),
+
+  // ============ 인사이트 콘텐츠 큐 (발행 주제 캘린더) — D-11 ============
+  insightQueue: router({
+    list: adminProcedure.query(async () => {
+      return listQueue();
+    }),
+    create: adminProcedure
+      .input(z.object({
+        scheduledDate: z.string(),
+        category: z.enum(["trend", "cost_guide", "case_study", "tip", "news"]),
+        title: z.string().min(1),
+        keywords: z.array(z.string()).optional(),
+        sources: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const r = await createQueueItem({ ...input, createdBy: ctx.user.id } as any);
+        return { id: r?.id };
+      }),
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        scheduledDate: z.string().optional(),
+        category: z.enum(["trend", "cost_guide", "case_study", "tip", "news"]).optional(),
+        title: z.string().optional(),
+        keywords: z.array(z.string()).optional(),
+        sources: z.string().optional(),
+        status: z.enum(["planned", "generating", "published", "skipped"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateQueueItem(id, data as any);
+        return { success: true };
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteQueueItem(input.id);
+        return { success: true };
+      }),
+    // AI 트렌드 주제 추천 — LLM으로 후보 N개 생성
+    suggest: adminProcedure
+      .input(z.object({ count: z.number().min(1).max(10).default(5) }).optional())
+      .mutation(async ({ input }) => {
+        const n = input?.count ?? 5;
+        const res = await invokeLLM({
+          messages: [
+            { role: "system", content: `당신은 (주)고감도(사무실 인테리어·데이터 기반 공간 설계 전문)의 콘텐츠 기획자입니다. 최신 오피스/인테리어/공간 트렌드에 맞는 인사이트 주제 후보를 JSON 배열로만 응답하세요. 각 항목: {"title":"제목","category":"trend|cost_guide|case_study|tip|news","keywords":["키워드",...],"sources":"참고 방향"}. 고감도 강점(데이터 기반 설계·비용절감·업무환경)을 살리되 홍보문구는 배제.` },
+            { role: "user", content: `${n}개의 인사이트 주제 후보를 JSON 배열로만 제안해주세요.` },
+          ],
+        });
+        let candidates: any[] = [];
+        try {
+          const raw = res.choices[0].message.content || "[]";
+          const jsonStart = raw.indexOf("[");
+          const jsonEnd = raw.lastIndexOf("]");
+          candidates = JSON.parse(jsonStart >= 0 ? raw.slice(jsonStart, jsonEnd + 1) : "[]");
+        } catch { candidates = []; }
+        return { candidates: candidates.slice(0, n) };
+      }),
   }),
 });
 

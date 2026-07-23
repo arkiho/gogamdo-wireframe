@@ -940,6 +940,27 @@ export type InsightArticle = typeof insightArticles.$inferSelect;
 export type InsertInsightArticle = typeof insightArticles.$inferInsert;
 
 /**
+ * 인사이트 콘텐츠 큐 (발행 주제 캘린더) — D-11
+ * 관리자가 주제를 미리 쌓고, 스케줄러가 평일마다 큐에서 꺼내 생성·발행한다.
+ */
+export const insightContentQueue = mysqlTable("insight_content_queue", {
+  id: int("id").autoincrement().primaryKey(),
+  scheduledDate: varchar("scheduledDate", { length: 20 }).notNull(), // YYYY-MM-DD
+  category: mysqlEnum("category", ["trend", "cost_guide", "case_study", "tip", "news"]).default("trend").notNull(),
+  title: varchar("title", { length: 300 }).notNull(),      // 주제/가제
+  keywords: json("keywords").$type<string[]>(),
+  sources: text("sources"),                                 // 참고자료
+  status: mysqlEnum("status", ["planned", "generating", "published", "skipped"]).default("planned").notNull(),
+  generatedArticleId: int("generatedArticleId"),            // 발행 후 insight_articles 연결
+  createdBy: int("createdBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type InsightContentQueue = typeof insightContentQueue.$inferSelect;
+export type InsertInsightContentQueue = typeof insightContentQueue.$inferInsert;
+
+/**
  * 뉴스레터 구독자(Newsletter Subscribers)
  */
 export const newsletterSubscribers = mysqlTable("newsletter_subscribers", {

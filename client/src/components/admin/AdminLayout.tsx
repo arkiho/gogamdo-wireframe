@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Inbox, Users, GitBranch, BarChart3, Activity,
   FileText, Mail, Image as ImageIcon, Star, Megaphone,
   HardHat, HeartHandshake, Sparkles, ClipboardList, Package,
-  MessageSquare, Wand2, UserCog, Target, Download, Receipt, Bell, HardDrive, Banknote, TrendingUp,
+  MessageSquare, Wand2, UserCog, Target, Download, Receipt, Bell, HardDrive, Banknote, TrendingUp, CalendarDays,
   Settings, ScrollText, Search, Menu, X, Loader2, ExternalLink, LogOut,
 } from "lucide-react";
 
@@ -38,6 +38,7 @@ const NAV: NavGroup[] = [
     title: "콘텐츠 · 마케팅",
     items: [
       { label: "인사이트", href: "/admin/insights", icon: FileText },
+      { label: "콘텐츠 캘린더", href: "/admin/content-calendar", icon: CalendarDays },
       { label: "뉴스레터 · 구독자", href: "/admin/newsletter", icon: Mail },
       { label: "고객 사례(포트폴리오)", href: "/admin/portfolios", icon: ImageIcon },
       { label: "리뷰", href: "/admin/reviews", icon: Star },
