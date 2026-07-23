@@ -1,7 +1,7 @@
 /**
  * 서버 내부 인사이트 자동 발행 스케줄러 (의존성 없는 순수 타이머)
  *
- * 매주 화요일·금요일 09:00 (KST, Asia/Seoul, UTC+9 고정)에
+ * 매주 평일(월~금) 09:00 (KST, Asia/Seoul, UTC+9 고정)에
  * 인사이트 아티클을 자동 생성 + 발행합니다.
  *
  * - 외부 핑거/크론 서비스가 필요 없습니다. 앱 프로세스가 스스로 예약합니다.
@@ -12,7 +12,7 @@ import { generateAndSaveInsight } from "./insightGenerator";
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000; // UTC+9 (한국은 서머타임 없음)
 const FIRE_HOUR_KST = 9; // 09:00
-const FIRE_DAYS = [2, 5]; // 0=일 ... 2=화, 5=금
+const FIRE_DAYS = [1, 2, 3, 4, 5]; // 0=일 ... 평일(월~금)
 const MAX_TIMEOUT_MS = 2 ** 31 - 1; // setTimeout 최대 지연
 
 let started = false;
@@ -88,6 +88,6 @@ export function startInsightScheduler() {
     return;
   }
   started = true;
-  console.log("[InsightScheduler] Started — 매주 화·금 09:00 KST 자동 발행");
+  console.log("[InsightScheduler] Started — 평일(월~금) 09:00 KST 자동 발행");
   scheduleNext();
 }
