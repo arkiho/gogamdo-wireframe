@@ -198,31 +198,8 @@ export default function AdminDashboard() {
   // DDIA 바로가기 링크
 
   return (
-    <div className="min-h-screen bg-paper">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <span className="flex items-center gap-2 text-sm text-muted-foreground hover:text-ink transition-colors">
-                <ArrowLeft className="w-4 h-4" />
-                사이트로
-              </span>
-            </Link>
-            <div className="h-5 w-px bg-border" />
-            <Logo className="w-24 h-6" color="#111" />
-            <span className="text-xs font-medium tracking-widest uppercase text-gold">Admin</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <NotificationCenter />
-            <span className="text-sm text-muted-foreground">{user.name || user.email}</span>
-            <Button variant="ghost" size="sm" onClick={logout}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <div className="bg-paper">
+      {/* 헤더·전역 네비게이션은 AdminLayout(사이드바 셸)이 제공 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tab Navigation */}
         <div className="flex gap-1 mb-8 bg-white rounded-lg p-1 border border-border/50 w-fit">

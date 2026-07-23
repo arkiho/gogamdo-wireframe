@@ -85,6 +85,7 @@ const EmployeeDashboard = lazy(() => import("./pages/EmployeeDashboard"));
 const AdminKpiOkr = lazy(() => import("./pages/AdminKpiOkr"));
 const AdminPipelineOverview = lazy(() => import("./pages/AdminPipelineOverview"));
 const AdminJourneyAnalytics = lazy(() => import("./pages/AdminJourneyAnalytics"));
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 
 // Auth pages
 const AuthLogin = lazy(() => import("./pages/AuthLogin"));
@@ -142,6 +143,38 @@ function PublicRouter() {
   );
 }
 
+// 관리자 셸(사이드바) 안에서 개별 admin 페이지를 라우팅
+function AdminRouter() {
+  return (
+    <AdminLayout>
+      <Suspense fallback={<LazyFallback />}>
+        <Switch>
+          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin/portfolios" component={AdminPortfolios} />
+          <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />
+          <Route path="/admin/ddia" component={AdminDDIA} />
+          <Route path="/admin/crm" component={AdminCRM} />
+          <Route path="/admin/design-auto" component={AdminDesignAuto} />
+          <Route path="/admin/reviews" component={AdminReviews} />
+          <Route path="/admin/newsletter" component={AdminNewsletter} />
+          <Route path="/admin/insights" component={AdminInsights} />
+          <Route path="/admin/client-pipeline" component={AdminClientPipeline} />
+          <Route path="/admin/download-logs" component={AdminDownloadLogs} />
+          <Route path="/admin/settings" component={AdminSettings} />
+          <Route path="/admin/survey" component={AdminSurveyAutomation} />
+          <Route path="/admin/vendor" component={AdminVendorPortal} />
+          <Route path="/admin/aftercare" component={AdminPostOccupancy} />
+          <Route path="/admin/employee" component={EmployeeDashboard} />
+          <Route path="/admin/kpi-okr" component={AdminKpiOkr} />
+          <Route path="/admin/pipeline" component={AdminPipelineOverview} />
+          <Route path="/admin/journey-analytics" component={AdminJourneyAnalytics} />
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
+    </AdminLayout>
+  );
+}
+
 function Router() {
   return (
     <Suspense fallback={<LazyFallback />}>
@@ -188,26 +221,9 @@ function Router() {
         <Route path="/staff-join" component={StaffJoin} />
         {/* 오프라인 페이지 */}
         <Route path="/offline" component={Offline} />
-        {/* Admin routes */}
-        <Route path="/admin" component={AdminDashboard} />
-        <Route path="/admin/portfolios" component={AdminPortfolios} />
-        <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />
-        <Route path="/admin/ddia" component={AdminDDIA} />
-        <Route path="/admin/crm" component={AdminCRM} />
-        <Route path="/admin/design-auto" component={AdminDesignAuto} />
-        <Route path="/admin/reviews" component={AdminReviews} />
-        <Route path="/admin/newsletter" component={AdminNewsletter} />
-        <Route path="/admin/insights" component={AdminInsights} />
-        <Route path="/admin/client-pipeline" component={AdminClientPipeline} />
-        <Route path="/admin/download-logs" component={AdminDownloadLogs} />
-        <Route path="/admin/settings" component={AdminSettings} />
-        <Route path="/admin/survey" component={AdminSurveyAutomation} />
-        <Route path="/admin/vendor" component={AdminVendorPortal} />
-        <Route path="/admin/aftercare" component={AdminPostOccupancy} />
-        <Route path="/admin/employee" component={EmployeeDashboard} />
-        <Route path="/admin/kpi-okr" component={AdminKpiOkr} />
-        <Route path="/admin/pipeline" component={AdminPipelineOverview} />
-        <Route path="/admin/journey-analytics" component={AdminJourneyAnalytics} />
+        {/* Admin routes — 사이드바 셸(AdminLayout)로 감싼 중첩 라우터 */}
+        <Route path="/admin/:rest*" component={AdminRouter} />
+        <Route path="/admin" component={AdminRouter} />
         <Route component={PublicRouter} />
       </Switch>
     </Suspense>
