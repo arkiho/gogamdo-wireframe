@@ -150,6 +150,18 @@ function AdminRouter() {
       <Suspense fallback={<LazyFallback />}>
         <Switch>
           <Route path="/admin" component={AdminDashboard} />
+          {/* 대시보드 내부 탭 → 사이드바 라우트 (모두 AdminDashboard가 URL로 탭 결정) */}
+          <Route path="/admin/inquiries" component={AdminDashboard} />
+          <Route path="/admin/subscribers" component={AdminDashboard} />
+          <Route path="/admin/estimates" component={AdminDashboard} />
+          <Route path="/admin/leads" component={AdminDashboard} />
+          <Route path="/admin/ai-chat" component={AdminDashboard} />
+          <Route path="/admin/ai-style" component={AdminDashboard} />
+          <Route path="/admin/announcements" component={AdminDashboard} />
+          <Route path="/admin/popups" component={AdminDashboard} />
+          <Route path="/admin/notifications" component={AdminDashboard} />
+          <Route path="/admin/drive-sync" component={AdminDashboard} />
+          <Route path="/admin/deletion-log" component={AdminDashboard} />
           <Route path="/admin/portfolios" component={AdminPortfolios} />
           <Route path="/admin/portfolio/:id" component={AdminPortfolioDetail} />
           <Route path="/admin/ddia" component={AdminDDIA} />

@@ -13,8 +13,8 @@ import {
   LayoutDashboard, Inbox, Users, GitBranch, BarChart3, Activity,
   FileText, Mail, Image as ImageIcon, Star, Megaphone,
   HardHat, HeartHandshake, Sparkles, ClipboardList, Package,
-  MessageSquare, Wand2, UserCog, Target,
-  Settings, ScrollText, RefreshCw, Search, Menu, X, Loader2, ExternalLink, LogOut,
+  MessageSquare, Wand2, UserCog, Target, Download, Receipt, Bell, HardDrive,
+  Settings, ScrollText, Search, Menu, X, Loader2, ExternalLink, LogOut,
 } from "lucide-react";
 
 type NavItem = { label: string; href: string; icon: any; badge?: "inquiries"; external?: boolean };
@@ -25,7 +25,9 @@ const NAV: NavGroup[] = [
   {
     title: "영업 · 고객",
     items: [
-      { label: "문의", href: "/admin", icon: Inbox, badge: "inquiries" },
+      { label: "문의", href: "/admin/inquiries", icon: Inbox, badge: "inquiries" },
+      { label: "리드", href: "/admin/leads", icon: Download },
+      { label: "견적", href: "/admin/estimates", icon: Receipt },
       { label: "CRM 고객관리", href: "/admin/crm", icon: Users },
       { label: "고객 파이프라인", href: "/admin/client-pipeline", icon: GitBranch },
       { label: "E2E 파이프라인 현황", href: "/admin/pipeline", icon: BarChart3 },
@@ -39,7 +41,7 @@ const NAV: NavGroup[] = [
       { label: "뉴스레터 · 구독자", href: "/admin/newsletter", icon: Mail },
       { label: "고객 사례(포트폴리오)", href: "/admin/portfolios", icon: ImageIcon },
       { label: "리뷰", href: "/admin/reviews", icon: Star },
-      { label: "공지 · 팝업", href: "/admin/settings", icon: Megaphone },
+      { label: "공지 · 팝업", href: "/admin/announcements", icon: Megaphone },
     ],
   },
   {
@@ -55,8 +57,8 @@ const NAV: NavGroup[] = [
   {
     title: "AI 서비스",
     items: [
-      { label: "AI 상담", href: "/ai-chat", icon: MessageSquare, external: true },
-      { label: "AI 스타일", href: "/ai-style", icon: Wand2, external: true },
+      { label: "AI 상담", href: "/admin/ai-chat", icon: MessageSquare },
+      { label: "AI 스타일", href: "/admin/ai-style", icon: Wand2 },
     ],
   },
   {
@@ -69,8 +71,11 @@ const NAV: NavGroup[] = [
 ];
 
 const UTIL: NavItem[] = [
+  { label: "알림센터", href: "/admin/notifications", icon: Bell },
+  { label: "드라이브 동기화", href: "/admin/drive-sync", icon: HardDrive },
   { label: "사이트 설정", href: "/admin/settings", icon: Settings },
   { label: "로그 (다운로드 · 삭제)", href: "/admin/download-logs", icon: ScrollText },
+  { label: "삭제 로그", href: "/admin/deletion-log", icon: ScrollText },
 ];
 
 // 라우트 → 라벨 (브레드크럼용)

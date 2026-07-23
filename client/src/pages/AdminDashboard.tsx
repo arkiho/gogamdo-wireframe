@@ -30,6 +30,22 @@ import NotificationCenter from "@/components/NotificationCenter";
 
 type TabType = "overview" | "inquiries" | "subscribers" | "estimates" | "leads" | "ai-chat" | "ai-style" | "announcements" | "popups" | "notifications" | "portfolio" | "drive-sync" | "deletion-log";
 
+// URL → 활성 탭 (사이드바 라우팅. 탭 바 대신 사이드바가 내비게이션 담당)
+const PATH_TO_TAB: Record<string, TabType> = {
+  "/admin": "overview",
+  "/admin/inquiries": "inquiries",
+  "/admin/subscribers": "subscribers",
+  "/admin/estimates": "estimates",
+  "/admin/leads": "leads",
+  "/admin/ai-chat": "ai-chat",
+  "/admin/ai-style": "ai-style",
+  "/admin/announcements": "announcements",
+  "/admin/popups": "popups",
+  "/admin/notifications": "notifications",
+  "/admin/drive-sync": "drive-sync",
+  "/admin/deletion-log": "deletion-log",
+};
+
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   new: { label: "신규", variant: "destructive" },
   contacted: { label: "연락완료", variant: "default" },
@@ -50,8 +66,8 @@ function formatNumber(n: number | null | undefined) {
 
 export default function AdminDashboard() {
   const { user, loading, logout } = useAuth();
-  const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [location, navigate] = useLocation();
+  const activeTab: TabType = PATH_TO_TAB[location] ?? "overview";
   const [expandedInquiry, setExpandedInquiry] = useState<number | null>(null);
 
   // 일괄 선택/삭제 상태
@@ -199,33 +215,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="bg-paper">
-      {/* 헤더·전역 네비게이션은 AdminLayout(사이드바 셸)이 제공 */}
+      {/* 헤더·전역 네비게이션은 AdminLayout(사이드바 셸)이 제공. 탭은 사이드바 라우트로 대체됨 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tab Navigation */}
-        <div className="flex gap-1 mb-8 bg-white rounded-lg p-1 border border-border/50 w-fit">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => tab.href ? navigate(tab.href) : setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? "bg-ink text-white"
-                  : "text-muted-foreground hover:text-ink hover:bg-paper-warm"
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-              {tab.count != null && tab.count > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  activeTab === tab.id ? "bg-gold text-ink" : "bg-muted text-muted-foreground"
-                }`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="space-y-8">
@@ -281,7 +272,7 @@ export default function AdminDashboard() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-heading">최근 문의</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveTab("inquiries")} className="text-gold hover:text-gold-dark">
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/admin/inquiries")} className="text-gold hover:text-gold-dark">
                     전체 보기
                   </Button>
                 </div>
