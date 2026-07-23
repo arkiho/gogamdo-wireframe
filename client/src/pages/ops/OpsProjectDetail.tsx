@@ -9,7 +9,85 @@ import {
   ArrowLeft, Building2, MapPin, Calendar, Ruler, Banknote,
   BarChart3, ClipboardList, FileText, Receipt, Users, FileSpreadsheet,
   FileSignature, Calculator, Wallet, Camera, Link2, Star, Download, CheckCircle2, Sparkles,
+  LayoutDashboard,
 } from "lucide-react";
+
+// 프로젝트 콘솔 그룹형 네비게이션 (목업 gogamdo-project-console)
+const CONSOLE_GROUPS: { title: string; items: { v: string; label: string; icon: any; badge?: boolean }[] }[] = [
+  { title: "현황", items: [{ v: "overview", label: "대시보드", icon: LayoutDashboard }] },
+  { title: "공정 관리", items: [
+    { v: "schedule", label: "공정표", icon: ClipboardList },
+    { v: "reports", label: "작업보고", icon: FileText },
+    { v: "meetings", label: "회의록", icon: FileText },
+  ] },
+  { title: "정산 · 비용", items: [
+    { v: "expenses", label: "지출결의서", icon: Receipt, badge: true },
+    { v: "settlement", label: "실행정산표", icon: Wallet },
+    { v: "estimates", label: "견적서", icon: FileSpreadsheet },
+    { v: "contracts", label: "계약서", icon: FileSignature },
+    { v: "cost", label: "원가", icon: Calculator },
+  ] },
+  { title: "협력 · 현장", items: [
+    { v: "subcontractors", label: "하도급", icon: Users },
+    { v: "evaluation", label: "평가", icon: Star },
+    { v: "camera", label: "현장 CCTV", icon: Camera },
+  ] },
+];
+const CONSOLE_ITEMS = CONSOLE_GROUPS.flatMap((g) => g.items);
+
+function ProjectConsoleNav({ active, onSelect, pending }: { active: string; onSelect: (v: string) => void; pending: number }) {
+  return (
+    <>
+      {/* 모바일: 수평 스크롤 pill 바 */}
+      <div className="lg:hidden overflow-x-auto -mx-4 px-4 scrollbar-hide mb-3">
+        <div className="inline-flex gap-1 bg-muted/50 p-1 rounded-lg w-max">
+          {CONSOLE_ITEMS.map((it) => {
+            const Icon = it.icon;
+            const on = active === it.v;
+            return (
+              <button key={it.v} onClick={() => onSelect(it.v)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] whitespace-nowrap transition-colors ${on ? "bg-ink text-white font-medium" : "text-muted-foreground"}`}>
+                <Icon className="w-3.5 h-3.5" />{it.label}
+                {it.badge && pending > 0 && <span className={`text-[9px] px-1 rounded-full ${on ? "bg-gold text-ink" : "bg-red-500 text-white"}`}>{pending}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 데스크톱: 그룹형 다크 사이드바 */}
+      <aside className="hidden lg:block lg:sticky lg:top-4 rounded-xl bg-[#16150f] text-[#e9e6da] overflow-hidden self-start">
+        <div className="px-4 py-3.5 border-b border-white/[0.08]">
+          <div className="font-extrabold text-[13px] text-white">현장 콘솔</div>
+          <div className="text-[9px] tracking-[1.5px] text-[#7a7566] uppercase mt-0.5">Project Console</div>
+        </div>
+        <nav className="p-2.5">
+          {CONSOLE_GROUPS.map((g) => (
+            <div key={g.title} className="mt-3 first:mt-1">
+              <div className="text-[10px] tracking-[1.2px] uppercase text-[#6f6a5c] font-semibold px-2.5 pb-1.5">{g.title}</div>
+              <div className="space-y-px">
+                {g.items.map((it) => {
+                  const Icon = it.icon;
+                  const on = active === it.v;
+                  return (
+                    <button key={it.v} onClick={() => onSelect(it.v)}
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-colors ${on ? "bg-gold text-[#1a1710] font-semibold" : "text-[#c3bfb1] hover:bg-white/[0.055] hover:text-white"}`}>
+                      <Icon className="w-[16px] h-[16px] flex-shrink-0 opacity-90" />
+                      <span className="truncate">{it.label}</span>
+                      {it.badge && pending > 0 && (
+                        <span className={`ml-auto text-[10px] font-semibold px-1.5 rounded-full ${on ? "bg-[#1a1710] text-gold-light" : "bg-red-500 text-white"}`}>{pending}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </aside>
+    </>
+  );
+}
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -56,6 +134,9 @@ export default function OpsProjectDetail() {
   const utils = trpc.useUtils();
 
   const project = trpc.ops.project.get.useQuery({ id: Number(id) });
+  // 사이드바 '지출결의서' 결재 대기 배지
+  const expensesQ = trpc.ops.expense.list.useQuery({ projectId: Number(id) }, { enabled: !!id });
+  const pendingExpenses = (expensesQ.data ?? []).filter((e: any) => ["submitted", "in_review"].includes(e.status)).length;
 
   const updateProject = trpc.ops.project.update.useMutation({
     onSuccess: (_, variables) => {
@@ -266,26 +347,12 @@ export default function OpsProjectDetail() {
         )}
       </div>
 
-      {/* Tabs - 모바일에서 수평 스크롤 */}
+      {/* 프로젝트 콘솔 — 그룹형 사이드바 + 콘텐츠 (목업 gogamdo-project-console) */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-          <TabsList className="inline-flex w-max sm:flex sm:flex-wrap sm:w-auto h-auto gap-0.5 sm:gap-1 bg-muted/50 p-1">
-            <TabsTrigger value="overview" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /><span className="hidden xs:inline">개요</span><span className="xs:hidden">개요</span></TabsTrigger>
-            <TabsTrigger value="schedule" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><ClipboardList className="w-3 h-3 sm:w-3.5 sm:h-3.5" />공정표</TabsTrigger>
-            <TabsTrigger value="reports" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />보고서</TabsTrigger>
-            <TabsTrigger value="meetings" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />회의록</TabsTrigger>
-            <TabsTrigger value="expenses" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Receipt className="w-3 h-3 sm:w-3.5 sm:h-3.5" />결의서</TabsTrigger>
-            <TabsTrigger value="subcontractors" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />하도급</TabsTrigger>
-            <TabsTrigger value="estimates" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileSpreadsheet className="w-3 h-3 sm:w-3.5 sm:h-3.5" />견적서</TabsTrigger>
-            <TabsTrigger value="contracts" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><FileSignature className="w-3 h-3 sm:w-3.5 sm:h-3.5" />계약서</TabsTrigger>
-            <TabsTrigger value="cost" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Calculator className="w-3 h-3 sm:w-3.5 sm:h-3.5" />원가</TabsTrigger>
-            <TabsTrigger value="settlement" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Wallet className="w-3 h-3 sm:w-3.5 sm:h-3.5" />실행정산</TabsTrigger>
-            <TabsTrigger value="evaluation" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Star className="w-3 h-3 sm:w-3.5 sm:h-3.5" />평가</TabsTrigger>
-            <TabsTrigger value="camera" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5"><Camera className="w-3 h-3 sm:w-3.5 sm:h-3.5" />카메라</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="overview" className="mt-4">
+        <div className="lg:grid lg:grid-cols-[210px_1fr] lg:gap-5 lg:items-start">
+          <ProjectConsoleNav active={activeTab} onSelect={setActiveTab} pending={pendingExpenses} />
+          <div className="min-w-0">
+        <TabsContent value="overview" className="mt-4 lg:mt-0">
           <OverviewTab projectId={id!} />
         </TabsContent>
         <TabsContent value="schedule" className="mt-4">
@@ -318,9 +385,11 @@ export default function OpsProjectDetail() {
         <TabsContent value="evaluation" className="mt-4">
           <EvaluationTab projectId={id!} />
         </TabsContent>
-        <TabsContent value="camera" className="mt-4">
+        <TabsContent value="camera" className="mt-4 lg:mt-0">
           <CameraTabComponent projectId={id!} />
         </TabsContent>
+          </div>
+        </div>
       </Tabs>
 
       {/* 프로젝트 정보 수정 다이얼로그 */}
