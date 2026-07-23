@@ -79,7 +79,6 @@ const AdminDownloadLogs = lazy(() => import("./pages/AdminDownloadLogs"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const AdminPortfolios = lazy(() => import("./pages/AdminPortfolios"));
 const AdminSurveyAutomation = lazy(() => import("./pages/AdminSurveyAutomation"));
-const AdminRealestateMatching = lazy(() => import("./pages/AdminRealestateMatching"));
 const AdminVendorPortal = lazy(() => import("./pages/AdminVendorPortal"));
 const AdminPostOccupancy = lazy(() => import("./pages/AdminPostOccupancy"));
 const EmployeeDashboard = lazy(() => import("./pages/EmployeeDashboard"));
@@ -203,7 +202,6 @@ function Router() {
         <Route path="/admin/download-logs" component={AdminDownloadLogs} />
         <Route path="/admin/settings" component={AdminSettings} />
         <Route path="/admin/survey" component={AdminSurveyAutomation} />
-        <Route path="/admin/realestate" component={AdminRealestateMatching} />
         <Route path="/admin/vendor" component={AdminVendorPortal} />
         <Route path="/admin/aftercare" component={AdminPostOccupancy} />
         <Route path="/admin/employee" component={EmployeeDashboard} />
