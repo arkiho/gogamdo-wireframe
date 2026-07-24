@@ -337,6 +337,59 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
 }
 
 /**
+ * 직원 초대 이메일 발송 (E-14) — 초대 링크로 즉시 가입.
+ */
+export async function sendStaffInviteEmail(data: {
+  email: string;
+  inviteUrl: string;
+  inviterName?: string;
+  departmentLabel?: string;
+  roleLabel?: string;
+}): Promise<EmailResult> {
+  const html = emailWrapper(`
+    <h1 style="font-size:20px;color:#1a1a1a;margin:0 0 8px 0;font-weight:700;">
+      고감도 직원 콘솔에 초대되었습니다
+    </h1>
+    <p style="font-size:14px;color:#666;margin:0 0 24px 0;line-height:1.6;">
+      ${data.inviterName ? `<strong>${data.inviterName}</strong>님이 ` : ""}회원님을 고감도 직원 콘솔에 초대했습니다.<br>
+      ${data.departmentLabel ? `소속: <strong>${data.departmentLabel}</strong>${data.roleLabel ? ` · ${data.roleLabel}` : ""}<br>` : ""}
+      아래 버튼을 눌러 이름·연락처·비밀번호를 설정하면 별도 승인 없이 바로 이용할 수 있습니다.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0;">
+      <tr>
+        <td align="center">
+          <a href="${data.inviteUrl}"
+             style="display:inline-block;background-color:#c8a97e;color:#1a1a1a;text-decoration:none;padding:14px 32px;font-size:14px;font-weight:700;letter-spacing:0.5px;">
+            초대 수락하고 가입하기
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:12px;color:#999;margin:0;line-height:1.6;">
+      이 초대는 발송 후 7일간 유효합니다. 버튼이 열리지 않으면 아래 주소를 복사해 접속하세요.<br>
+      <span style="color:#c8a97e;word-break:break-all;">${data.inviteUrl}</span>
+    </p>
+  `);
+
+  const result = await sendViaResend({
+    to: data.email,
+    subject: "[고감도] 직원 콘솔 초대 안내",
+    html,
+  });
+
+  if (result.sent) return result;
+
+  try {
+    await notifyOwner({
+      title: `[고감도] 직원 초대 발송 필요: ${data.email}`,
+      content: `직원 초대 링크를 직접 전달해주세요.\n\n초대 링크: ${data.inviteUrl}\n\n※ Resend API 키가 없어 자동 발송이 되지 않았습니다.`,
+    });
+  } catch { /* ignore */ }
+
+  return result;
+}
+
+/**
  * 리뷰 요청 이메일 발송
  */
 export async function sendReviewRequestEmail(data: ReviewEmailData): Promise<{ sent: boolean; method: string }> {

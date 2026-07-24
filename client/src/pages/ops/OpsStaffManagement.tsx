@@ -88,6 +88,14 @@ export default function OpsStaffManagement() {
     },
     onError: (err: any) => toast.error(err.message),
   });
+  const cancelInvite = trpc.staffManagement.cancelInvitation.useMutation({
+    onSuccess: () => { invitations.refetch(); toast.success("초대가 회수되었습니다."); },
+    onError: (err: any) => toast.error(err.message),
+  });
+  const resendInvite = trpc.staffManagement.invite.useMutation({
+    onSuccess: () => { invitations.refetch(); toast.success("초대를 재발송했습니다."); },
+    onError: (err: any) => toast.error(err.message),
+  });
   const deactivateStaff = trpc.staffManagement.deactivateStaff.useMutation({
     onSuccess: () => { staff.refetch(); toast.success("직원이 비활성화되었습니다."); },
     onError: (err: any) => toast.error(err.message),
@@ -585,6 +593,7 @@ export default function OpsStaffManagement() {
                       <th className="pb-2 font-medium">부서</th>
                       <th className="pb-2 font-medium">상태</th>
                       <th className="pb-2 font-medium">발송일</th>
+                      <th className="pb-2 font-medium text-right">관리</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -610,6 +619,24 @@ export default function OpsStaffManagement() {
                         </td>
                         <td className="py-3 text-muted-foreground text-xs">
                           {new Date(inv.createdAt).toLocaleDateString("ko-KR")}
+                        </td>
+                        <td className="py-3 text-right whitespace-nowrap">
+                          {(inv.status === "pending" || inv.status === "expired") ? (
+                            <div className="inline-flex gap-1.5">
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
+                                disabled={resendInvite.isPending}
+                                onClick={() => resendInvite.mutate({ email: inv.email, department: inv.department ?? "none", opsRole: inv.opsRole ?? "staff" })}>
+                                재발송
+                              </Button>
+                              {inv.status === "pending" && (
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-500"
+                                  disabled={cancelInvite.isPending}
+                                  onClick={() => { if (confirm(`${inv.email} 초대를 회수할까요?`)) cancelInvite.mutate({ id: inv.id }); }}>
+                                  회수
+                                </Button>
+                              )}
+                            </div>
+                          ) : <span className="text-muted-foreground text-xs">-</span>}
                         </td>
                       </tr>
                     ))}

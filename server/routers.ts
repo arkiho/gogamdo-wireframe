@@ -1,4 +1,5 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { sdk } from "./_core/sdk";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -41,13 +42,13 @@ import {
   getHourlyOccupancyPattern, getZoneTransitions,
   createSensorApiKey, listSensorApiKeys, revokeSensorApiKey,
   createClient, getClientByEmail, getClientById, updateClient, listClients, getClientByVerifyToken, getClientByResetToken,
-  getUserById, updateUserFields,
+  getUserById, getUserByEmail, updateUserFields,
   getSiteSetting, setSiteSetting, listSiteSettings, deleteUser,
   listStaffMembers, updateUserRole, updateUserDepartment,
   createActivityLog, listActivityLogs, getSystemStats, resetSiteSettings, resetAllUserRoles,
   softDeleteRecord, bulkSoftDeleteRecords, listDeletionLogs, restoreDeletedRecord, getDeletionLogStats,
   createStaffApplication, listStaffApplications, reviewStaffApplication, getStaffApplicationById, getStaffApplicationByEmail,
-  createStaffInvitation, listStaffInvitations, getStaffInvitationByToken, acceptStaffInvitation, cancelStaffInvitation,
+  createStaffInvitation, listStaffInvitations, getStaffInvitationByToken, acceptStaffInvitation, cancelStaffInvitation, createStaffFromInvite,
   deactivateStaffMember, reactivateStaffMember,
   listCameras, createCamera, updateCamera, deleteCamera, getCameraById, listCameraEvents, createCameraEvent,
   clockIn, clockOut, getActiveAttendance, listMyAttendance, listAllAttendance,
@@ -60,7 +61,7 @@ import {
   reorderPortfolioDrafts,
 } from "./db";
 import { checkDriveConnection, listFolders, listImageFiles, findCompletionPhotoFolders } from "./googleDrive";
-import { sendVerificationEmail, sendPasswordResetEmail, sendSurveyReportEmail, sendCompanySurveyInviteEmail } from "./email";
+import { sendVerificationEmail, sendPasswordResetEmail, sendSurveyReportEmail, sendCompanySurveyInviteEmail, sendStaffInviteEmail } from "./email";
 import { syncFolder, syncAllProjects } from "./driveSyncPipeline";
 import { invokeLLM } from "./_core/llm";
 import { listQueue, createQueueItem, updateQueueItem, deleteQueueItem } from "./db/insightQueue";
@@ -81,6 +82,14 @@ import { employeePortalRouter } from "./routers/employeePortal";
 import { fieldMeasurementRouter } from "./routers/fieldMeasurement";
 import { hash, compare } from "bcryptjs";
 import { randomBytes } from "crypto";
+
+// 부서·직책 라벨 (직원 초대 이메일 E-14)
+const DEPT_LABEL: Record<string, string> = {
+  design: "설계팀", construction: "공사팀", accounting: "회계팀", management: "경영지원", sales: "영업팀", none: "미배정",
+};
+const OPSROLE_LABEL: Record<string, string> = {
+  pm: "프로젝트 매니저", designer: "설계 담당", site_manager: "현장 소장", accountant: "경리 담당", director: "이사/임원", staff: "일반 직원",
+};
 
 // Admin-only procedure (admin + master 모두 허용)
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -3391,7 +3400,7 @@ ${topicPrompt}
   // 직원 가입신청 / 초대 관리
   // ============================================================
   staffManagement: router({
-    // 공개: 직원 가입 신청
+    // 폐지(E-14): 자가신청 → 초대 전용으로 전환. 직접 가입 경로 차단.
     submitApplication: publicProcedure
       .input(z.object({
         name: z.string().min(1),
@@ -3400,13 +3409,11 @@ ${topicPrompt}
         department: z.enum(["design", "construction", "accounting", "management", "sales", "none"]).optional(),
         message: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
-        const existing = await getStaffApplicationByEmail(input.email);
-        if (existing && existing.status === "pending") {
-          throw new TRPCError({ code: "CONFLICT", message: "이미 가입 신청이 접수되어 있습니다." });
-        }
-        const result = await createStaffApplication(input);
-        return { id: result?.id, message: "가입 신청이 접수되었습니다. 관리자 승인 후 이용 가능합니다." };
+      .mutation(async () => {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "직원 가입은 초대 전용으로 전환되었습니다. 관리자에게 초대를 요청해주세요.",
+        });
       }),
 
     // Admin: 가입 신청 목록
@@ -3439,6 +3446,10 @@ ${topicPrompt}
         opsRole: z.enum(["pm", "designer", "site_manager", "accountant", "director", "staff"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        const existingUser = await getUserByEmail(input.email);
+        if (existingUser && existingUser.isActive) {
+          throw new TRPCError({ code: "CONFLICT", message: "이미 가입된 직원 이메일입니다." });
+        }
         const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7일
         await createStaffInvitation({
@@ -3450,8 +3461,20 @@ ${topicPrompt}
           status: "pending",
           expiresAt,
         });
-        // TODO: 실제 이메일 발송 연동 (Resend API)
-        return { success: true, token, message: `${input.email}로 초대가 발송되었습니다.` };
+        const origin = ctx.req?.headers?.origin || (ctx.req?.headers?.referer?.replace(/\/$/, "")) || "https://kokamdo.co.kr";
+        const inviteUrl = `${origin}/staff/join?token=${token}`;
+        try {
+          await sendStaffInviteEmail({
+            email: input.email,
+            inviteUrl,
+            inviterName: ctx.user.name ?? undefined,
+            departmentLabel: DEPT_LABEL[input.department ?? "none"],
+            roleLabel: OPSROLE_LABEL[input.opsRole ?? "staff"],
+          });
+        } catch (e) {
+          console.warn("[StaffInvite] Email send failed:", e);
+        }
+        return { success: true, token, inviteUrl, message: `${input.email}로 초대가 발송되었습니다.` };
       }),
 
     // Admin: 초대 목록
@@ -3507,7 +3530,49 @@ ${topicPrompt}
         if (!inv) return { valid: false, message: "유효하지 않은 초대입니다." };
         if (inv.status !== "pending") return { valid: false, message: "이미 처리된 초대입니다." };
         if (new Date() > inv.expiresAt) return { valid: false, message: "만료된 초대입니다." };
-        return { valid: true, email: inv.email, department: inv.department, opsRole: inv.opsRole };
+        return {
+          valid: true,
+          email: inv.email,
+          department: inv.department,
+          departmentLabel: DEPT_LABEL[inv.department ?? "none"],
+          opsRole: inv.opsRole,
+          opsRoleLabel: OPSROLE_LABEL[inv.opsRole ?? "staff"],
+        };
+      }),
+
+    // 공개: 초대 수락 → 계정 생성 + 즉시 로그인 (승인 불필요)
+    acceptInvitation: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        name: z.string().min(1).max(100),
+        phone: z.string().max(20).optional(),
+        password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다."),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const inv = await getStaffInvitationByToken(input.token);
+        if (!inv) throw new TRPCError({ code: "NOT_FOUND", message: "유효하지 않은 초대입니다." });
+        if (inv.status !== "pending") throw new TRPCError({ code: "BAD_REQUEST", message: "이미 처리된 초대입니다." });
+        if (new Date() > inv.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "만료된 초대입니다." });
+        const existing = await getUserByEmail(inv.email);
+        if (existing && existing.isActive) {
+          throw new TRPCError({ code: "CONFLICT", message: "이미 가입된 이메일입니다. 로그인해주세요." });
+        }
+        const passwordHash = await hash(input.password, 10);
+        const userId = await createStaffFromInvite({
+          email: inv.email,
+          name: input.name,
+          passwordHash,
+          phone: input.phone,
+          department: inv.department ?? "none",
+          opsRole: inv.opsRole ?? "staff",
+        });
+        if (!userId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "계정 생성에 실패했습니다." });
+        await acceptStaffInvitation(input.token, userId);
+        // 즉시 로그인: 세션 쿠키 발급
+        const sessionToken = await sdk.createSessionToken(userId, { name: input.name, email: inv.email });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, redirect: "/ops" };
       }),
   }),
 

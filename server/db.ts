@@ -3102,6 +3102,37 @@ export async function getStaffInvitationByToken(token: string) {
   return inv ?? null;
 }
 
+// 초대 수락 시 직원 계정 생성 (E-14) — 생성된 user id 반환
+export async function createStaffFromInvite(data: {
+  email: string;
+  name: string;
+  passwordHash: string;
+  phone?: string;
+  department?: "design" | "construction" | "accounting" | "management" | "sales" | "none";
+  opsRole?: "pm" | "designer" | "site_manager" | "accountant" | "director" | "staff";
+}): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  // 부서 → 팀 매핑 (가능한 경우)
+  const teamMap: Record<string, "management" | "construction" | "design"> = {
+    management: "management", construction: "construction", design: "design",
+  };
+  const [r] = await db.insert(users).values({
+    email: data.email,
+    name: data.name,
+    passwordHash: data.passwordHash,
+    phone: data.phone ?? null,
+    department: data.department ?? "none",
+    opsRole: data.opsRole ?? "staff",
+    team: data.department ? (teamMap[data.department] ?? null) : null,
+    role: "user",
+    loginMethod: "email",
+    isActive: 1,
+    lastSignedIn: new Date(),
+  }).$returningId();
+  return r?.id ?? null;
+}
+
 export async function acceptStaffInvitation(token: string, userId: number) {
   const db = await getDb();
   if (!db) return;

@@ -98,10 +98,12 @@ const AuthLogin = lazy(() => import("./pages/AuthLogin"));
 
 // Lazy-loaded misc pages
 const SensorApiDocs = lazy(() => import("./pages/SensorApiDocs"));
-const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
+// 협력사 포털·로그인 비활성화 (고객사 전용 운영)
+// const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
+// const PartnerLogin = lazy(() => import("./pages/PartnerLogin"));
 const StaffJoin = lazy(() => import("./pages/StaffJoin"));
+const StaffInviteAccept = lazy(() => import("./pages/StaffInviteAccept"));
 const StaffPendingApproval = lazy(() => import("./pages/StaffPendingApproval"));
-const PartnerLogin = lazy(() => import("./pages/PartnerLogin"));
 const Offline = lazy(() => import("./pages/Offline"));
 
 function LazyFallback() {
@@ -245,17 +247,19 @@ function Router() {
         <Route path="/client/dashboard" component={ClientSpaceDashboard} />
         {/* 로그인 */}
         <Route path="/auth/login" component={AuthLogin} />
-        {/* 직원 및 협력사 인증 */}
+        {/* 직원 인증 */}
         <Route path="/staff/pending-approval" component={StaffPendingApproval} />
+        {/* 협력사 포털·로그인 — 비활성화 (고객사 전용 운영). 필요 시 재활성.
         <Route path="/partner/login" component={PartnerLogin} />
+        <Route path="/partner-portal" component={PartnerPortal} /> */}
         {/* 개발자 문서 */}
         <Route path="/developer/sensor-api" component={SensorApiDocs} />
         {/* 직원 콘솔 — 공용 상단 셸(OpsLayout)로 감싼 중첩 라우터 */}
         <Route path="/ops/:rest*" component={OpsRouter} />
         <Route path="/ops" component={OpsRouter} />
-        {/* 협력업체 포털 */}
-        <Route path="/partner-portal" component={PartnerPortal} />
-        {/* 직원 가입 신청 */}
+        {/* 직원 초대 수락 (E-14 · 초대 전용) */}
+        <Route path="/staff/join" component={StaffInviteAccept} />
+        {/* 구 자가신청 경로 — 초대 전용 안내로 대체 */}
         <Route path="/staff-join" component={StaffJoin} />
         {/* 오프라인 페이지 */}
         <Route path="/offline" component={Offline} />
