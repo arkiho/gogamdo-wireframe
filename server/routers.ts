@@ -2723,6 +2723,10 @@ ${topicPrompt}
           name: client.name,
           company: client.company,
           phone: client.phone,
+          landline: (client as any).landline ?? "",
+          avatarUrl: (client as any).avatarUrl ?? "",
+          notifPrefs: (client as any).notifPrefs ?? null,
+          hasPassword: !!client.passwordHash,
           assignedProjectIds: client.assignedProjectIds ?? [],
         };
       } catch {
@@ -2739,6 +2743,8 @@ ${topicPrompt}
       name: z.string().min(1).max(100).optional(),
       company: z.string().max(200).optional(),
       phone: z.string().max(20).optional(),
+      landline: z.string().max(20).optional(),
+      avatarUrl: z.string().max(1000).optional(),
     })).mutation(async ({ input, ctx }) => {
       const token = ctx.req.cookies?.client_token;
       if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -2750,7 +2756,22 @@ ${topicPrompt}
       if (input.name) updateData.name = input.name;
       if (input.company !== undefined) updateData.company = input.company;
       if (input.phone !== undefined) updateData.phone = input.phone;
+      if (input.landline !== undefined) updateData.landline = input.landline;
+      if (input.avatarUrl !== undefined) updateData.avatarUrl = input.avatarUrl;
       await updateClient(payload.clientId as number, updateData);
+      return { success: true };
+    }),
+
+    updateNotifPrefs: publicProcedure.input(z.object({
+      prefs: z.record(z.string(), z.boolean()),
+    })).mutation(async ({ input, ctx }) => {
+      const token = ctx.req.cookies?.client_token;
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const { jwtVerify } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.type !== "client") throw new TRPCError({ code: "UNAUTHORIZED" });
+      await updateClient(payload.clientId as number, { notifPrefs: input.prefs } as any);
       return { success: true };
     }),
 

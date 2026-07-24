@@ -81,6 +81,14 @@ async function ensureTables() {
     await addColumnIfMissing("users", "landline", "landline VARCHAR(20) NULL");
     await addColumnIfMissing("users", "avatarUrl", "avatarUrl TEXT NULL");
     await addColumnIfMissing("users", "notifPrefs", "notifPrefs JSON NULL");
+    // 고객 마이페이지(E-13) + 소셜 로그인(F-16): clients_auth 확장
+    await addColumnIfMissing("clients_auth", "landline", "landline VARCHAR(20) NULL");
+    await addColumnIfMissing("clients_auth", "avatarUrl", "avatarUrl TEXT NULL");
+    await addColumnIfMissing("clients_auth", "notifPrefs", "notifPrefs JSON NULL");
+    await addColumnIfMissing("clients_auth", "googleId", "googleId VARCHAR(128) NULL");
+    await addColumnIfMissing("clients_auth", "naverId", "naverId VARCHAR(128) NULL");
+    await addColumnIfMissing("clients_auth", "kakaoId", "kakaoId VARCHAR(128) NULL");
+    await addColumnIfMissing("clients_auth", "loginMethod", "loginMethod VARCHAR(64) NULL");
     // 4팀 조직 구조 (STAFF_UI): 대표자/경영지원/공사팀/설계팀
     await addColumnIfMissing("users", "team", "team ENUM('executive','management','construction','design') NULL");
     // 지출결의서 세무유형·계산결과·지급일정·공정태깅 (STAFF_UI 3)

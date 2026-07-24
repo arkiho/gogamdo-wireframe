@@ -1964,6 +1964,14 @@ export const clients = mysqlTable("clients_auth", {
   name: varchar("name", { length: 100 }).notNull(),
   company: varchar("company", { length: 200 }),
   phone: varchar("phone", { length: 20 }),
+  landline: varchar("landline", { length: 20 }),   // 유선 연락처 (마이페이지)
+  avatarUrl: text("avatarUrl"),                     // 프로필 사진 (마이페이지)
+  notifPrefs: json("notifPrefs"),                   // 알림 설정 { [key]: boolean }
+  // 소셜 로그인 (F-16) — 고객 계정에 제공자 ID 연결
+  googleId: varchar("googleId", { length: 128 }),
+  naverId: varchar("naverId", { length: 128 }),
+  kakaoId: varchar("kakaoId", { length: 128 }),
+  loginMethod: varchar("loginMethod", { length: 64 }),
   /** 이메일 인증 여부 */
   emailVerified: mysqlEnum("emailVerified", ["yes", "no"]).default("no").notNull(),
   emailVerifyToken: varchar("emailVerifyToken", { length: 64 }),

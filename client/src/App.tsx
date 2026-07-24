@@ -36,6 +36,7 @@ const PwaInstallBanner = lazy(() => import("./components/PwaInstallBanner"));
 // Lazy-loaded portal pages
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
 const ClientProjectDetail = lazy(() => import("./pages/ClientProjectDetail"));
+const ClientMyPage = lazy(() => import("./pages/ClientMyPage"));
 const ClientRegister = lazy(() => import("./pages/ClientRegister"));
 const ClientLogin = lazy(() => import("./pages/ClientLogin"));
 const ClientVerifyEmail = lazy(() => import("./pages/ClientVerifyEmail"));
@@ -139,6 +140,7 @@ function PublicRouter() {
           {/* 고객 포털 (로그인 필요) */}
           <Route path="/portal" component={ClientPortal} />
           <Route path="/my" component={ClientPortal} />
+          <Route path="/my/profile" component={ClientMyPage} />
           <Route path="/my/project/:id" component={ClientProjectDetail} />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
