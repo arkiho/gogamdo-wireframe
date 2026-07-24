@@ -8,13 +8,13 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
-import NotificationCenter from "@/components/NotificationCenter";
+import InternalTopbar from "@/components/InternalTopbar";
 import {
   LayoutDashboard, Inbox, Users, GitBranch, BarChart3, Activity,
   FileText, Mail, Image as ImageIcon, Star, Megaphone,
   HardHat, HeartHandshake, Sparkles, ClipboardList, Package,
   MessageSquare, Wand2, UserCog, Target, Download, Receipt, Bell, HardDrive, Banknote, TrendingUp, CalendarDays,
-  Settings, ScrollText, Search, Menu, X, Loader2, ExternalLink, LogOut,
+  Settings, ScrollText, Search, X, Loader2, ExternalLink,
 } from "lucide-react";
 
 type NavItem = { label: string; href: string; icon: any; badge?: "inquiries"; external?: boolean };
@@ -171,7 +171,7 @@ function SidebarBody({ current, onNavigate, inquiries }: { current: string; onNa
 }
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const [location] = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const statsQ = trpc.admin.stats.useQuery(undefined, {
@@ -189,7 +189,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   const crumb = LABEL_BY_HREF[location] ?? "관리자";
-  const initial = (user.name ?? "관").slice(0, 1);
 
   return (
     <div className="min-h-screen bg-paper lg:grid lg:grid-cols-[244px_1fr]">
@@ -215,28 +214,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       {/* Main */}
       <div className="min-w-0 flex flex-col">
-        <header className="sticky top-0 z-10 bg-card border-b border-border flex items-center justify-between gap-3 px-4 lg:px-6 py-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={() => setDrawerOpen(true)}
-              aria-label="메뉴 열기"
-              className="lg:hidden text-muted-foreground hover:text-ink"
-            ><Menu className="w-5 h-5" /></button>
-            <div className="text-[13px] text-muted-foreground truncate">
-              관리자 <span className="mx-1 opacity-50">›</span> <b className="text-ink font-bold">{crumb}</b>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <NotificationCenter />
-            <div className="hidden sm:flex items-center gap-2 text-[12px] text-muted-foreground">
-              <span className="w-[30px] h-[30px] rounded-full bg-[#16150f] text-gold-light flex items-center justify-center text-[12px] font-bold">{initial}</span>
-              <span>{user.name ?? "관리자"}</span>
-            </div>
-            <button onClick={logout} aria-label="로그아웃" className="text-muted-foreground hover:text-ink transition-colors">
-              <LogOut className="w-[18px] h-[18px]" />
-            </button>
-          </div>
-        </header>
+        <InternalTopbar consoleLabel="관리자 콘솔" crumb={crumb} onMobileMenu={() => setDrawerOpen(true)} />
         <main className="flex-1 min-w-0">{children}</main>
       </div>
     </div>

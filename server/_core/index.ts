@@ -77,6 +77,10 @@ async function ensureTables() {
     };
     await addColumnIfMissing("users", "naverId", "naverId VARCHAR(128) UNIQUE");
     await addColumnIfMissing("users", "kakaoId", "kakaoId VARCHAR(128) UNIQUE");
+    // 직원 마이페이지 (E-13): 유선연락처·프로필사진·알림설정
+    await addColumnIfMissing("users", "landline", "landline VARCHAR(20) NULL");
+    await addColumnIfMissing("users", "avatarUrl", "avatarUrl TEXT NULL");
+    await addColumnIfMissing("users", "notifPrefs", "notifPrefs JSON NULL");
     // 4팀 조직 구조 (STAFF_UI): 대표자/경영지원/공사팀/설계팀
     await addColumnIfMissing("users", "team", "team ENUM('executive','management','construction','design') NULL");
     // 지출결의서 세무유형·계산결과·지급일정·공정태깅 (STAFF_UI 3)

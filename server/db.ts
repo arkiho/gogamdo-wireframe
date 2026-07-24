@@ -99,6 +99,19 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+// 마이페이지 (E-13): 본인 프로필/비번/알림 필드 부분 업데이트
+export async function updateUserFields(
+  id: number,
+  fields: Partial<{ name: string; phone: string; landline: string; avatarUrl: string; notifPrefs: unknown; passwordHash: string }>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const set: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(fields)) if (v !== undefined) set[k] = v;
+  if (Object.keys(set).length === 0) return;
+  await db.update(users).set(set).where(eq(users.id, id));
+}
+
 export async function getUserByGoogleId(googleId: string) {
   const db = await getDb();
   if (!db) return undefined;

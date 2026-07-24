@@ -38,6 +38,9 @@ export const users = mysqlTable("users", {
     "staff",         // 일반 직원
   ]).default("staff"),
   phone: varchar("phone", { length: 20 }),
+  landline: varchar("landline", { length: 20 }),   // 유선 연락처 (마이페이지)
+  avatarUrl: text("avatarUrl"),                     // 프로필 사진 (마이페이지)
+  notifPrefs: json("notifPrefs"),                   // 알림 설정 { [key]: boolean }
   isActive: tinyint("isActive").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

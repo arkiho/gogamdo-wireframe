@@ -86,6 +86,8 @@ const AdminKpiOkr = lazy(() => import("./pages/AdminKpiOkr"));
 const AdminPipelineOverview = lazy(() => import("./pages/AdminPipelineOverview"));
 const AdminJourneyAnalytics = lazy(() => import("./pages/AdminJourneyAnalytics"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const OpsLayout = lazy(() => import("./components/ops/OpsLayout"));
+const OpsMyPage = lazy(() => import("./pages/ops/OpsMyPage"));
 const AdminFinance = lazy(() => import("./pages/AdminFinance"));
 const AdminMarketing = lazy(() => import("./pages/AdminMarketing"));
 const AdminContentCalendar = lazy(() => import("./pages/AdminContentCalendar"));
@@ -193,6 +195,33 @@ function AdminRouter() {
   );
 }
 
+// 직원 콘솔 셸(공용 상단바) 안에서 개별 ops 페이지를 라우팅
+function OpsRouter() {
+  return (
+    <OpsLayout>
+      <Suspense fallback={<LazyFallback />}>
+        <Switch>
+          <Route path="/ops" component={OpsHome} />
+          <Route path="/ops/my" component={OpsMyPage} />
+          <Route path="/ops/project/:id" component={OpsProjectDetail} />
+          <Route path="/ops/staff" component={OpsStaffManagement} />
+          <Route path="/ops/calendar" component={OpsCalendar} />
+          <Route path="/ops/partners" component={OpsPartners} />
+          <Route path="/ops/partners/:tab" component={OpsPartners} />
+          <Route path="/ops/staff-dashboard" component={OpsStaffDashboard} />
+          <Route path="/ops/cameras" component={OpsCameras} />
+          <Route path="/ops/field-measure" component={OpsFieldMeasure} />
+          <Route path="/ops/projects" component={OpsProjects} />
+          <Route path="/ops/schedule" component={OpsSchedule} />
+          <Route path="/ops/approval" component={OpsApproval} />
+          <Route path="/ops/approval-lines" component={OpsApprovalLines} />
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
+    </OpsLayout>
+  );
+}
+
 function Router() {
   return (
     <Suspense fallback={<LazyFallback />}>
@@ -219,20 +248,9 @@ function Router() {
         <Route path="/partner/login" component={PartnerLogin} />
         {/* 개발자 문서 */}
         <Route path="/developer/sensor-api" component={SensorApiDocs} />
-        {/* 직원 대시보드 */}
-        <Route path="/ops" component={OpsHome} />
-        <Route path="/ops/project/:id" component={OpsProjectDetail} />
-        <Route path="/ops/staff" component={OpsStaffManagement} />
-        <Route path="/ops/calendar" component={OpsCalendar} />
-        <Route path="/ops/partners" component={OpsPartners} />
-        <Route path="/ops/partners/:tab" component={OpsPartners} />
-        <Route path="/ops/staff-dashboard" component={OpsStaffDashboard} />
-        <Route path="/ops/cameras" component={OpsCameras} />
-        <Route path="/ops/field-measure" component={OpsFieldMeasure} />
-        <Route path="/ops/projects" component={OpsProjects} />
-        <Route path="/ops/schedule" component={OpsSchedule} />
-        <Route path="/ops/approval" component={OpsApproval} />
-        <Route path="/ops/approval-lines" component={OpsApprovalLines} />
+        {/* 직원 콘솔 — 공용 상단 셸(OpsLayout)로 감싼 중첩 라우터 */}
+        <Route path="/ops/:rest*" component={OpsRouter} />
+        <Route path="/ops" component={OpsRouter} />
         {/* 협력업체 포털 */}
         <Route path="/partner-portal" component={PartnerPortal} />
         {/* 직원 가입 신청 */}

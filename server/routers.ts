@@ -41,6 +41,7 @@ import {
   getHourlyOccupancyPattern, getZoneTransitions,
   createSensorApiKey, listSensorApiKeys, revokeSensorApiKey,
   createClient, getClientByEmail, getClientById, updateClient, listClients, getClientByVerifyToken, getClientByResetToken,
+  getUserById, updateUserFields,
   getSiteSetting, setSiteSetting, listSiteSettings, deleteUser,
   listStaffMembers, updateUserRole, updateUserDepartment,
   createActivityLog, listActivityLogs, getSystemStats, resetSiteSettings, resetAllUserRoles,
@@ -120,12 +121,58 @@ export const appRouter = router({
   aiRedesign: aiRedesignRouter,
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(({ ctx }) => {
+      if (!ctx.user) return null;
+      // passwordHash 는 클라이언트로 노출하지 않는다. hasPassword 파생값 제공.
+      const { passwordHash, ...safe } = ctx.user as any;
+      return { ...safe, hasPassword: !!passwordHash };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    // ===== 직원 마이페이지 (E-13) =====
+    updateMyProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(100).optional(),
+        phone: z.string().max(20).optional(),
+        landline: z.string().max(20).optional(),
+        avatarUrl: z.string().url().max(1000).optional().or(z.literal("")),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateUserFields(ctx.user.id, {
+          name: input.name,
+          phone: input.phone,
+          landline: input.landline,
+          avatarUrl: input.avatarUrl === "" ? undefined : input.avatarUrl,
+        });
+        return { success: true } as const;
+      }),
+    changeMyPassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string().optional(),
+        newPassword: z.string().min(8, "비밀번호는 8자 이상이어야 합니다."),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const me = await getUserById(ctx.user.id);
+        if (!me) throw new TRPCError({ code: "NOT_FOUND", message: "사용자를 찾을 수 없습니다." });
+        // 기존 비밀번호가 설정돼 있으면 현재 비밀번호 검증 (소셜 전용 계정은 최초 설정 허용)
+        if (me.passwordHash) {
+          if (!input.currentPassword) throw new TRPCError({ code: "BAD_REQUEST", message: "현재 비밀번호를 입력해주세요." });
+          const ok = await compare(input.currentPassword, me.passwordHash);
+          if (!ok) throw new TRPCError({ code: "BAD_REQUEST", message: "현재 비밀번호가 일치하지 않습니다." });
+        }
+        const passwordHash = await hash(input.newPassword, 10);
+        await updateUserFields(ctx.user.id, { passwordHash });
+        return { success: true } as const;
+      }),
+    updateMyNotifPrefs: protectedProcedure
+      .input(z.object({ prefs: z.record(z.string(), z.boolean()) }))
+      .mutation(async ({ ctx, input }) => {
+        await updateUserFields(ctx.user.id, { notifPrefs: input.prefs });
+        return { success: true } as const;
+      }),
   }),
 
   // ===== 문의 (Inquiries) =====

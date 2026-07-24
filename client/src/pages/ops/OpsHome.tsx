@@ -16,7 +16,6 @@ import {
   Banknote, CheckCircle2, Activity, Wallet, Camera, Users, Ruler,
 } from "lucide-react";
 import { toast } from "sonner";
-import NotificationBell from "@/components/NotificationBell";
 import { MonthlyExpenseChart, ProjectStatusChart, ExpenseCategoryChart } from "@/components/OpsCharts";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
 import { isMyProject } from "@/lib/opsPermissions";
@@ -115,7 +114,6 @@ export default function OpsHome() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <NotificationBell />
           <Button variant="outline" size="sm" onClick={() => setLocation("/ops/staff")} className="h-9">
             <Users className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">직원관리</span>
           </Button>
