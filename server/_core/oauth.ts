@@ -5,7 +5,106 @@ import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 import { ENV } from "./env";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import axios from "axios";
+
+type Provider = "google" | "naver" | "kakao";
+type OAuthProfile = { provider: Provider; providerId: string; email?: string; name?: string };
+
+const MASTER_EMAIL = (ENV.masterEmail || "henrykkim@kokamdo.co.kr").toLowerCase();
+const ID_KEY: Record<Provider, "googleId" | "naverId" | "kakaoId"> = {
+  google: "googleId", naver: "naverId", kakao: "kakaoId",
+};
+
+async function findUserByProviderId(p: OAuthProfile) {
+  if (p.provider === "google") return db.getUserByGoogleId(p.providerId);
+  if (p.provider === "naver") return db.getUserByNaverId(p.providerId);
+  return db.getUserByKakaoId(p.providerId);
+}
+async function findClientByProviderId(p: OAuthProfile) {
+  if (p.provider === "google") return db.getClientByGoogleId(p.providerId);
+  if (p.provider === "naver") return db.getClientByNaverId(p.providerId);
+  return db.getClientByKakaoId(p.providerId);
+}
+
+// state=staff → 직원(users). 구글은 초대(staff_invitations) 이메일일 때만 신규 활성화. (F-15)
+async function finishStaffOAuth(req: Request, res: Response, p: OAuthProfile) {
+  const idKey = ID_KEY[p.provider];
+  let user = await findUserByProviderId(p);
+  if (!user && p.email) user = await db.getUserByEmail(p.email);
+
+  if (user) {
+    if (!user.isActive) { res.redirect(302, "/auth/login?error=inactive"); return; }
+    await db.upsertUser({ ...user, [idKey]: p.providerId, name: p.name || user.name, loginMethod: p.provider, lastSignedIn: new Date() } as any);
+  } else {
+    const isMaster = !!p.email && p.email.toLowerCase() === MASTER_EMAIL;
+    const inv = p.email ? await db.getPendingStaffInvitationByEmail(p.email) : null;
+    if (!inv && !isMaster) { res.redirect(302, "/auth/login?error=no_invite"); return; }
+    await db.upsertUser({
+      [idKey]: p.providerId,
+      email: p.email,
+      name: p.name || p.email?.split("@")[0] || "직원",
+      loginMethod: p.provider,
+      department: inv?.department ?? undefined,
+      opsRole: inv?.opsRole ?? undefined,
+      lastSignedIn: new Date(),
+    } as any);
+    user = await findUserByProviderId(p);
+    if (user && inv) await db.acceptStaffInvitation(inv.token, user.id);
+  }
+  if (!user) { res.status(500).json({ error: "Failed to create user" }); return; }
+
+  const sessionToken = await sdk.createSessionToken(user.id, { name: user.name || "", email: user.email || "" });
+  res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(req), maxAge: ONE_YEAR_MS });
+  const landing = (user.role === "admin" || user.role === "master") ? "/admin" : "/ops";
+  res.redirect(302, landing);
+}
+
+// state=client → 고객(clients_auth). 이메일 매칭·연결 또는 신규 가입 후 /my. (F-16)
+async function finishClientOAuth(req: Request, res: Response, p: OAuthProfile) {
+  const idKey = ID_KEY[p.provider];
+  let client = await findClientByProviderId(p);
+  if (!client && p.email) client = await db.getClientByEmail(p.email);
+
+  if (client) {
+    await db.updateClient(client.id, { [idKey]: p.providerId, loginMethod: p.provider, status: "active", emailVerified: "yes", lastLoginAt: new Date() } as any);
+  } else {
+    if (!p.email) { res.redirect(302, "/client/login?error=no_email"); return; }
+    const randomHash = await bcrypt.hash(randomBytes(24).toString("hex"), 10);
+    await db.createClient({
+      email: p.email,
+      name: p.name || p.email.split("@")[0],
+      passwordHash: randomHash,
+      [idKey]: p.providerId,
+      loginMethod: p.provider,
+      status: "active",
+      emailVerified: "yes",
+    } as any);
+    client = await db.getClientByEmail(p.email);
+  }
+  if (!client) { res.status(500).json({ error: "Failed to create client" }); return; }
+
+  const { SignJWT } = await import("jose");
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+  const token = await new SignJWT({ clientId: client.id, email: client.email, name: client.name, type: "client" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("7d")
+    .sign(secret);
+  res.cookie("client_token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+  });
+  res.redirect(302, "/my");
+}
+
+// state 로 분기해 올바른 계정 흐름으로 위임
+async function dispatchOAuth(req: Request, res: Response, state: string | undefined, p: OAuthProfile) {
+  if ((state || "").startsWith("client")) return finishClientOAuth(req, res, p);
+  return finishStaffOAuth(req, res, p);
+}
 
 export function registerOAuthRoutes(app: Express) {
   // ========== Google OAuth Callback ==========
@@ -33,49 +132,10 @@ export function registerOAuthRoutes(app: Express) {
         headers: { Authorization: `Bearer ${access_token}` },
       });
 
-      const { id: googleId, email, name, picture } = userInfoRes.data;
-
-      // Find or create user
-      let user = await db.getUserByGoogleId(googleId);
-      if (!user && email) {
-        user = await db.getUserByEmail(email);
-      }
-
-      if (user) {
-        // Update existing user with Google ID
-        await db.upsertUser({
-          ...user,
-          googleId,
-          name: name || user.name,
-          loginMethod: "google",
-          lastSignedIn: new Date(),
-        });
-      } else {
-        // Create new user
-        await db.upsertUser({
-          googleId,
-          email,
-          name: name || email?.split("@")[0] || "User",
-          loginMethod: "google",
-          lastSignedIn: new Date(),
-        });
-        user = await db.getUserByGoogleId(googleId);
-      }
-
-      if (!user) {
-        res.status(500).json({ error: "Failed to create user" });
-        return;
-      }
-
-      // Create session
-      const sessionToken = await sdk.createSessionToken(user.id, {
-        name: user.name || "",
-        email: user.email || "",
+      const { id: googleId, email, name } = userInfoRes.data;
+      await dispatchOAuth(req, res, req.query.state as string | undefined, {
+        provider: "google", providerId: googleId, email, name,
       });
-
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      res.redirect(302, "/");
     } catch (error: any) {
       console.error("[Google OAuth] Failed:", error.response?.data || error.message);
       res.status(500).json({ error: "Google login failed" });
@@ -113,29 +173,7 @@ export function registerOAuthRoutes(app: Express) {
       const email = profile.email as string | undefined;
       const name = (profile.name || profile.nickname) as string | undefined;
 
-      let user = await db.getUserByNaverId(naverId);
-      if (!user && email) user = await db.getUserByEmail(email);
-
-      if (user) {
-        await db.upsertUser({ ...user, naverId, name: name || user.name, loginMethod: "naver", lastSignedIn: new Date() });
-      } else {
-        await db.upsertUser({ naverId, email, name: name || email?.split("@")[0] || "User", loginMethod: "naver", lastSignedIn: new Date() });
-        user = await db.getUserByNaverId(naverId);
-      }
-
-      if (!user) {
-        res.status(500).json({ error: "Failed to create user" });
-        return;
-      }
-
-      const sessionToken = await sdk.createSessionToken(user.id, {
-        name: user.name || "",
-        email: user.email || "",
-      });
-
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      res.redirect(302, "/");
+      await dispatchOAuth(req, res, state, { provider: "naver", providerId: naverId, email, name });
     } catch (error: any) {
       console.error("[Naver OAuth] Failed:", error.response?.data || error.message);
       res.status(500).json({ error: "Naver login failed" });
@@ -174,29 +212,7 @@ export function registerOAuthRoutes(app: Express) {
       const email = account.email as string | undefined;
       const name = account.profile?.nickname as string | undefined;
 
-      let user = await db.getUserByKakaoId(kakaoId);
-      if (!user && email) user = await db.getUserByEmail(email);
-
-      if (user) {
-        await db.upsertUser({ ...user, kakaoId, name: name || user.name, loginMethod: "kakao", lastSignedIn: new Date() });
-      } else {
-        await db.upsertUser({ kakaoId, email, name: name || (email ? email.split("@")[0] : "User"), loginMethod: "kakao", lastSignedIn: new Date() });
-        user = await db.getUserByKakaoId(kakaoId);
-      }
-
-      if (!user) {
-        res.status(500).json({ error: "Failed to create user" });
-        return;
-      }
-
-      const sessionToken = await sdk.createSessionToken(user.id, {
-        name: user.name || "",
-        email: user.email || "",
-      });
-
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      res.redirect(302, "/");
+      await dispatchOAuth(req, res, req.query.state as string | undefined, { provider: "kakao", providerId: kakaoId, email, name });
     } catch (error: any) {
       console.error("[Kakao OAuth] Failed:", error.response?.data || error.message);
       res.status(500).json({ error: "Kakao login failed" });

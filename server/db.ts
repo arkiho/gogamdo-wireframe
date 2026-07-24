@@ -2092,6 +2092,26 @@ export async function getClientById(id: number) {
   return rows[0] ?? null;
 }
 
+// 고객 소셜 로그인 (F-16) — 제공자 ID로 고객 계정 조회
+export async function getClientByGoogleId(googleId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(clients).where(eq((clients as any).googleId, googleId)).limit(1);
+  return rows[0] ?? null;
+}
+export async function getClientByNaverId(naverId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(clients).where(eq((clients as any).naverId, naverId)).limit(1);
+  return rows[0] ?? null;
+}
+export async function getClientByKakaoId(kakaoId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(clients).where(eq((clients as any).kakaoId, kakaoId)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function updateClient(id: number, data: Partial<InsertClient>) {
   const db = await getDb();
   if (!db) return;
@@ -3100,6 +3120,19 @@ export async function getStaffInvitationByToken(token: string) {
   if (!db) return null;
   const [inv] = await db.select().from(staffInvitations).where(eq(staffInvitations.token, token));
   return inv ?? null;
+}
+
+// 구글 직원 로그인 게이트 (F-15) — 유효한(대기·미만료) 초대를 이메일로 조회
+export async function getPendingStaffInvitationByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(staffInvitations)
+    .where(and(eq(staffInvitations.email, email), eq(staffInvitations.status, "pending")))
+    .orderBy(desc(staffInvitations.createdAt)).limit(1);
+  const inv = rows[0];
+  if (!inv) return null;
+  if (new Date() > inv.expiresAt) return null;
+  return inv;
 }
 
 // 초대 수락 시 직원 계정 생성 (E-14) — 생성된 user id 반환
