@@ -7,6 +7,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import AnalyticsProvider from "./components/AnalyticsProvider";
 import Layout from "./components/Layout";
+import { ADMIN_ROUTE_SCOPE, OPS_ROUTE_SCOPE } from "./lib/portalRouteScopes";
 
 // Home is eagerly loaded (first screen)
 import Home from "./pages/Home";
@@ -255,8 +256,7 @@ function Router() {
         {/* 개발자 문서 */}
         <Route path="/developer/sensor-api" component={SensorApiDocs} />
         {/* 직원 콘솔 — 공용 상단 셸(OpsLayout)로 감싼 중첩 라우터 */}
-        <Route path="/ops/:rest*" component={OpsRouter} />
-        <Route path="/ops" component={OpsRouter} />
+        <Route path={OPS_ROUTE_SCOPE} component={OpsRouter} />
         {/* 직원 초대 수락 (E-14 · 초대 전용) */}
         <Route path="/staff/join" component={StaffInviteAccept} />
         {/* 구 자가신청 경로 — 초대 전용 안내로 대체 */}
@@ -264,8 +264,7 @@ function Router() {
         {/* 오프라인 페이지 */}
         <Route path="/offline" component={Offline} />
         {/* Admin routes — 사이드바 셸(AdminLayout)로 감싼 중첩 라우터 */}
-        <Route path="/admin/:rest*" component={AdminRouter} />
-        <Route path="/admin" component={AdminRouter} />
+        <Route path={ADMIN_ROUTE_SCOPE} component={AdminRouter} />
         <Route component={PublicRouter} />
       </Switch>
     </Suspense>
