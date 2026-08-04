@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -65,6 +66,57 @@ function FadeUp({
     >
       {children}
     </motion.div>
+  );
+}
+
+function ViewportImage({
+  src,
+  alt,
+  className,
+}: {
+  src: string;
+  alt: string;
+  className: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    if (shouldLoad) return;
+
+    const node = containerRef.current;
+    if (!node) return;
+
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoad(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setShouldLoad(true);
+        observer.disconnect();
+      },
+      { rootMargin: "128px 0px" },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
+  return (
+    <div ref={containerRef} className="h-full w-full">
+      {shouldLoad && (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          className={className}
+        />
+      )}
+    </div>
   );
 }
 
@@ -302,10 +354,9 @@ export default function Home() {
                     <article className="group overflow-hidden border border-border/60 bg-white">
                       <div className="aspect-[4/3] overflow-hidden bg-paper-warm">
                         {project.coverImage ? (
-                          <img
+                          <ViewportImage
                             src={project.coverImage}
                             alt={project.title}
-                            loading="lazy"
                             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                           />
                         ) : (
