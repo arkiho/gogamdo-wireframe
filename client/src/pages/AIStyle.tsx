@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { trackEvent } from "@/lib/analytics";
-import SEOHead from "@/components/SEOHead";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -139,10 +139,7 @@ export default function AIStyle() {
     const rec = result.recommendation;
     return (
       <>
-        <SEOHead
-          title={`${rec.styleName} - AI 스타일 추천 결과 | 고감도`}
-          description={rec.description}
-        />
+        <SEOHead {...SEO_CONFIG.aiStyle} />
 
         {/* Result Hero */}
         <section className="pt-32 pb-12 lg:pt-40 lg:pb-16 bg-[#1A1A1A] text-white relative overflow-hidden">
@@ -330,7 +327,7 @@ export default function AIStyle() {
   if (recommendMutation.isPending) {
     return (
       <>
-        <SEOHead title="AI 스타일 분석 중... | 고감도" description="AI가 최적의 인테리어 스타일을 분석하고 있습니다." />
+        <SEOHead {...SEO_CONFIG.aiStyle} />
         <section className="pt-32 pb-12 lg:pt-40 lg:pb-16 bg-[#1A1A1A] text-white">
           <div className="container">
             <div className="flex items-center gap-3 mb-4">
@@ -380,10 +377,7 @@ export default function AIStyle() {
   // Form view
   return (
     <>
-      <SEOHead
-        title="AI 공간 스타일 추천 | 고감도"
-        description="업종, 분위기, 예산에 맞는 최적의 사무실 인테리어 스타일을 AI가 추천해 드립니다. 컬러 팔레트, 마감재, 가구까지 맞춤 제안."
-      />
+      <SEOHead {...SEO_CONFIG.aiStyle} />
 
       {/* Hero */}
       <section className="pt-32 pb-12 lg:pt-40 lg:pb-16 bg-[#1A1A1A] text-white relative overflow-hidden">

@@ -7,7 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { useParams, Link } from "wouter";
 import SEOHead from "@/components/SEOHead";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft, ArrowUpRight, MapPin, Calendar, Ruler, Building2, Clock,
   SplitSquareHorizontal, Grid3X3, X, Star, MessageSquare, Quote, Shield,
@@ -17,10 +17,11 @@ import { RelatedInsights } from "@/components/RelatedContent";
 import KakaoShareButton from "@/components/KakaoShareButton";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 30 }}
+      whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
@@ -68,12 +69,13 @@ export default function PortfolioDbDetail() {
   const galleryImages = images.filter((img: any) => img.id !== coverImage?.id);
   const beforeAfterImages = images.filter((img: any) => img.beforeUrl);
   const regularGalleryImages = galleryImages.filter((img: any) => !img.beforeUrl);
+  const metaParts = [project.category, project.area, project.location].filter(Boolean).join(" ");
 
   return (
     <>
       <SEOHead
-        title={`${project.title} | 고객 사례`}
-        description={`${project.title} - ${project.category || ''} ${project.area || ''} ${project.location || ''} 사무실 인테리어 시공 사례`}
+        title={`${project.title} | 고객 사례 | 고감도 KOKAMDO`}
+        description={`${project.title} - ${metaParts} 사무실 인테리어 시공 사례`}
         path={`/portfolio/p/${id}`}
         image={coverImage?.processedUrl || coverImage?.originalUrl}
       />
@@ -181,25 +183,25 @@ export default function PortfolioDbDetail() {
                 </p>
               </FadeUp>
 
-              {/* 과제 · 솔루션 · 성과 구조 */}
+              {/* 고객의 문제 · 진단과 핵심 결정 · 완공 후 변화 */}
               {(project.challenge || project.solution || project.result) && (
                 <FadeUp delay={0.15}>
                   <div className="grid sm:grid-cols-3 gap-6">
                     {project.challenge && (
                       <div className="bg-red-50/50 border border-red-100 p-5">
-                        <div className="text-xs font-bold text-red-500 uppercase tracking-widest mb-3">과제</div>
+                        <div className="text-xs font-bold text-red-500 uppercase tracking-widest mb-3">고객의 문제</div>
                         <p className="text-sm text-ink/70 leading-relaxed">{project.challenge}</p>
                       </div>
                     )}
                     {project.solution && (
                       <div className="bg-blue-50/50 border border-blue-100 p-5">
-                        <div className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-3">솔루션</div>
+                        <div className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-3">진단과 핵심 결정</div>
                         <p className="text-sm text-ink/70 leading-relaxed">{project.solution}</p>
                       </div>
                     )}
                     {project.result && (
                       <div className="bg-green-50/50 border border-green-100 p-5">
-                        <div className="text-xs font-bold text-green-600 uppercase tracking-widest mb-3">성과</div>
+                        <div className="text-xs font-bold text-green-600 uppercase tracking-widest mb-3">완공 후 변화</div>
                         <p className="text-sm text-ink/70 leading-relaxed">{project.result}</p>
                       </div>
                     )}
@@ -421,12 +423,12 @@ export default function PortfolioDbDetail() {
               비슷한 프로젝트를 계획하고 계신가요?
             </h2>
             <p className="text-white/50 mb-10 max-w-md mx-auto">
-              AI 견적으로 예상 비용을 확인하고, 전문 컨설턴트와 무료 상담을 시작하세요.
+              계약 전 필요 면적을 먼저 확인하거나 프로젝트 목적과 조건을 알려주세요.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/estimator">
+              <Link href="/office-space-calculator">
                 <span className="inline-flex items-center gap-2 px-8 py-4 bg-gold text-ink font-semibold text-sm tracking-wide hover:bg-gold-light transition-all duration-300">
-                  AI 예상 견적 받기
+                  필요 평수 진단 받기
                   <ArrowUpRight className="w-4 h-4" />
                 </span>
               </Link>

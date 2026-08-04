@@ -25,7 +25,7 @@ export default function ClientLogin() {
     onSuccess: () => {
       setError("");
       setNeedsVerification(false);
-      navigate("/portal");
+      navigate("/client/dashboard");
     },
     onError: (err) => {
       if (err.message === "EMAIL_NOT_VERIFIED") {

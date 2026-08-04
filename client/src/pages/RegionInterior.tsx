@@ -410,8 +410,8 @@ export default function RegionInterior() {
   return (
     <>
       <SEOHead
-        title={`${data.keyword} 전문 | 35년 경력 고감도`}
-        description={`${data.keyword}는 35년 경력·2,800건+ 프로젝트의 고감도. ${data.region} 사무공간 설계부터 시공, AI 예상 견적까지 원스톱으로 제공합니다. 데이터 기반 설계로 공간 효율을 극대화합니다.`}
+        title={`${data.region} 사무실 인테리어 | 고감도 KOKAMDO`}
+        description={`${data.region} 지역의 사무공간 기획, 설계와 시공 상담 정보를 확인하세요.`}
         path={`/office-interior/${slug}`}
       />
 

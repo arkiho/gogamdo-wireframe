@@ -102,8 +102,8 @@ export default function InsightDetail() {
   return (
     <>
       <SEOHead
-        title={`${article.title} | \uace0\uac10\ub3c4 \uc778\uc0ac\uc774\ud2b8`}
-        description={article.excerpt}
+        title={`${article.title} | 고감도 KOKAMDO`}
+        description={article.metaDescription || article.excerpt}
         path={`/insights/${slug}`}
         image={article.coverImageUrl || undefined}
         type="article"

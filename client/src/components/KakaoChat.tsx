@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MessageCircle } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { getKakaoChannelUrl } from "@/lib/publicIntegrationConfig";
 
 export default function KakaoChat() {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,13 +41,7 @@ export default function KakaoChat() {
   };
 
   const handleChat = () => {
-    const channelId = import.meta.env.VITE_KAKAO_CHANNEL_ID;
-    if (channelId) {
-      window.open(`https://pf.kakao.com/${channelId}/chat`, "_blank");
-    } else {
-      // 카카오톡 채널이 설정되지 않은 경우 기본 URL
-      window.open("https://pf.kakao.com/_xnxlxkxj/chat", "_blank");
-    }
+    window.open(getKakaoChannelUrl(import.meta.env.VITE_KAKAO_CHANNEL_ID), "_blank");
     trackEvent("cta_click", { cta_name: "kakao_chat_start", cta_location: "floating_widget" });
     setIsOpen(false);
   };
@@ -70,7 +65,7 @@ export default function KakaoChat() {
           >
             <div className="relative">
               <p className="font-medium">궁금한 점이 있으신가요?</p>
-              <p className="text-[#1A1A1A]/50 text-xs mt-0.5">카카오톡으로 편하게 상담하세요</p>
+              <p className="text-[#1A1A1A]/70 text-xs mt-0.5">카카오톡으로 편하게 상담하세요</p>
               {/* Triangle pointer */}
               <div className="absolute -bottom-[14px] right-4 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-white" />
             </div>
@@ -155,6 +150,7 @@ export default function KakaoChat() {
       {/* Floating Button */}
       <motion.button
         onClick={isOpen ? () => setIsOpen(false) : handleOpen}
+        aria-label={isOpen ? "카카오 상담창 닫기" : "카카오 상담 열기"}
         className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-colors ${
           isOpen ? "bg-[#1A1A1A]" : "bg-[#FEE500] hover:bg-[#FDD835]"
         }`}

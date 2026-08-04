@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -150,7 +151,9 @@ export default function AIRedesign() {
   );
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <SEOHead {...SEO_CONFIG.aiRedesign} />
+      <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="relative py-20 lg:py-28 bg-ink text-white overflow-hidden">
         <div className="absolute top-8 right-8 lg:right-16 opacity-[0.04] select-none pointer-events-none">
@@ -605,6 +608,7 @@ export default function AIRedesign() {
           </AnimatePresence>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

@@ -18,6 +18,7 @@ const STATIC_PAGES = [
   { path: "/about", changefreq: "monthly", priority: "0.8" },
   { path: "/solutions", changefreq: "monthly", priority: "0.8" },
   { path: "/portfolio", changefreq: "weekly", priority: "0.9" },
+  { path: "/office-space-calculator", changefreq: "monthly", priority: "0.9" },
   { path: "/estimator", changefreq: "monthly", priority: "0.8" },
   { path: "/insights", changefreq: "weekly", priority: "0.9" },
   { path: "/faq", changefreq: "monthly", priority: "0.7" },
@@ -34,8 +35,8 @@ const STATIC_PAGES = [
   { path: "/office-interior/incheon", changefreq: "monthly", priority: "0.8" },
 ];
 
-function formatDate(date: Date | string | null): string {
-  if (!date) return new Date().toISOString().split("T")[0];
+function formatDate(date: Date | string | null): string | null {
+  if (!date) return null;
   const d = new Date(date);
   return d.toISOString().split("T")[0];
 }
@@ -73,8 +74,6 @@ sitemapRouter.get("/sitemap.xml", async (_req, res) => {
       .from(portfolioDrafts)
       .where(eq(portfolioDrafts.status, "published"));
 
-    const today = new Date().toISOString().split("T")[0];
-
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
@@ -84,7 +83,6 @@ sitemapRouter.get("/sitemap.xml", async (_req, res) => {
     for (const page of STATIC_PAGES) {
       xml += `  <url>
     <loc>${BASE_URL}${page.path}</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
   </url>
@@ -93,10 +91,10 @@ sitemapRouter.get("/sitemap.xml", async (_req, res) => {
 
     // 인사이트 글
     for (const insight of publishedInsights) {
-      const lastmod = formatDate(insight.publishedAt || insight.updatedAt);
+      const lastmod = formatDate(insight.updatedAt || insight.publishedAt);
       xml += `  <url>
     <loc>${BASE_URL}/insights/${escapeXml(insight.slug)}</loc>
-    <lastmod>${lastmod}</lastmod>
+    ${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -108,7 +106,7 @@ sitemapRouter.get("/sitemap.xml", async (_req, res) => {
       const lastmod = formatDate(portfolio.updatedAt);
       xml += `  <url>
     <loc>${BASE_URL}/portfolio/p/${portfolio.id}</loc>
-    <lastmod>${lastmod}</lastmod>
+    ${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

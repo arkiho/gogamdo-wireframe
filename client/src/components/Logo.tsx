@@ -22,6 +22,8 @@ export default function Logo({ variant = "full", color = "currentColor", classNa
       <img
         src={LOGO_SYMBOL}
         alt="KOKAMDO"
+        width={height}
+        height={height}
         className={`object-contain ${className}`}
         style={{ height, width: "auto", filter: isWhite ? "invert(1) brightness(2)" : "none" }}
       />
@@ -46,6 +48,8 @@ export default function Logo({ variant = "full", color = "currentColor", classNa
     <img
       src={logoSrc}
       alt="KOKAMDO 고감도"
+      width={Math.round(height * (711 / 120))}
+      height={height}
       className={`object-contain ${className}`}
       style={{ height, width: "auto" }}
     />

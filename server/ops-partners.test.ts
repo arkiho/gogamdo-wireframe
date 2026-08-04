@@ -1,4 +1,117 @@
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it, beforeAll, vi } from "vitest";
+
+const partnerFixture = vi.hoisted(() => ({
+  nextId: 1,
+  trades: [] as any[],
+  registrations: [] as any[],
+  subcontractors: [] as any[],
+  subcontractorTrades: new Map<number, number[]>(),
+  templates: [] as any[],
+  contracts: [] as any[],
+  projects: [] as any[],
+  purchaseOrders: [] as any[],
+}));
+
+const nextFixtureId = () => partnerFixture.nextId++;
+
+vi.mock("./_core/notification", () => ({ notifyOwner: vi.fn(async () => true) }));
+
+vi.mock("./db/ops", async importOriginal => {
+  const actual = await importOriginal<typeof import("./db/ops")>();
+  return {
+    ...actual,
+    notifyAdminsAndPMs: vi.fn(async () => true),
+    createTradeCategory: vi.fn(async (data: any) => {
+      const row = { id: nextFixtureId(), ...data };
+      partnerFixture.trades.push(row);
+      return row;
+    }),
+    listTradeCategories: vi.fn(async () => [...partnerFixture.trades]),
+    getTradeCategory: vi.fn(async (id: number) => partnerFixture.trades.find(row => row.id === id) ?? null),
+    updateTradeCategory: vi.fn(async (id: number, data: any) => {
+      Object.assign(partnerFixture.trades.find(row => row.id === id) ?? {}, data);
+    }),
+    deleteTradeCategory: vi.fn(async (id: number) => {
+      partnerFixture.trades = partnerFixture.trades.filter(row => row.id !== id);
+    }),
+    createSubRegistration: vi.fn(async (data: any) => {
+      const row = { id: nextFixtureId(), status: "pending", ...data };
+      partnerFixture.registrations.push(row);
+      return row;
+    }),
+    listSubRegistrations: vi.fn(async (status?: string) => status
+      ? partnerFixture.registrations.filter(row => row.status === status)
+      : [...partnerFixture.registrations]
+    ),
+    getSubRegistration: vi.fn(async (id: number) => partnerFixture.registrations.find(row => row.id === id) ?? null),
+    updateSubRegistration: vi.fn(async (id: number, data: any) => {
+      Object.assign(partnerFixture.registrations.find(row => row.id === id) ?? {}, data);
+    }),
+    createSubcontractor: vi.fn(async (data: any) => {
+      const row = { id: nextFixtureId(), ...data };
+      partnerFixture.subcontractors.push(row);
+      return row;
+    }),
+    getSubcontractor: vi.fn(async (id: number) => partnerFixture.subcontractors.find(row => row.id === id) ?? null),
+    setSubcontractorTrades: vi.fn(async (subcontractorId: number, tradeIds: number[]) => {
+      partnerFixture.subcontractorTrades.set(subcontractorId, [...tradeIds]);
+    }),
+    getSubcontractorTrades: vi.fn(async (subcontractorId: number) =>
+      partnerFixture.subcontractorTrades.get(subcontractorId) ?? []
+    ),
+    getSubcontractorsByTrade: vi.fn(async (tradeId: number) => partnerFixture.subcontractors.filter(row =>
+      partnerFixture.subcontractorTrades.get(row.id)?.includes(tradeId)
+    )),
+    getSubcontractorsByTradeIds: vi.fn(async (tradeIds: number[]) => partnerFixture.subcontractors.filter(row =>
+      partnerFixture.subcontractorTrades.get(row.id)?.some(id => tradeIds.includes(id))
+    )),
+    createTradeContractTemplate: vi.fn(async (data: any) => {
+      const row = { id: nextFixtureId(), isActive: 1, ...data };
+      partnerFixture.templates.push(row);
+      return row;
+    }),
+    listTradeContractTemplates: vi.fn(async (tradeCategoryId?: number) => tradeCategoryId
+      ? partnerFixture.templates.filter(row => row.tradeCategoryId === tradeCategoryId)
+      : [...partnerFixture.templates]
+    ),
+    getTradeContractTemplate: vi.fn(async (id: number) => partnerFixture.templates.find(row => row.id === id) ?? null),
+    updateTradeContractTemplate: vi.fn(async (id: number, data: any) => {
+      Object.assign(partnerFixture.templates.find(row => row.id === id) ?? {}, data);
+    }),
+    createSubContract: vi.fn(async (data: any) => {
+      const row = { id: nextFixtureId(), status: "draft", ...data };
+      partnerFixture.contracts.push(row);
+      return row;
+    }),
+    listSubContracts: vi.fn(async (subcontractorId?: number) => subcontractorId
+      ? partnerFixture.contracts.filter(row => row.subcontractorId === subcontractorId)
+      : [...partnerFixture.contracts]
+    ),
+    getSubContract: vi.fn(async (id: number) => partnerFixture.contracts.find(row => row.id === id) ?? null),
+    updateSubContract: vi.fn(async (id: number, data: any) => {
+      Object.assign(partnerFixture.contracts.find(row => row.id === id) ?? {}, data);
+    }),
+    createOpsProject: vi.fn(async (data: any) => {
+      const row = { id: nextFixtureId(), ...data };
+      partnerFixture.projects.push(row);
+      return row;
+    }),
+    listOpsProjects: vi.fn(async () => [...partnerFixture.projects]),
+    createPurchaseOrder: vi.fn(async (data: any) => {
+      const row = { id: nextFixtureId(), status: "draft", ...data };
+      partnerFixture.purchaseOrders.push(row);
+      return row;
+    }),
+    listPurchaseOrders: vi.fn(async (projectId?: number) => projectId
+      ? partnerFixture.purchaseOrders.filter(row => row.projectId === projectId)
+      : [...partnerFixture.purchaseOrders]
+    ),
+    getPurchaseOrder: vi.fn(async (id: number) => partnerFixture.purchaseOrders.find(row => row.id === id) ?? null),
+    updatePurchaseOrder: vi.fn(async (id: number, data: any) => {
+      Object.assign(partnerFixture.purchaseOrders.find(row => row.id === id) ?? {}, data);
+    }),
+  };
+});
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 

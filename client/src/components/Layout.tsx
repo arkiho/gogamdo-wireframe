@@ -471,17 +471,29 @@ function NewsletterForm() {
           {subscribe.isPending ? "처리 중..." : "구독하기"}
         </button>
       </form>
-      <label className="flex items-center gap-2 cursor-pointer">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <input
+          id="newsletter-privacy-consent"
+          data-testid="newsletter-privacy-consent"
           type="checkbox"
           checked={agreed}
           onChange={(e) => setAgreed(e.target.checked)}
           className="w-3.5 h-3.5 accent-gold"
         />
-        <span className="text-[11px] text-white/30">
-          <Link href="/privacy" className="text-white/50 hover:text-white/70 underline">개인정보처리방침</Link>에 동의합니다
-        </span>
-      </label>
+        <label
+          htmlFor="newsletter-privacy-consent"
+          className="inline-flex min-h-11 cursor-pointer items-center text-[11px] text-white/70 sm:min-h-0"
+        >
+          개인정보 수집·이용에 동의합니다
+        </label>
+        <Link
+          href="/privacy"
+          data-testid="newsletter-privacy-link"
+          className="inline-flex min-h-11 items-center text-[11px] text-white/75 hover:text-white/70 underline sm:min-h-0"
+        >
+          개인정보처리방침 보기
+        </Link>
+      </div>
     </div>
   );
 }
@@ -577,13 +589,13 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="hidden lg:block">
               <LoginDropdown isTransparent={isTransparent} />
             </div>
-            <Link href="/contact">
-              <span className={`hidden lg:inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium tracking-wide transition-colors duration-300 ${
+            <Link href="/contact" className="hidden lg:block">
+              <span className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium tracking-wide transition-colors duration-300 ${
                 isTransparent
                   ? "bg-gold text-ink hover:bg-gold-light"
                   : "bg-ink text-white hover:bg-ink/90"
               }`}>
-                무료 상담
+                프로젝트 상담
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </span>
             </Link>
@@ -643,7 +655,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               >
                 <Link href="/contact">
                   <span className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-ink text-white text-lg font-medium">
-                    무료 상담 신청
+                    프로젝트 상담 신청
                     <ArrowUpRight className="w-4 h-4" />
                   </span>
                 </Link>
@@ -681,7 +693,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <h3 className="font-heading text-2xl lg:text-3xl font-bold text-white mb-2">
                   인사이트 뉴스레터
                 </h3>
-                <p className="text-white/50 text-sm max-w-md">
+                <p className="text-white/75 text-sm max-w-md">
                   사무공간 트렌드, 비용 절감 팁, 프로젝트 사례를 격주로 전달합니다.
                 </p>
               </div>
@@ -696,7 +708,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             {/* Brand */}
             <div className="col-span-2 lg:col-span-1">
               <Logo variant="full" color="#ffffff" height={24} />
-              <p className="mt-4 text-sm text-white/40 leading-relaxed max-w-xs">
+              <p className="mt-4 text-sm text-white/70 leading-relaxed max-w-xs">
                 데이터 기반 원활한 소통,<br />
                 그 공간 가치를 경험하다.
               </p>
@@ -704,8 +716,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 href="https://blog.naver.com/kokamdodesign"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-2 text-sm text-white/50 hover:text-[#03C75A] transition-colors"
-                aria-label="고감도 네이버 블로그"
+                className="mt-5 inline-flex items-center gap-2 text-sm text-white/75 hover:text-[#03C75A] transition-colors"
               >
                 <span className="flex items-center justify-center w-5 h-5 rounded bg-[#03C75A] text-white text-[11px] font-extrabold leading-none">N</span>
                 네이버 블로그
@@ -714,18 +725,19 @@ export default function Layout({ children }: { children: ReactNode }) {
 
             {/* Services */}
             <div>
-              <h4 className="font-heading text-xs font-semibold text-white/60 uppercase tracking-widest mb-4">
+              <h4 className="font-heading text-xs font-semibold text-white/80 uppercase tracking-widest mb-4">
                 서비스
               </h4>
               <ul className="space-y-2.5">
                 {[
                   { label: "사무실 인테리어", href: "/solutions" },
-                  { label: "상업공간 설계", href: "/solutions" },
+                  { label: "필요 평수 진단", href: "/office-space-calculator" },
+                  { label: "학교·공공기관 관급공사", href: "/portfolio" },
                   ...(aiSetting?.estimator ? [{ label: "AI 견적", href: "/estimator" }] : []),
                 ].map((item) => (
                   <li key={item.label}>
                     <Link href={item.href}>
-                      <span className="text-sm text-white/40 hover:text-gold transition-colors">
+                      <span className="text-sm text-white/70 hover:text-gold transition-colors">
                         {item.label}
                       </span>
                     </Link>
@@ -736,7 +748,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
             {/* Company */}
             <div>
-              <h4 className="font-heading text-xs font-semibold text-white/60 uppercase tracking-widest mb-4">
+              <h4 className="font-heading text-xs font-semibold text-white/80 uppercase tracking-widest mb-4">
                 회사
               </h4>
               <ul className="space-y-2.5">
@@ -750,7 +762,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 ].map((item) => (
                   <li key={item.href}>
                     <Link href={item.href}>
-                      <span className="text-sm text-white/40 hover:text-gold transition-colors">
+                      <span className="text-sm text-white/70 hover:text-gold transition-colors">
                         {item.label}
                       </span>
                     </Link>
@@ -761,21 +773,21 @@ export default function Layout({ children }: { children: ReactNode }) {
 
             {/* Contact */}
             <div>
-              <h4 className="font-heading text-xs font-semibold text-white/60 uppercase tracking-widest mb-4">
+              <h4 className="font-heading text-xs font-semibold text-white/80 uppercase tracking-widest mb-4">
                 연락처
               </h4>
-              <ul className="space-y-2.5 text-sm text-white/40">
+              <ul className="space-y-2.5 text-sm text-white/70">
                 <li>서울시 광진구 동일로 12길 15</li>
                 <li><a href="tel:02-3487-6133" className="hover:text-gold transition-colors">02-3487-6133</a></li>
                 <li><a href="mailto:contact@kokamdo.co.kr" className="hover:text-gold transition-colors">contact@kokamdo.co.kr</a></li>
               </ul>
               <div className="mt-6 pt-4 border-t border-white/5 space-y-2">
-                <Link href="/auth/login">
-                  <span className="text-xs text-white/25 hover:text-white/50 transition-colors">직원 로그인</span>
+                <Link href="/auth/login" data-testid="footer-employee-login" className="inline-flex min-h-11 items-center sm:min-h-0">
+                  <span className="text-xs text-white/65 hover:text-white/75 transition-colors">직원 로그인</span>
                 </Link>
-                <span className="text-xs text-white/15 mx-2">·</span>
-                <Link href="/auth/login">
-                  <span className="text-xs text-white/25 hover:text-white/50 transition-colors">협력사 로그인</span>
+                <span className="text-xs text-white/50 mx-2">·</span>
+                <Link href="/auth/login" data-testid="footer-partner-login" className="inline-flex min-h-11 items-center sm:min-h-0">
+                  <span className="text-xs text-white/65 hover:text-white/75 transition-colors">협력사 로그인</span>
                 </Link>
               </div>
             </div>
@@ -785,7 +797,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* 지역별 인테리어 (Local SEO 내부 링크) */}
         <div className="border-t border-white/5">
           <div className="container py-6">
-            <h4 className="font-heading text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">
+            <h4 className="font-heading text-xs font-semibold text-white/70 uppercase tracking-widest mb-3">
               지역별 사무실 인테리어
             </h4>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
@@ -798,7 +810,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 { label: "인천 사무실 인테리어", href: "/office-interior/incheon" },
               ].map((item) => (
                 <Link key={item.href} href={item.href}>
-                  <span className="text-xs text-white/35 hover:text-gold transition-colors">
+                  <span className="text-xs text-white/65 hover:text-gold transition-colors">
                     {item.label}
                   </span>
                 </Link>
@@ -810,15 +822,15 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* Copyright */}
         <div className="border-t border-white/5">
           <div className="container py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs text-white/25 space-y-1">
+            <div className="text-xs text-white/65 space-y-1">
               <p>&copy; 2026 (주)고감도. 공동대표 안향자·김기호. All rights reserved.</p>
               <p>사업자등록번호: 214-86-06932, 개인정보보호책임자: 김기호 (contact@kokamdo.co.kr)</p>
             </div>
             <div className="flex gap-6">
-              <Link href="/privacy" className="text-xs text-white/25 hover:text-white/50 transition-colors">
+              <Link href="/privacy" data-testid="footer-privacy" className="inline-flex min-h-11 items-center text-xs text-white/65 hover:text-white/75 transition-colors sm:min-h-0">
                 개인정보처리방침
               </Link>
-              <Link href="/terms" className="text-xs text-white/25 hover:text-white/50 transition-colors">
+              <Link href="/terms" data-testid="footer-terms" className="inline-flex min-h-11 items-center text-xs text-white/65 hover:text-white/75 transition-colors sm:min-h-0">
                 이용약관
               </Link>
             </div>

@@ -1,5 +1,10 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { MAX_INQUIRY_MESSAGE_LENGTH } from "@shared/inquiryLimits";
 import { sdk } from "./_core/sdk";
+import { signClientSession, verifyClientSession } from "./_core/sessionSecurity";
+import { getTrustedPublicOrigin } from "./_core/publicOrigin";
+import { activatePendingClientByVerificationToken } from "./_core/clientVerification";
+import { isClientAvatarUrlOwnedByClient, isStaffAvatarUrlOwnedByStaff } from "./_core/storageAuthorization";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -30,7 +35,7 @@ import {
   createPopup, listPopups, getActivePopups, updatePopup, deletePopup,
   createNotification, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification,
   createPortfolioReview, listPortfolioReviews, getPortfolioReview, getPortfolioReviewByToken, updatePortfolioReview, deletePortfolioReview, getApprovedReviewsForPortfolio,
-  createInsightArticle, getInsightArticleBySlug, getInsightArticleById, getPublishedArticles, getAllArticles, updateInsightArticle, incrementArticleViewCount, deleteInsightArticle,
+  createInsightArticle, getInsightArticleBySlug, getPublishedInsightArticleBySlug, getInsightArticleById, getPublishedArticles, getAllArticles, updateInsightArticle, incrementArticleViewCount, deleteInsightArticle,
   createNewsletterSubscriber, getSubscriberByEmail, getSubscriberByToken, getActiveSubscribers, getAllNewsletterSubscribers, updateNewsletterSubscriber, unsubscribeByToken,
   createNewsletterCampaign, getNewsletterCampaign, getAllCampaigns, updateCampaign, deleteCampaign,
   createSegment, getSegmentById, getAllSegments, updateSegment, deleteSegment,
@@ -107,6 +112,20 @@ const masterProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+async function requireActiveClient(ctx: { req: { cookies?: Record<string, string> } }) {
+  const token = ctx.req.cookies?.client_token;
+  if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+  const payload = await verifyClientSession(token);
+  if (payload.type !== "client" || !payload.clientId) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  const client = await getClientById(payload.clientId as number);
+  if (!client || client.status !== "active") {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return client;
+}
+
 // 문의 유형을 CRM spaceType으로 매핑
 function mapInquiryTypeToSpaceType(type?: string): "office" | "commercial" | "medical" | "education" | "residential" | "other" | undefined {
   if (!type) return undefined;
@@ -147,14 +166,20 @@ export const appRouter = router({
         name: z.string().min(1).max(100).optional(),
         phone: z.string().max(20).optional(),
         landline: z.string().max(20).optional(),
-        avatarUrl: z.string().url().max(1000).optional().or(z.literal("")),
+        avatarUrl: z.string().max(1000).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        if (
+          input.avatarUrl &&
+          !isStaffAvatarUrlOwnedByStaff(input.avatarUrl, ctx.user.id)
+        ) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid avatar URL" });
+        }
         await updateUserFields(ctx.user.id, {
           name: input.name,
           phone: input.phone,
           landline: input.landline,
-          avatarUrl: input.avatarUrl === "" ? undefined : input.avatarUrl,
+          avatarUrl: input.avatarUrl === "" ? null : input.avatarUrl,
         });
         return { success: true } as const;
       }),
@@ -195,7 +220,7 @@ export const appRouter = router({
         type: z.string().optional(),
         budget: z.string().optional(),
         area: z.string().optional(),
-        message: z.string().min(1),
+        message: z.string().min(1).max(MAX_INQUIRY_MESSAGE_LENGTH),
         referralSource: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -2106,7 +2131,7 @@ ${input.breakdown.map(b => `- ${b.name}: ${b.cost}만원`).join("\n")}
     bySlug: publicProcedure
       .input(z.object({ slug: z.string() }))
       .query(async ({ input }) => {
-        const article = await getInsightArticleBySlug(input.slug);
+        const article = await getPublishedInsightArticleBySlug(input.slug);
         if (!article) throw new TRPCError({ code: "NOT_FOUND", message: "아티클을 찾을 수 없습니다." });
         await incrementArticleViewCount(article.id);
         return article;
@@ -2648,7 +2673,7 @@ ${topicPrompt}
         status: "pending", // 이메일 인증 전까지 pending
       });
       // 이메일 인증 메일 발송 (Resend 또는 notifyOwner 폴백)
-      const origin = ctx.req?.headers?.origin || ctx.req?.headers?.referer?.replace(/\/$/, "") || "https://gogamdo.com";
+      const origin = getTrustedPublicOrigin();
       try {
         await sendVerificationEmail({
           email: input.email,
@@ -2667,7 +2692,7 @@ ${topicPrompt}
           content: `이메일: ${input.email}\n회사: ${input.company || '-'}\n전화: ${input.phone || '-'}`,
         });
       } catch { /* 알림 실패해도 진행 */ }
-      return { success: true, message: "회원가입이 완료되었습니다. 이메일 인증을 완료해주세요.", emailVerifyToken };
+      return { success: true, message: "회원가입이 완료되었습니다. 이메일 인증을 완료해주세요." };
     }),
 
     login: publicProcedure.input(z.object({
@@ -2691,17 +2716,11 @@ ${topicPrompt}
       // 로그인 시간 업데이트
       await updateClient(client.id, { lastLoginAt: new Date() });
       // JWT 토큰 생성 (클라이언트용)
-      const { SignJWT } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-      const token = await new SignJWT({
+      const token = await signClientSession({
         clientId: client.id,
         email: client.email,
         name: client.name,
-        type: "client",
-      })
-        .setProtectedHeader({ alg: "HS256" })
-        .setExpirationTime("7d")
-        .sign(secret);
+      });
       // 쿠키에 토큰 설정
       ctx.res.cookie("client_token", token, {
         httpOnly: true,
@@ -2720,9 +2739,7 @@ ${topicPrompt}
       const token = ctx.req.cookies?.client_token;
       if (!token) return null;
       try {
-        const { jwtVerify } = await import("jose");
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-        const { payload } = await jwtVerify(token, secret);
+        const payload = await verifyClientSession(token);
         if (payload.type !== "client" || !payload.clientId) return null;
         const client = await getClientById(payload.clientId as number);
         if (!client || client.status !== "active") return null;
@@ -2755,32 +2772,30 @@ ${topicPrompt}
       landline: z.string().max(20).optional(),
       avatarUrl: z.string().max(1000).optional(),
     })).mutation(async ({ input, ctx }) => {
-      const token = ctx.req.cookies?.client_token;
-      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const { jwtVerify } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-      const { payload } = await jwtVerify(token, secret);
-      if (payload.type !== "client") throw new TRPCError({ code: "UNAUTHORIZED" });
+      const client = await requireActiveClient(ctx);
       const updateData: any = {};
       if (input.name) updateData.name = input.name;
       if (input.company !== undefined) updateData.company = input.company;
       if (input.phone !== undefined) updateData.phone = input.phone;
       if (input.landline !== undefined) updateData.landline = input.landline;
-      if (input.avatarUrl !== undefined) updateData.avatarUrl = input.avatarUrl;
-      await updateClient(payload.clientId as number, updateData);
+      if (input.avatarUrl !== undefined) {
+        if (
+          input.avatarUrl &&
+          !isClientAvatarUrlOwnedByClient(input.avatarUrl, client.id)
+        ) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid avatar URL" });
+        }
+        updateData.avatarUrl = input.avatarUrl || null;
+      }
+      await updateClient(client.id, updateData);
       return { success: true };
     }),
 
     updateNotifPrefs: publicProcedure.input(z.object({
       prefs: z.record(z.string(), z.boolean()),
     })).mutation(async ({ input, ctx }) => {
-      const token = ctx.req.cookies?.client_token;
-      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const { jwtVerify } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-      const { payload } = await jwtVerify(token, secret);
-      if (payload.type !== "client") throw new TRPCError({ code: "UNAUTHORIZED" });
-      await updateClient(payload.clientId as number, { notifPrefs: input.prefs } as any);
+      const client = await requireActiveClient(ctx);
+      await updateClient(client.id, { notifPrefs: input.prefs } as any);
       return { success: true };
     }),
 
@@ -2788,14 +2803,7 @@ ${topicPrompt}
       currentPassword: z.string(),
       newPassword: z.string().min(8).max(100),
     })).mutation(async ({ input, ctx }) => {
-      const token = ctx.req.cookies?.client_token;
-      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const { jwtVerify } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-      const { payload } = await jwtVerify(token, secret);
-      if (payload.type !== "client") throw new TRPCError({ code: "UNAUTHORIZED" });
-      const client = await getClientById(payload.clientId as number);
-      if (!client) throw new TRPCError({ code: "NOT_FOUND" });
+      const client = await requireActiveClient(ctx);
       const valid = await compare(input.currentPassword, client.passwordHash);
       if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "현재 비밀번호가 올바르지 않습니다." });
       const newHash = await hash(input.newPassword, 12);
@@ -2806,16 +2814,9 @@ ${topicPrompt}
     verifyEmail: publicProcedure.input(z.object({
       token: z.string(),
     })).mutation(async ({ input }) => {
-      const client = await getClientByVerifyToken(input.token);
-      if (!client || !client.emailVerifyExpires || client.emailVerifyExpires < new Date()) {
+      if (!await activatePendingClientByVerificationToken(input.token)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "유효하지 않거나 만료된 인증 토큰입니다." });
       }
-      await updateClient(client.id, {
-        emailVerified: "yes",
-        emailVerifyToken: null,
-        emailVerifyExpires: null,
-        status: "active",
-      });
       return { success: true, message: "이메일 인증이 완료되었습니다. 로그인해주세요." };
     }),
 
@@ -2823,7 +2824,7 @@ ${topicPrompt}
       email: z.string().email(),
     })).mutation(async ({ input, ctx }) => {
       const client = await getClientByEmail(input.email);
-      if (!client || client.emailVerified === "yes") {
+      if (!client || client.status !== "pending" || client.emailVerified === "yes") {
         return { success: true, message: "인증 메일이 재발송되었습니다." };
       }
       const newToken = randomBytes(32).toString("hex");
@@ -2833,7 +2834,7 @@ ${topicPrompt}
         emailVerifyExpires: newExpires,
       });
       // 인증 이메일 재발송
-      const origin = ctx.req?.headers?.origin || ctx.req?.headers?.referer?.replace(/\/$/, "") || "https://gogamdo.com";
+      const origin = getTrustedPublicOrigin();
       try {
         await sendVerificationEmail({
           email: client.email,
@@ -2844,7 +2845,7 @@ ${topicPrompt}
       } catch (emailErr) {
         console.warn("[ResendVerification] Email send failed:", emailErr);
       }
-      return { success: true, message: "인증 메일이 재발송되었습니다.", emailVerifyToken: newToken };
+      return { success: true, message: "인증 메일이 재발송되었습니다." };
     }),
 
     requestPasswordReset: publicProcedure.input(z.object({
@@ -2862,7 +2863,7 @@ ${topicPrompt}
         passwordResetExpires: resetExpires,
       });
       // 비밀번호 재설정 이메일 발송
-      const origin = ctx.req?.headers?.origin || ctx.req?.headers?.referer?.replace(/\/$/, "") || "https://gogamdo.com";
+      const origin = getTrustedPublicOrigin();
       try {
         await sendPasswordResetEmail({
           email: client.email,
@@ -2947,7 +2948,7 @@ ${topicPrompt}
         emailVerifyToken: newToken,
         emailVerifyExpires: newExpires,
       });
-      const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/$/, "") || `${ctx.req.protocol}://${ctx.req.headers.host}`;
+      const origin = getTrustedPublicOrigin();
       try {
         await sendVerificationEmail({
           email: client.email,
@@ -2966,7 +2967,7 @@ ${topicPrompt}
       if (unverified.length === 0) {
         return { success: true, count: 0, message: "미인증 고객이 없습니다." };
       }
-      const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/$/, "") || `${ctx.req.protocol}://${ctx.req.headers.host}`;
+      const origin = getTrustedPublicOrigin();
       let sentCount = 0;
       for (const client of unverified) {
         const newToken = randomBytes(32).toString("hex");
@@ -2995,9 +2996,7 @@ ${topicPrompt}
     overview: publicProcedure.query(async ({ ctx }) => {
       const token = ctx.req.cookies?.client_token;
       if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const { jwtVerify } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-      const { payload } = await jwtVerify(token, secret);
+      const payload = await verifyClientSession(token);
       if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
       const client = await getClientById(payload.clientId as number);
       if (!client || client.status !== "active") throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -3068,14 +3067,8 @@ ${topicPrompt}
       sensorId: z.number().optional(),
       period: z.enum(["1d", "7d", "30d"]).default("7d"),
     })).query(async ({ input, ctx }) => {
-      const token = ctx.req.cookies?.client_token;
-      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const { jwtVerify } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-      const { payload } = await jwtVerify(token, secret);
-      if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const client = await getClientById(payload.clientId as number);
-      if (!client || !client.assignedProjectIds?.includes(input.projectId)) {
+      const client = await requireActiveClient(ctx);
+      if (!client.assignedProjectIds?.includes(input.projectId)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "접근 권한이 없습니다." });
       }
 
@@ -3112,14 +3105,8 @@ ${topicPrompt}
       projectId: z.number(),
       period: z.enum(["1d", "7d", "30d"]).default("7d"),
     })).query(async ({ input, ctx }) => {
-      const token = ctx.req.cookies?.client_token;
-      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const { jwtVerify } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-      const { payload } = await jwtVerify(token, secret);
-      if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const client = await getClientById(payload.clientId as number);
-      if (!client || !client.assignedProjectIds?.includes(input.projectId)) {
+      const client = await requireActiveClient(ctx);
+      if (!client.assignedProjectIds?.includes(input.projectId)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "접근 권한이 없습니다." });
       }
 
@@ -3139,53 +3126,36 @@ ${topicPrompt}
   clientNotification: router({
     // 고객: 내 알림 목록
     list: publicProcedure.query(async ({ ctx }) => {
-      const token = ctx.req.cookies?.client_token;
-      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const { jwtVerify } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-      const { payload } = await jwtVerify(token, secret);
-      if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
-      return listClientNotifications(payload.clientId as number);
+      const client = await requireActiveClient(ctx);
+      return listClientNotifications(client.id);
     }),
     // 고객: 읽지 않은 알림 수
     unreadCount: publicProcedure.query(async ({ ctx }) => {
-      const token = ctx.req.cookies?.client_token;
-      if (!token) return 0;
       try {
-        const { jwtVerify } = await import("jose");
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-        const { payload } = await jwtVerify(token, secret);
-        if (payload.type !== "client" || !payload.clientId) return 0;
-        return getUnreadClientNotificationCount(payload.clientId as number);
+        const client = await requireActiveClient(ctx);
+        return getUnreadClientNotificationCount(client.id);
       } catch { return 0; }
     }),
     // 고객: 알림 읽음 처리
     markRead: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        const token = ctx.req.cookies?.client_token;
-        if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-        await markClientNotificationRead(input.id);
+        const client = await requireActiveClient(ctx);
+        await markClientNotificationRead(input.id, client.id);
         return { success: true };
       }),
     // 고객: 모두 읽음 처리
     markAllRead: publicProcedure.mutation(async ({ ctx }) => {
-      const token = ctx.req.cookies?.client_token;
-      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-      const { jwtVerify } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
-      const { payload } = await jwtVerify(token, secret);
-      if (payload.type !== "client" || !payload.clientId) throw new TRPCError({ code: "UNAUTHORIZED" });
-      await markAllClientNotificationsRead(payload.clientId as number);
+      const client = await requireActiveClient(ctx);
+      await markAllClientNotificationsRead(client.id);
       return { success: true };
     }),
     // 고객: 알림 삭제
     delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        const token = ctx.req.cookies?.client_token;
-        if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
-        await deleteClientNotification(input.id);
+        const client = await requireActiveClient(ctx);
+        await deleteClientNotification(input.id, client.id);
         return { success: true };
       }),
   }),

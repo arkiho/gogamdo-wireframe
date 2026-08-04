@@ -1,6 +1,92 @@
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it, beforeAll, vi } from "vitest";
+
+const portalFixture = vi.hoisted(() => ({
+  nextApiKeyId: 1,
+  nextClientId: 1,
+  nextZoneId: 1,
+  apiKeys: [] as any[],
+  clients: [] as any[],
+  zones: [] as any[],
+}));
+
+vi.mock("./_core/notification", () => ({ notifyOwner: vi.fn(async () => true) }));
+
+vi.mock("./email", async importOriginal => {
+  const actual = await importOriginal<typeof import("./email")>();
+  return {
+    ...actual,
+    sendVerificationEmail: vi.fn(async () => ({ success: true })),
+    sendPasswordResetEmail: vi.fn(async () => ({ success: true })),
+  };
+});
+
+vi.mock("./db", async importOriginal => {
+  const actual = await importOriginal<typeof import("./db")>();
+  return {
+    ...actual,
+    createSensorApiKey: vi.fn(async (data: any) => {
+      const row = { id: portalFixture.nextApiKeyId++, active: "yes", ...data };
+      portalFixture.apiKeys.push(row);
+      return row;
+    }),
+    listSensorApiKeys: vi.fn(async (projectId: number) =>
+      portalFixture.apiKeys.filter(row => row.projectId === projectId)
+    ),
+    revokeSensorApiKey: vi.fn(async (id: number) => {
+      const row = portalFixture.apiKeys.find(item => item.id === id);
+      if (row) row.active = "no";
+    }),
+    getClientByEmail: vi.fn(async (email: string) =>
+      portalFixture.clients.find(row => row.email === email) ?? null
+    ),
+    getClientById: vi.fn(async (id: number) =>
+      portalFixture.clients.find(row => row.id === id) ?? null
+    ),
+    getClientByVerifyToken: vi.fn(async (token: string) =>
+      portalFixture.clients.find(row => row.emailVerifyToken === token) ?? null
+    ),
+    activatePendingClientByVerifyToken: vi.fn(async (token: string) => {
+      const row = portalFixture.clients.find(item =>
+        item.emailVerifyToken === token &&
+        item.status === "pending" &&
+        item.emailVerified === "no" &&
+        item.emailVerifyExpires > new Date()
+      );
+      if (!row) return false;
+      Object.assign(row, { status: "active", emailVerified: "yes", emailVerifyToken: null, emailVerifyExpires: null });
+      return true;
+    }),
+    getClientByResetToken: vi.fn(async (token: string) =>
+      portalFixture.clients.find(row => row.passwordResetToken === token) ?? null
+    ),
+    createClient: vi.fn(async (data: any) => {
+      const row = {
+        id: portalFixture.nextClientId++,
+        emailVerified: "no",
+        assignedProjectIds: [],
+        ...data,
+      };
+      portalFixture.clients.push(row);
+      return row;
+    }),
+    updateClient: vi.fn(async (id: number, data: any) => {
+      const row = portalFixture.clients.find(item => item.id === id);
+      if (row) Object.assign(row, data);
+    }),
+    listClients: vi.fn(async () => [...portalFixture.clients]),
+    createSpaceZone: vi.fn(async (data: any) => {
+      const row = { id: portalFixture.nextZoneId++, ...data };
+      portalFixture.zones.push(row);
+      return { id: row.id };
+    }),
+    listSpaceZones: vi.fn(async (projectId: number) =>
+      portalFixture.zones.filter(row => row.projectId === projectId)
+    ),
+  };
+});
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { signClientSession } from "./_core/sessionSecurity";
 
 // ============================================================
 // Test Helpers
@@ -140,7 +226,8 @@ describe("고객 회원가입/로그인", () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toContain("회원가입");
-    testVerifyToken = result.emailVerifyToken!;
+    expect(result).not.toHaveProperty("emailVerifyToken");
+    testVerifyToken = portalFixture.clients.find(row => row.email === testEmail)!.emailVerifyToken;
   });
 
   it("회원가입 후 이메일 인증을 완료한다", async () => {
@@ -449,7 +536,9 @@ describe("고객 프로필 관리", () => {
     // 이메일 인증
     const { ctx: verifyCtx } = createPublicContext();
     const verifyCaller = appRouter.createCaller(verifyCtx);
-    await verifyCaller.clientAuth.verifyEmail({ token: regResult.emailVerifyToken! });
+    expect(regResult).not.toHaveProperty("emailVerifyToken");
+    const profileVerifyToken = portalFixture.clients.find(row => row.email === profileEmail)!.emailVerifyToken;
+    await verifyCaller.clientAuth.verifyEmail({ token: profileVerifyToken });
 
     // 로그인하여 토큰 획득
     const { ctx: loginCtx, cookies } = createPublicContext();
@@ -545,7 +634,7 @@ describe("이메일 인증 플로우", () => {
   const verifyPassword = "VerifyPass123!";
   let verifyToken: string;
 
-  it("회원가입 시 인증 토큰이 반환된다", async () => {
+  it("회원가입 시 인증 토큰을 public 응답에 반환하지 않는다", async () => {
     const { ctx } = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
@@ -556,9 +645,8 @@ describe("이메일 인증 플로우", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.emailVerifyToken).toBeDefined();
-    expect(typeof result.emailVerifyToken).toBe("string");
-    verifyToken = result.emailVerifyToken!;
+    expect(result).not.toHaveProperty("emailVerifyToken");
+    verifyToken = portalFixture.clients.find(row => row.email === verifyEmail)!.emailVerifyToken;
   });
 
   it("미인증 사용자 로그인 시 EMAIL_NOT_VERIFIED 에러가 발생한다", async () => {
@@ -641,7 +729,7 @@ describe("이메일 인증 플로우", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.emailVerifyToken).toBeDefined();
+    expect(result).not.toHaveProperty("emailVerifyToken");
   });
 
   it("이미 인증된 사용자의 재발송 요청도 성공 메시지를 반환한다", async () => {
@@ -664,6 +752,27 @@ describe("이메일 인증 플로우", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("suspended 고객은 retained token 또는 재발송으로 active 상태를 복원할 수 없다", async () => {
+    const retainedToken = `suspended-${Date.now()}`;
+    const client = {
+      id: portalFixture.nextClientId++,
+      email: `suspended_verify_${Date.now()}@example.com`,
+      name: "Suspended",
+      status: "suspended",
+      emailVerified: "no",
+      emailVerifyToken: retainedToken,
+      emailVerifyExpires: new Date(Date.now() + 60_000),
+      assignedProjectIds: [],
+    };
+    portalFixture.clients.push(client);
+    const { ctx } = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.clientAuth.verifyEmail({ token: retainedToken })).rejects.toThrow();
+    await expect(caller.clientAuth.resendVerification({ email: client.email })).resolves.toMatchObject({ success: true });
+    expect(client.status).toBe("suspended");
+    expect(client.emailVerifyToken).toBe(retainedToken);
   });
 });
 
@@ -783,6 +892,22 @@ describe("clientManagement - 이메일 인증 관리", () => {
 // Client Dashboard Tests
 // ============================================================
 describe("clientDashboard", () => {
+  it.each(["suspended", "pending"] as const)("%s 고객의 assigned-project 센서 접근을 거부한다", async status => {
+    const client = {
+      id: portalFixture.nextClientId++,
+      email: `${status}_${Date.now()}@example.com`,
+      name: status,
+      status,
+      assignedProjectIds: [7],
+    };
+    portalFixture.clients.push(client);
+    const token = await signClientSession({ clientId: client.id, email: client.email, name: client.name });
+    const { ctx } = createPublicContext({ client_token: token });
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.clientDashboard.sensorTimeSeries({ projectId: 7, period: "7d" })).rejects.toThrow();
+    await expect(caller.clientDashboard.zoneStats({ projectId: 7, period: "7d" })).rejects.toThrow();
+  });
+
   it("인증 없이 overview 접근 시 에러 발생", async () => {
     const { ctx } = createPublicContext();
     const caller = appRouter.createCaller(ctx);

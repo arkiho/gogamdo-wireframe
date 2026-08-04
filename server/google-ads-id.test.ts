@@ -1,14 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import { normalizePublicIntegrationId } from "../client/src/lib/publicIntegrationConfig";
 
-describe("Google Ads ID 환경변수 검증", () => {
-  it("VITE_GOOGLE_ADS_ID가 설정되어 있어야 한다", () => {
-    const googleAdsId = process.env.VITE_GOOGLE_ADS_ID;
-    expect(googleAdsId).toBeDefined();
-    expect(googleAdsId).not.toBe("");
+describe("Google Ads public ID contract", () => {
+  it("allows Google Ads to be disabled in non-production environments", () => {
+    expect(normalizePublicIntegrationId(undefined, "googleAds")).toBeUndefined();
   });
 
-  it("VITE_GOOGLE_ADS_ID가 AW- 형식이어야 한다", () => {
-    const googleAdsId = process.env.VITE_GOOGLE_ADS_ID;
-    expect(googleAdsId).toMatch(/^AW-\d+$/);
+  it("accepts the AW-numeric format", () => {
+    expect(normalizePublicIntegrationId("AW-123456789", "googleAds")).toBe("AW-123456789");
+  });
+
+  it("rejects malformed values instead of loading them as script IDs", () => {
+    expect(normalizePublicIntegrationId("G-ABC123", "googleAds")).toBeUndefined();
+    expect(normalizePublicIntegrationId("AW-123<script>", "googleAds")).toBeUndefined();
   });
 });

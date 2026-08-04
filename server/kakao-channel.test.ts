@@ -1,20 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import { getKakaoChannelUrl } from "../client/src/lib/publicIntegrationConfig";
 
-describe("Kakao Channel ID", () => {
-  it("VITE_KAKAO_CHANNEL_ID should be set", () => {
-    const channelId = process.env.VITE_KAKAO_CHANNEL_ID;
-    expect(channelId).toBeDefined();
-    expect(channelId).not.toBe("");
+describe("Kakao Channel public configuration", () => {
+  it("uses a safe public fallback when the channel ID is missing", () => {
+    expect(getKakaoChannelUrl(undefined)).toBe("https://pf.kakao.com/_xnxlxkxj/chat");
   });
 
-  it("VITE_KAKAO_CHANNEL_ID should start with underscore", () => {
-    const channelId = process.env.VITE_KAKAO_CHANNEL_ID;
-    expect(channelId).toMatch(/^_/);
+  it("builds a channel URL for a valid public channel ID", () => {
+    expect(getKakaoChannelUrl("_Example123")).toBe("https://pf.kakao.com/_Example123/chat");
   });
 
-  it("Kakao channel URL should be valid", () => {
-    const channelId = process.env.VITE_KAKAO_CHANNEL_ID;
-    const url = `https://pf.kakao.com/${channelId}/chat`;
-    expect(url).toBe("https://pf.kakao.com/_rzezX/chat");
+  it("rejects malformed channel IDs and never emits an undefined URL", () => {
+    expect(getKakaoChannelUrl("../bad")).toBe("https://pf.kakao.com/_xnxlxkxj/chat");
+    expect(getKakaoChannelUrl(undefined)).not.toContain("undefined");
   });
 });

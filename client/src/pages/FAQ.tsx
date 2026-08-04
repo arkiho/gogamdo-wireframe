@@ -8,7 +8,7 @@ import { useState } from "react";
 import { ChevronDown, Search, MessageSquare, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import SEOHead from "@/components/SEOHead";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
 interface FAQItem {
   question: string;
@@ -202,10 +202,7 @@ export default function FAQ() {
 
   return (
     <>
-      <SEOHead
-        title="자주 묻는 질문 (FAQ) | 고감도 사무실 인테리어"
-        description="사무실 인테리어 비용, 공사 기간, 진행 절차, AI 견적 시스템 등 자주 묻는 질문과 답변을 확인하세요. 고감도가 궁금한 모든 것을 알려드립니다."
-      />
+      <SEOHead {...SEO_CONFIG.faq} />
 
       {/* FAQ Schema.org 구조화 데이터 */}
       <script

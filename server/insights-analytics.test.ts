@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import path from "node:path";
+
+const projectPath = (...segments: string[]) => path.resolve(process.cwd(), ...segments);
 
 /**
  * 인사이트 AI 생성 및 광고 픽셀 통합 테스트
@@ -36,7 +39,7 @@ describe("Analytics Pixel Integration", () => {
     // Verify the file exists and has expected exports by checking file content
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/lib/analytics.ts",
+      projectPath("client/src/lib/analytics.ts"),
       "utf-8"
     );
     
@@ -58,7 +61,7 @@ describe("Analytics Pixel Integration", () => {
   it("should have AnalyticsProvider calling all init functions", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/components/AnalyticsProvider.tsx",
+      projectPath("client/src/components/AnalyticsProvider.tsx"),
       "utf-8"
     );
     
@@ -72,7 +75,7 @@ describe("Analytics Pixel Integration", () => {
   it("should have Facebook Pixel event forwarding in trackEvent", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/lib/analytics.ts",
+      projectPath("client/src/lib/analytics.ts"),
       "utf-8"
     );
     
@@ -84,7 +87,7 @@ describe("Proposal PDF Generation", () => {
   it("should have proposalPdf utility file", async () => {
     const fs = await import("fs");
     const exists = fs.existsSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/lib/proposalPdf.ts"
+      projectPath("client/src/lib/proposalPdf.ts")
     );
     expect(exists).toBe(true);
   });
@@ -92,7 +95,7 @@ describe("Proposal PDF Generation", () => {
   it("should export generateProposalPdf function", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/lib/proposalPdf.ts",
+      projectPath("client/src/lib/proposalPdf.ts"),
       "utf-8"
     );
     expect(content).toContain("export function generateProposalPdf");
@@ -103,7 +106,7 @@ describe("Admin Insights Page", () => {
   it("should have AdminInsights page component", async () => {
     const fs = await import("fs");
     const exists = fs.existsSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/AdminInsights.tsx"
+      projectPath("client/src/pages/AdminInsights.tsx")
     );
     expect(exists).toBe(true);
   });
@@ -111,7 +114,7 @@ describe("Admin Insights Page", () => {
   it("should have admin/insights route in App.tsx", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/App.tsx",
+      projectPath("client/src/App.tsx"),
       "utf-8"
     );
     expect(content).toContain("/admin/insights");
@@ -121,7 +124,7 @@ describe("Admin Insights Page", () => {
   it("should have insights link in AdminDashboard", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/AdminDashboard.tsx",
+      projectPath("client/src/pages/AdminDashboard.tsx"),
       "utf-8"
     );
     expect(content).toContain("/admin/insights");
@@ -133,7 +136,7 @@ describe("PWA Configuration", () => {
   it("should have manifest.json", async () => {
     const fs = await import("fs");
     const exists = fs.existsSync(
-      "/home/ubuntu/gogamdo-wireframe/client/public/manifest.json"
+      projectPath("client/public/manifest.json")
     );
     expect(exists).toBe(true);
   });
@@ -141,7 +144,7 @@ describe("PWA Configuration", () => {
   it("should have service worker", async () => {
     const fs = await import("fs");
     const exists = fs.existsSync(
-      "/home/ubuntu/gogamdo-wireframe/client/public/sw.js"
+      projectPath("client/public/sw.js")
     );
     expect(exists).toBe(true);
   });
@@ -149,7 +152,7 @@ describe("PWA Configuration", () => {
   it("should have manifest link in index.html", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/index.html",
+      projectPath("client/index.html"),
       "utf-8"
     );
     expect(content).toContain("manifest.json");

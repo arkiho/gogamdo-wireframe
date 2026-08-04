@@ -1,15 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import { normalizePublicIntegrationId } from "../client/src/lib/publicIntegrationConfig";
 
-describe("Kakao Share SDK", () => {
-  it("VITE_KAKAO_JS_KEY should be set", () => {
-    const key = process.env.VITE_KAKAO_JS_KEY;
-    expect(key).toBeDefined();
-    expect(key!.length).toBeGreaterThan(0);
+describe("Kakao Share SDK public key contract", () => {
+  it("allows sharing to use its clipboard fallback when the key is missing", () => {
+    expect(normalizePublicIntegrationId(undefined, "kakaoJs")).toBeUndefined();
   });
 
-  it("VITE_KAKAO_JS_KEY should be a valid hex string", () => {
-    const key = process.env.VITE_KAKAO_JS_KEY;
-    // Kakao JS keys are 32-character hex strings
-    expect(key).toMatch(/^[a-f0-9]{32}$/);
+  it("accepts a 32-character hexadecimal JavaScript key", () => {
+    const fixture = "0123456789abcdef0123456789abcdef";
+    expect(normalizePublicIntegrationId(fixture, "kakaoJs")).toBe(fixture);
+  });
+
+  it("rejects malformed keys", () => {
+    expect(normalizePublicIntegrationId("not-a-key", "kakaoJs")).toBeUndefined();
+    expect(normalizePublicIntegrationId("<script>0123456789abcdef", "kakaoJs")).toBeUndefined();
   });
 });

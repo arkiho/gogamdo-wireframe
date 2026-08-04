@@ -1,4 +1,39 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const announcementFixture = vi.hoisted(() => ({
+  nextId: 2,
+  rows: [] as any[],
+}));
+
+vi.mock("./db", async importOriginal => {
+  const actual = await importOriginal<typeof import("./db")>();
+  return {
+    ...actual,
+    getActiveAnnouncements: vi.fn(async () =>
+      announcementFixture.rows.filter(row => row.active === "yes")
+    ),
+    listAnnouncements: vi.fn(async () => [...announcementFixture.rows]),
+    createAnnouncement: vi.fn(async (data: any) => {
+      const row = { id: announcementFixture.nextId++, active: "yes", ...data };
+      announcementFixture.rows.push(row);
+      return { success: true, id: row.id };
+    }),
+    updateAnnouncement: vi.fn(async (id: number, data: any) => {
+      const row = announcementFixture.rows.find(item => item.id === id);
+      if (row) Object.assign(row, data);
+      return { success: Boolean(row) };
+    }),
+    deleteAnnouncement: vi.fn(async (id: number) => {
+      const before = announcementFixture.rows.length;
+      announcementFixture.rows = announcementFixture.rows.filter(item => item.id !== id);
+      return { success: announcementFixture.rows.length < before };
+    }),
+    bulkDeleteAnnouncements: vi.fn(async (ids: number[]) => {
+      announcementFixture.rows = announcementFixture.rows.filter(item => !ids.includes(item.id));
+      return { success: true };
+    }),
+  };
+});
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
@@ -65,6 +100,15 @@ function createUserContext(): TrpcContext {
 }
 
 describe("Announcement Banner System", () => {
+  beforeEach(() => {
+    announcementFixture.nextId = 2;
+    announcementFixture.rows = [{
+      id: 1,
+      title: "기본 공지",
+      message: "fixture",
+      active: "yes",
+    }];
+  });
   it("public user can fetch active announcements", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);

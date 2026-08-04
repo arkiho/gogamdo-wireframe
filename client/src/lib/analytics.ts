@@ -7,6 +7,7 @@
  * 스크립트 로딩은 index.html이 아닌 런타임에서 동적으로 수행하여
  * ID가 없을 때 불필요한 네트워크 요청을 방지합니다.
  */
+import { normalizePublicIntegrationId } from "./publicIntegrationConfig";
 
 // ─── GA4 ───
 
@@ -21,7 +22,7 @@ declare global {
 let ga4Loaded = false;
 
 export function initGA4() {
-  const id = import.meta.env.VITE_GA4_MEASUREMENT_ID;
+  const id = normalizePublicIntegrationId(import.meta.env.VITE_GA4_MEASUREMENT_ID, "ga4");
   if (!id || ga4Loaded) return;
   ga4Loaded = true;
 
@@ -47,7 +48,7 @@ export function initGA4() {
 let clarityLoaded = false;
 
 export function initClarity() {
-  const id = import.meta.env.VITE_CLARITY_PROJECT_ID;
+  const id = normalizePublicIntegrationId(import.meta.env.VITE_CLARITY_PROJECT_ID, "clarity");
   if (!id || clarityLoaded) return;
   clarityLoaded = true;
 
@@ -69,7 +70,7 @@ export function initClarity() {
 // ─── Facebook Pixel ───
 let fbPixelLoaded = false;
 export function initFBPixel() {
-  const id = import.meta.env.VITE_FB_PIXEL_ID;
+  const id = normalizePublicIntegrationId(import.meta.env.VITE_FB_PIXEL_ID, "facebookPixel");
   if (!id || fbPixelLoaded) return;
   fbPixelLoaded = true;
   (function (f: any, b: any, e: any, v: any, n?: any, t?: any, s?: any) {
@@ -95,7 +96,7 @@ export function initFBPixel() {
 // ─── Google Ads Remarketing ───
 let gAdsLoaded = false;
 export function initGoogleAds() {
-  const id = import.meta.env.VITE_GOOGLE_ADS_ID;
+  const id = normalizePublicIntegrationId(import.meta.env.VITE_GOOGLE_ADS_ID, "googleAds");
   if (!id || gAdsLoaded) return;
   gAdsLoaded = true;
   if (window.gtag) {
@@ -117,7 +118,7 @@ export function initGoogleAds() {
 // ─── Naver Analytics ───
 let naverLoaded = false;
 export function initNaverAnalytics() {
-  const id = import.meta.env.VITE_NAVER_ANALYTICS_ID;
+  const id = normalizePublicIntegrationId(import.meta.env.VITE_NAVER_ANALYTICS_ID, "naverAnalytics");
   if (!id || naverLoaded) return;
   naverLoaded = true;
   const script = document.createElement("script");
@@ -168,7 +169,7 @@ export function trackEvent(eventName: string, params?: Record<string, unknown>) 
 }
 
 export function trackPageView(path: string, title?: string) {
-  const id = import.meta.env.VITE_GA4_MEASUREMENT_ID;
+  const id = normalizePublicIntegrationId(import.meta.env.VITE_GA4_MEASUREMENT_ID, "ga4");
   if (window.gtag && id) {
     window.gtag("event", "page_view", {
       page_path: path,
@@ -192,6 +193,29 @@ export const analytics = {
 
   contactSubmit: (type: string) =>
     trackEvent("contact_submit", { contact_type: type }),
+
+  spaceCalculatorStart: () =>
+    trackEvent("space_calculator_start"),
+
+  spaceCalculatorComplete: (employeeCount: number, seatingMode: string, recommendedPyeong: number) =>
+    trackEvent("space_calculator_complete", {
+      employee_count: employeeCount,
+      seating_mode: seatingMode,
+      recommended_pyeong: recommendedPyeong,
+    }),
+
+  spaceCalculatorLeadClick: (recommendedPyeong: number) =>
+    trackEvent("space_calculator_lead_click", { recommended_pyeong: recommendedPyeong }),
+
+  qualifiedContactView: (source: string) =>
+    trackEvent("qualified_contact_view", { lead_source: source }),
+
+  qualifiedContactSubmit: (source: string, purpose: string, decisionStage: string) =>
+    trackEvent("qualified_contact_submit", {
+      lead_source: source,
+      project_purpose: purpose,
+      decision_stage: decisionStage,
+    }),
 
   newsletterSubscribe: () =>
     trackEvent("newsletter_subscribe"),

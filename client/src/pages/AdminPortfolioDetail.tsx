@@ -362,19 +362,19 @@ export default function AdminPortfolioDetail() {
                         rows={4} className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">과제 (고객의 요구사항/문제)</label>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">고객의 문제</label>
                       <textarea value={editData.challenge || ""} onChange={e => setEditData({ ...editData, challenge: e.target.value })}
-                        rows={2} placeholder="예: 노후화된 사무공간의 업무 효율 개선 필요" className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
+                        rows={2} placeholder="공사 전 고객이 겪던 문제와 해결해야 할 업무·공간 조건" className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">솔루션 (고감도의 해결 방안)</label>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">진단과 핵심 결정</label>
                       <textarea value={editData.solution || ""} onChange={e => setEditData({ ...editData, solution: e.target.value })}
-                        rows={2} placeholder="예: 오픈 플랜 + 집중 부스 하이브리드 설계" className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
+                        rows={2} placeholder="진단 결과와 그에 따라 선택한 조닝·동선·설계·공정의 핵심 결정" className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">성과 (프로젝트 결과)</label>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">완공 후 변화</label>
                       <textarea value={editData.result || ""} onChange={e => setEditData({ ...editData, result: e.target.value })}
-                        rows={2} placeholder="예: 직원 만족도 35% 향상, 공간 활용률 40% 개선" className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
+                        rows={2} placeholder="완공 후 달라진 업무환경과 고객이 확인한 변화. 수치는 근거가 있을 때만 입력" className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none" />
                     </div>
                   </>
                 ) : (

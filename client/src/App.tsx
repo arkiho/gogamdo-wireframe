@@ -7,6 +7,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import AnalyticsProvider from "./components/AnalyticsProvider";
 import Layout from "./components/Layout";
+import { SeoRouteReset } from "./components/SEOHead";
 import { ADMIN_ROUTE_SCOPE, OPS_ROUTE_SCOPE } from "./lib/portalRouteScopes";
 
 // Home is eagerly loaded (first screen)
@@ -18,6 +19,7 @@ const Solutions = lazy(() => import("./pages/Solutions"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
 const PortfolioDbDetail = lazy(() => import("./pages/PortfolioDbDetail"));
 const Estimator = lazy(() => import("./pages/Estimator"));
+const OfficeSpaceCalculator = lazy(() => import("./pages/OfficeSpaceCalculator"));
 const Insights = lazy(() => import("./pages/Insights"));
 const InsightDetail = lazy(() => import("./pages/InsightDetail"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -127,6 +129,7 @@ function PublicRouter() {
           <Route path="/portfolio/p/:id" component={PortfolioDbDetail} />
           <Route path="/review/:token" component={ReviewWrite} />
           <Route path="/estimator" component={Estimator} />
+          <Route path="/office-space-calculator" component={OfficeSpaceCalculator} />
           <Route path="/insights" component={Insights} />
           <Route path="/insights/:slug" component={InsightDetail} />
           <Route path="/unsubscribe/:token" component={Unsubscribe} />
@@ -229,8 +232,10 @@ function OpsRouter() {
 
 function Router() {
   return (
-    <Suspense fallback={<LazyFallback />}>
-      <Switch>
+    <>
+      <SeoRouteReset />
+      <Suspense fallback={<LazyFallback />}>
+        <Switch>
         {/* 고객 여정 서베이 (공개 접근) */}
         <Route path="/survey/workspace" component={WorkspaceSurvey} />
         <Route path="/survey/interview" component={WorkspaceInterview} />
@@ -266,8 +271,9 @@ function Router() {
         {/* Admin routes — 사이드바 셸(AdminLayout)로 감싼 중첩 라우터 */}
         <Route path={ADMIN_ROUTE_SCOPE} component={AdminRouter} />
         <Route component={PublicRouter} />
-      </Switch>
-    </Suspense>
+        </Switch>
+      </Suspense>
+    </>
   );
 }
 

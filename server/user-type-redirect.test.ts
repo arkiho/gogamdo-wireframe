@@ -1,4 +1,36 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+
+const userTypeFixture = vi.hoisted(() => ({
+  nextId: 1,
+  clients: [] as any[],
+}));
+
+vi.mock("./db", async importOriginal => {
+  const actual = await importOriginal<typeof import("./db")>();
+  return {
+    ...actual,
+    createClient: vi.fn(async (data: any) => {
+      const row = { id: userTypeFixture.nextId++, ...data };
+      userTypeFixture.clients.push(row);
+      return row;
+    }),
+    getClientByEmail: vi.fn(async (email: string) =>
+      userTypeFixture.clients.find(row => row.email === email) ?? null
+    ),
+    updateClient: vi.fn(async (id: number, data: any) => {
+      Object.assign(userTypeFixture.clients.find(row => row.id === id) ?? {}, data);
+    }),
+    db: {
+      delete: vi.fn(() => ({
+        where: vi.fn((_column: string, _operator: string, id: number) => ({
+          run: vi.fn(async () => {
+            userTypeFixture.clients = userTypeFixture.clients.filter(row => row.id !== id);
+          }),
+        })),
+      })),
+    },
+  };
+});
 import { db } from "./db";
 import { createClient, getClientByEmail, updateClient } from "./db";
 import { randomBytes } from "crypto";

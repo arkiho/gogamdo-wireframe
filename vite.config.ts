@@ -3,8 +3,12 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
-import { defineConfig, type Plugin, type ViteDevServer } from "vite";
+import { defineConfig, type Plugin, type PluginOption, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import {
+  getProductionManualChunks,
+  isManusDevelopmentToolingEnabled,
+} from "./client/src/config/buildPolicy";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -150,10 +154,16 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+function createPlugins(mode: string) {
+  const plugins: PluginOption[] = [react(), tailwindcss()];
+  if (isManusDevelopmentToolingEnabled(mode)) {
+    plugins.push(jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector());
+  }
+  return plugins;
+}
 
-export default defineConfig({
-  plugins,
+export default defineConfig(({ mode }) => ({
+  plugins: createPlugins(mode),
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -169,12 +179,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom"],
-          ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-tooltip", "@radix-ui/react-popover"],
-          charts: ["recharts", "chart.js", "react-chartjs-2"],
-          motion: ["framer-motion"],
-        },
+        manualChunks: getProductionManualChunks(),
       },
     },
   },
@@ -194,4 +199,4 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
-});
+}));
