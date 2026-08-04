@@ -4,6 +4,38 @@
  */
 
 import { useEffect, useRef, useCallback } from "react";
+import { normalizePublicIntegrationId } from "@/lib/publicIntegrationConfig";
+
+export const KAKAO_SDK_SRC = "https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js";
+
+let kakaoSdkPromise: Promise<void> | null = null;
+
+export function loadKakaoSdk(): Promise<void> {
+  if (window.Kakao) return Promise.resolve();
+  if (kakaoSdkPromise) return kakaoSdkPromise;
+
+  kakaoSdkPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = KAKAO_SDK_SRC;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.addEventListener("load", () => {
+      if (window.Kakao) {
+        resolve();
+      } else {
+        kakaoSdkPromise = null;
+        reject(new Error("Kakao SDK loaded without exposing window.Kakao"));
+      }
+    }, { once: true });
+    script.addEventListener("error", () => {
+      kakaoSdkPromise = null;
+      reject(new Error("Kakao SDK failed to load"));
+    }, { once: true });
+    document.head.appendChild(script);
+  });
+
+  return kakaoSdkPromise;
+}
 
 declare global {
   interface Window {
@@ -72,11 +104,13 @@ export function useKakaoShare() {
   const initialized = useRef(false);
 
   useEffect(() => {
-    const kakaoKey = import.meta.env.VITE_KAKAO_JS_KEY;
+    const kakaoKey = normalizePublicIntegrationId(import.meta.env.VITE_KAKAO_JS_KEY, "kakaoJs");
     if (!kakaoKey) return;
 
-    // SDK가 로드될 때까지 대기
+    let cancelled = false;
+
     const initKakao = () => {
+      if (cancelled) return;
       if (window.Kakao && !window.Kakao.isInitialized()) {
         window.Kakao.init(kakaoKey);
         initialized.current = true;
@@ -85,18 +119,13 @@ export function useKakaoShare() {
       }
     };
 
-    if (window.Kakao) {
-      initKakao();
-    } else {
-      // SDK 로드 대기
-      const interval = setInterval(() => {
-        if (window.Kakao) {
-          initKakao();
-          clearInterval(interval);
-        }
-      }, 200);
-      return () => clearInterval(interval);
-    }
+    void loadKakaoSdk()
+      .then(initKakao)
+      .catch((error) => console.warn("[Kakao] SDK initialization skipped:", error));
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const isReady = useCallback(() => {

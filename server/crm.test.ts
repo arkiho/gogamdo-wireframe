@@ -1,4 +1,82 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
+
+const crmFixture = vi.hoisted(() => ({
+  nextClientId: 2,
+  nextInteractionId: 2,
+  nextDealId: 2,
+  nextActivityId: 2,
+  clients: [] as any[],
+  interactions: [] as any[],
+  deals: [] as any[],
+  activities: [] as any[],
+}));
+
+vi.mock("./_core/notification", () => ({ notifyOwner: vi.fn(async () => true) }));
+
+vi.mock("./db", async importOriginal => {
+  const actual = await importOriginal<typeof import("./db")>();
+  return {
+    ...actual,
+    listCrmClients: vi.fn(async () => [...crmFixture.clients]),
+    getCrmClient: vi.fn(async (id: number) => crmFixture.clients.find(row => row.id === id) ?? null),
+    createCrmClient: vi.fn(async (data: any) => {
+      const id = crmFixture.nextClientId++;
+      crmFixture.clients.push({ id, ...data });
+      return id;
+    }),
+    updateCrmClient: vi.fn(async (id: number, data: any) => {
+      const row = crmFixture.clients.find(item => item.id === id);
+      if (row) Object.assign(row, data);
+    }),
+    deleteCrmClient: vi.fn(async (id: number) => {
+      crmFixture.clients = crmFixture.clients.filter(item => item.id !== id);
+    }),
+    listCrmInteractions: vi.fn(async (clientId: number) =>
+      crmFixture.interactions.filter(row => row.clientId === clientId)
+    ),
+    createCrmInteraction: vi.fn(async (data: any) => {
+      const id = crmFixture.nextInteractionId++;
+      crmFixture.interactions.push({ id, ...data });
+      return id;
+    }),
+    deleteCrmInteraction: vi.fn(async (id: number) => {
+      crmFixture.interactions = crmFixture.interactions.filter(item => item.id !== id);
+    }),
+    listCrmDeals: vi.fn(async (clientId?: number) => clientId
+      ? crmFixture.deals.filter(row => row.clientId === clientId)
+      : [...crmFixture.deals]
+    ),
+    getCrmDeal: vi.fn(async (id: number) => crmFixture.deals.find(row => row.id === id) ?? null),
+    createCrmDeal: vi.fn(async (data: any) => {
+      const id = crmFixture.nextDealId++;
+      crmFixture.deals.push({ id, stage: "lead", ...data });
+      return id;
+    }),
+    updateCrmDeal: vi.fn(async (id: number, data: any) => {
+      const row = crmFixture.deals.find(item => item.id === id);
+      if (row) Object.assign(row, data);
+    }),
+    deleteCrmDeal: vi.fn(async (id: number) => {
+      crmFixture.deals = crmFixture.deals.filter(item => item.id !== id);
+    }),
+    listCrmActivities: vi.fn(async (filters: any = {}) => crmFixture.activities.filter(row =>
+      (!filters.clientId || row.clientId === filters.clientId) &&
+      (!filters.dealId || row.dealId === filters.dealId)
+    )),
+    createCrmActivity: vi.fn(async (data: any) => {
+      const id = crmFixture.nextActivityId++;
+      crmFixture.activities.push({ id, ...data });
+      return id;
+    }),
+    getCrmStats: vi.fn(async () => ({
+      totalClients: crmFixture.clients.length,
+      activeDeals: crmFixture.deals.filter(row => !["completed", "lost"].includes(row.stage)).length,
+      totalDealValue: crmFixture.deals.reduce((sum, row) => sum + (row.estimatedValue ?? 0), 0),
+      wonDeals: crmFixture.deals.filter(row => row.stage === "completed").length,
+      lostDeals: crmFixture.deals.filter(row => row.stage === "lost").length,
+    })),
+  };
+});
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
@@ -55,6 +133,16 @@ const userCaller = appRouter.createCaller(createUserContext());
 const anonCaller = appRouter.createCaller(createAnonContext());
 
 describe("CRM Router", () => {
+  beforeEach(() => {
+    crmFixture.nextClientId = 2;
+    crmFixture.nextInteractionId = 2;
+    crmFixture.nextDealId = 2;
+    crmFixture.nextActivityId = 2;
+    crmFixture.clients = [{ id: 1, companyName: "Fixture 회사", contactName: "Fixture 고객" }];
+    crmFixture.interactions = [{ id: 1, clientId: 1, type: "phone_call", subject: "Fixture 상담" }];
+    crmFixture.deals = [{ id: 1, clientId: 1, title: "Fixture 딜", stage: "lead", estimatedValue: 1000 }];
+    crmFixture.activities = [{ id: 1, clientId: 1, dealId: 1, type: "note", title: "Fixture 활동" }];
+  });
   // ===== Client CRUD =====
   describe("crm.createClient", () => {
     it("should allow admin to create a client", async () => {

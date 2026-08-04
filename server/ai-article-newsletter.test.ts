@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import path from "node:path";
+
+const projectPath = (...segments: string[]) => path.resolve(process.cwd(), ...segments);
 
 /**
  * AI 아티클 첫 발행 테스트 + 뉴스레터 발송 연동 확인
@@ -111,13 +114,13 @@ describe("AI 아티클 생성 파이프라인", () => {
 describe("AdminInsights 페이지 구조 검증", () => {
   it("AdminInsights 페이지 파일이 존재한다", async () => {
     const fs = await import("fs");
-    expect(fs.existsSync("/home/ubuntu/gogamdo-wireframe/client/src/pages/AdminInsights.tsx")).toBe(true);
+    expect(fs.existsSync(projectPath("client/src/pages/AdminInsights.tsx"))).toBe(true);
   });
 
   it("AdminInsights에 AI 아티클 생성 UI가 포함되어 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/AdminInsights.tsx",
+      projectPath("client/src/pages/AdminInsights.tsx"),
       "utf-8"
     );
     
@@ -138,7 +141,7 @@ describe("AdminInsights 페이지 구조 검증", () => {
   it("AdminInsights에 아티클 목록 및 관리 기능이 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/AdminInsights.tsx",
+      projectPath("client/src/pages/AdminInsights.tsx"),
       "utf-8"
     );
     
@@ -154,7 +157,7 @@ describe("AdminInsights 페이지 구조 검증", () => {
   it("App.tsx에 /admin/insights 라우트가 등록되어 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/App.tsx",
+      projectPath("client/src/App.tsx"),
       "utf-8"
     );
     expect(content).toContain("/admin/insights");
@@ -206,7 +209,7 @@ describe("뉴스레터 캠페인 발송 파이프라인", () => {
   it("뉴스레터 HTML 생성 함수가 routers.ts에 정의되어 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/server/routers.ts",
+      projectPath("server/routers.ts"),
       "utf-8"
     );
     expect(content).toContain("function generateNewsletterHtml");
@@ -217,7 +220,7 @@ describe("뉴스레터 캠페인 발송 파이프라인", () => {
   it("뉴스레터 HTML 템플릿에 구독 해지 링크가 포함된다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/server/routers.ts",
+      projectPath("server/routers.ts"),
       "utf-8"
     );
     // generateNewsletterHtml 함수 내에 unsubscribe 링크 포함 확인
@@ -229,13 +232,13 @@ describe("뉴스레터 캠페인 발송 파이프라인", () => {
 describe("AdminNewsletter 페이지 구조 검증", () => {
   it("AdminNewsletter 페이지 파일이 존재한다", async () => {
     const fs = await import("fs");
-    expect(fs.existsSync("/home/ubuntu/gogamdo-wireframe/client/src/pages/AdminNewsletter.tsx")).toBe(true);
+    expect(fs.existsSync(projectPath("client/src/pages/AdminNewsletter.tsx"))).toBe(true);
   });
 
   it("AdminNewsletter에 캠페인 생성 및 발송 UI가 포함되어 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/AdminNewsletter.tsx",
+      projectPath("client/src/pages/AdminNewsletter.tsx"),
       "utf-8"
     );
     
@@ -255,7 +258,7 @@ describe("AdminNewsletter 페이지 구조 검증", () => {
   it("AdminNewsletter에 구독자 관리 기능이 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/AdminNewsletter.tsx",
+      projectPath("client/src/pages/AdminNewsletter.tsx"),
       "utf-8"
     );
     
@@ -266,7 +269,7 @@ describe("AdminNewsletter 페이지 구조 검증", () => {
   it("App.tsx에 /admin/newsletter 라우트가 등록되어 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/App.tsx",
+      projectPath("client/src/App.tsx"),
       "utf-8"
     );
     expect(content).toContain("/admin/newsletter");
@@ -283,7 +286,7 @@ describe("아티클 ↔ 뉴스레터 연동 검증", () => {
   it("뉴스레터 HTML 템플릿이 아티클 콘텐츠를 포함할 수 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/server/routers.ts",
+      projectPath("server/routers.ts"),
       "utf-8"
     );
     // generateNewsletterHtml이 articles 파라미터를 받아 HTML에 포함
@@ -297,7 +300,7 @@ describe("아티클 ↔ 뉴스레터 연동 검증", () => {
   it("인사이트 페이지에 구독 폼이 연동되어 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/Insights.tsx",
+      projectPath("client/src/pages/Insights.tsx"),
       "utf-8"
     );
     
@@ -309,7 +312,7 @@ describe("아티클 ↔ 뉴스레터 연동 검증", () => {
   it("인사이트 상세 페이지에 구독 CTA가 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/InsightDetail.tsx",
+      projectPath("client/src/pages/InsightDetail.tsx"),
       "utf-8"
     );
     
@@ -320,11 +323,11 @@ describe("아티클 ↔ 뉴스레터 연동 검증", () => {
   it("구독 소스가 insight로 기록된다", async () => {
     const fs = await import("fs");
     const insightContent = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/Insights.tsx",
+      projectPath("client/src/pages/Insights.tsx"),
       "utf-8"
     );
     const detailContent = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/client/src/pages/InsightDetail.tsx",
+      projectPath("client/src/pages/InsightDetail.tsx"),
       "utf-8"
     );
     
@@ -337,13 +340,13 @@ describe("아티클 ↔ 뉴스레터 연동 검증", () => {
 describe("이메일 발송 인프라 검증", () => {
   it("이메일 발송 헬퍼가 존재한다", async () => {
     const fs = await import("fs");
-    expect(fs.existsSync("/home/ubuntu/gogamdo-wireframe/server/email.ts")).toBe(true);
+    expect(fs.existsSync(projectPath("server/email.ts"))).toBe(true);
   });
 
   it("이메일 발송 헬퍼에 Resend API 연동이 포함되어 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/server/email.ts",
+      projectPath("server/email.ts"),
       "utf-8"
     );
     
@@ -354,7 +357,7 @@ describe("이메일 발송 인프라 검증", () => {
   it("notifyOwner 폴백이 구현되어 있다", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
-      "/home/ubuntu/gogamdo-wireframe/server/email.ts",
+      projectPath("server/email.ts"),
       "utf-8"
     );
     

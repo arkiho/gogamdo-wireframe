@@ -17,13 +17,16 @@ interface RelatedPage {
 }
 
 const ALL_PAGES: RelatedPage[] = [
-  { label: "AI 견적", href: "/estimator", description: "30초 만에 예상 비용을 무료로 확인하세요", aiService: "estimator" },
-  { label: "AI 상담", href: "/ai-chat", description: "24시간 AI 인테리어 상담사와 대화하세요", aiService: "chat" },
+  { label: "필요 평수 진단", href: "/office-space-calculator", description: "부동산 계약 전 권장 면적 범위를 익명으로 확인하세요" },
+  { label: "고객 사례", href: "/portfolio", description: "공개 승인된 오피스·관급공사 사례를 확인하세요" },
+  { label: "프로세스", href: "/how-we-work", description: "진단부터 준공·사후관리까지의 수행 방식을 확인하세요" },
+  { label: "AI 견적", href: "/estimator", description: "프로젝트 조건으로 예상 비용 범위를 확인하세요", aiService: "estimator" },
+  { label: "AI 상담", href: "/ai-chat", description: "인테리어 관련 기본 질문을 AI 상담사에게 물어보세요", aiService: "chat" },
   { label: "AI 스타일", href: "/ai-style", description: "맞춤 인테리어 스타일을 추천받으세요", aiService: "style" },
-  // { label: "프로젝트", href: "/portfolio", description: "35년간 2,800건 이상의 완료 프로젝트를 확인하세요" }, // 임시 숨김
+
   { label: "솔루션", href: "/solutions", description: "설계부터 시공까지 원스톱 솔루션" },
   { label: "FAQ", href: "/faq", description: "자주 묻는 질문과 답변을 확인하세요" },
-  { label: "무료 상담", href: "/contact", description: "전문 컨설턴트와 무료 상담을 시작하세요" },
+  { label: "프로젝트 상담", href: "/contact", description: "목적과 조건을 알려주시면 상담 범위를 안내합니다" },
   { label: "자료실", href: "/resources", description: "인테리어 가이드와 체크리스트를 다운로드하세요" },
 ];
 
@@ -39,18 +42,18 @@ const AI_HREF_SERVICE: Record<string, "estimator" | "chat" | "style" | "redesign
 const RELATED_MAP: Record<string, string[]> = {
   "/about": ["/solutions", "/contact", "/faq"],
   "/solutions": ["/estimator", "/contact", "/faq"],
-  // "/portfolio": ["/estimator", "/solutions", "/contact"], // 임시 숨김
+  "/portfolio": ["/office-space-calculator", "/how-we-work", "/contact"],
   "/estimator": ["/ai-chat", "/ai-style", "/contact"],
   "/insights": ["/resources", "/faq", "/ai-chat"],
   "/resources": ["/estimator", "/insights", "/faq"],
   "/ai-chat": ["/estimator", "/ai-style", "/faq"],
   "/ai-style": ["/ai-chat", "/estimator", "/solutions"],
   "/faq": ["/ai-chat", "/estimator", "/contact"],
-  "/contact": ["/estimator", "/ai-chat", "/faq"],
+  "/contact": ["/office-space-calculator", "/portfolio", "/how-we-work"],
 };
 
 // 비 AI 대체 페이지 풀
-const NON_AI_FALLBACKS = ["/solutions", "/contact", "/faq", "/resources"]; // /portfolio 임시 제거
+const NON_AI_FALLBACKS = ["/office-space-calculator", "/portfolio", "/how-we-work", "/contact", "/faq"];
 
 export default function RelatedPages() {
   const [location] = useLocation();
@@ -74,7 +77,7 @@ export default function RelatedPages() {
   };
 
   // 관련 페이지 후보 결정
-  let relatedHrefs = RELATED_MAP[location] || ["/estimator", "/ai-chat", "/contact"];
+  let relatedHrefs = RELATED_MAP[location] || ["/office-space-calculator", "/portfolio", "/how-we-work"];
 
   // 비활성화된 AI 서비스 페이지 제거
   relatedHrefs = relatedHrefs.filter(isHrefAvailable);
@@ -102,7 +105,7 @@ export default function RelatedPages() {
   return (
     <section className="py-12 lg:py-16 border-t border-border/50">
       <div className="container">
-        <p className="text-xs font-medium tracking-widest uppercase text-gold mb-6">
+        <p className="text-xs font-medium tracking-widest uppercase text-[#7A5A13] mb-6">
           Related Pages
         </p>
         <div className="grid sm:grid-cols-3 gap-4">

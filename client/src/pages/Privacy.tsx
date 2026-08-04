@@ -1,13 +1,10 @@
-import SEOHead from "@/components/SEOHead";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 import { Link } from "wouter";
 
 export default function Privacy() {
   return (
     <>
-      <SEOHead
-        title="개인정보처리방침 | 고감도 KOKAMDO"
-        description="(주)고감도의 개인정보처리방침입니다. 수집 항목, 목적, 보유기간 등을 안내합니다."
-      />
+      <SEOHead {...SEO_CONFIG.privacy} />
       <div className="min-h-screen bg-surface pt-32 pb-20">
         <div className="container max-w-3xl mx-auto px-6">
           <h1 className="text-3xl font-bold text-ink mb-2">개인정보처리방침</h1>

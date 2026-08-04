@@ -2,10 +2,9 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { ForbiddenError } from "@shared/_core/errors";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
-import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
-import { ENV } from "./env";
+import { signStaffSession, verifyStaffSession } from "./sessionSecurity";
 
 export type AuthenticatedUser = User;
 
@@ -22,10 +21,6 @@ class SDKServer {
     return new Map(Object.entries(parsed));
   }
 
-  private getSessionSecret() {
-    const secret = ENV.cookieSecret || "kokamdo-fallback-secret-key-change-me";
-    return new TextEncoder().encode(secret);
-  }
 
   async createSessionToken(
     userId: number,
@@ -34,16 +29,11 @@ class SDKServer {
     const issuedAt = Date.now();
     const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
     const expirationSeconds = Math.floor((issuedAt + expiresInMs) / 1000);
-    const secretKey = this.getSessionSecret();
-
-    return new SignJWT({
+    return signStaffSession({
       userId,
       name: options.name || "",
       email: options.email || "",
-    })
-      .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-      .setExpirationTime(expirationSeconds)
-      .sign(secretKey);
+    }, process.env.JWT_SECRET, expirationSeconds);
   }
 
   async verifySession(
@@ -52,30 +42,12 @@ class SDKServer {
     if (!cookieValue) return null;
 
     try {
-      const secretKey = this.getSessionSecret();
-      const { payload } = await jwtVerify(cookieValue, secretKey, {
-        algorithms: ["HS256"],
-      });
-
-      const { userId, name, email } = payload as Record<string, unknown>;
-
-      if (typeof userId !== "number" || !userId) {
-        // Backward compat: try openId-based sessions
-        const openId = (payload as any).openId;
-        if (typeof openId === "string" && openId) {
-          const user = await db.getUserByOpenId(openId);
-          if (user) {
-            return { userId: user.id, name: (name as string) || user.name || "", email: (email as string) || user.email || "" };
-          }
-        }
-        console.warn("[Auth] Session payload missing userId");
-        return null;
-      }
+      const payload = await verifyStaffSession(cookieValue);
 
       return {
-        userId: userId as number,
-        name: (name as string) || "",
-        email: (email as string) || "",
+        userId: payload.userId,
+        name: payload.name,
+        email: payload.email,
       };
     } catch {
       // Invalid or expired session token — expected for unauthenticated users
@@ -94,8 +66,8 @@ class SDKServer {
 
     const user = await db.getUserById(session.userId);
 
-    if (!user) {
-      throw ForbiddenError("User not found");
+    if (!user || !user.isActive) {
+      throw ForbiddenError("User not found or inactive");
     }
 
     return user;

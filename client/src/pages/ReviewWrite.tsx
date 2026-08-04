@@ -6,7 +6,7 @@
 import { trpc } from "@/lib/trpc";
 import { useParams } from "wouter";
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Star, Send, CheckCircle2, AlertCircle, Building2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -17,11 +17,21 @@ const HIGHLIGHT_OPTIONS = [
   "브랜드 반영", "사후 관리", "전문성", "창의성",
 ];
 
+const REVIEW_PROMPTS = [
+  "공사 전 가장 큰 문제는 무엇이었나요?",
+  "고감도를 선택한 이유는 무엇이었나요?",
+  "진행 과정에서 소통·일정·문제 대응은 어땠나요?",
+  "가장 만족한 설계·시공 결정은 무엇인가요?",
+  "완공 후 공간과 업무환경은 어떻게 달라졌나요?",
+  "다른 기업에 추천할 의향과 그 이유는 무엇인가요?",
+];
+
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
     >
@@ -294,10 +304,17 @@ export default function ReviewWrite() {
               <label className="block text-sm font-semibold text-ink mb-2">
                 리뷰 내용 <span className="text-red-400">*</span>
               </label>
+              <ol className="mb-4 space-y-2 border border-border/50 bg-paper-warm p-4 text-xs leading-relaxed text-muted-foreground">
+                {REVIEW_PROMPTS.map((prompt, index) => (
+                  <li key={prompt}>
+                    <strong className="mr-1 text-ink">{index + 1}.</strong> {prompt}
+                  </li>
+                ))}
+              </ol>
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="프로젝트 진행 과정, 결과물에 대한 만족도, 특별히 좋았던 점 등을 자유롭게 작성해주세요."
+                placeholder="위 질문을 참고해 실제 경험을 자유롭게 작성해 주세요. 공개하기 곤란한 내용은 제외하셔도 됩니다."
                 rows={6}
                 className="w-full px-4 py-3 border border-border bg-white text-ink placeholder:text-muted-foreground/50 focus:outline-none focus:border-gold/50 transition-colors text-sm resize-none"
               />

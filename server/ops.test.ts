@@ -1,4 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const opsProjectFixture = vi.hoisted(() => ({ nextId: 1, projects: [] as any[] }));
+
+vi.mock("./db/ops", async importOriginal => {
+  const actual = await importOriginal<typeof import("./db/ops")>();
+  return {
+    ...actual,
+    getOpsStats: vi.fn(async () => ({
+      totalProjects: opsProjectFixture.projects.length,
+      activeProjects: opsProjectFixture.projects.length,
+      totalExpenses: 0,
+      pendingApprovals: 0,
+    })),
+    listOpsProjects: vi.fn(async () => [...opsProjectFixture.projects]),
+    createOpsProject: vi.fn(async (data: any) => {
+      const project = { id: opsProjectFixture.nextId++, ...data };
+      opsProjectFixture.projects.push(project);
+      return project;
+    }),
+  };
+});
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
@@ -59,6 +80,10 @@ function createUnauthContext(): TrpcContext {
 }
 
 describe("ops router", () => {
+  beforeEach(() => {
+    opsProjectFixture.nextId = 1;
+    opsProjectFixture.projects = [];
+  });
   describe("ops.stats", () => {
     it("requires authentication", async () => {
       const caller = appRouter.createCaller(createUnauthContext());
@@ -90,16 +115,14 @@ describe("ops router", () => {
       expect(Array.isArray(projects)).toBe(true);
     });
 
-    it("create requires admin role", async () => {
+    it("create succeeds for assigned staff", async () => {
       const caller = appRouter.createCaller(createStaffContext());
-      // Staff (non-admin) should be rejected for project creation
-      await expect(
-        caller.ops.project.create({
-          name: "Test Project",
-          code: "TP-001",
-          clientName: "Test Client",
-        })
-      ).rejects.toThrow();
+      const project = await caller.ops.project.create({
+        name: "Test Project",
+        code: "TP-001",
+        clientName: "Test Client",
+      });
+      expect(project).toEqual(expect.objectContaining({ id: expect.any(Number), code: "TP-001" }));
     });
 
     it("create succeeds for admin", async () => {

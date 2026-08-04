@@ -6,7 +6,7 @@
 
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Target, Eye, Shield, Users, Award, BadgeCheck } from "lucide-react";
+import { ArrowUpRight, Target, Eye, Shield, Users, Award } from "lucide-react";
 import { ABOUT_TEAM_IMG } from "@/lib/images";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 
@@ -60,21 +60,14 @@ export default function About() {
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
               (주)고감도는 안향자·김기호 공동대표가 이끄는 사무공간 전문 인테리어 기업입니다.
-              1991년 창업 이래 35년간 대한민국 면적만큼의 공간을 설계하고 시공해 왔으며, 설계부터 시공까지 원스톱 솔루션을 제공하고 2,800건 이상의 프로젝트를 성공적으로 완수하였습니다.
+              1991년부터 사무공간을 설계하고 시공해 왔으며, 기업의 요구를 살피는 기획부터 설계와 시공까지 함께합니다.
             </p>
             <div className="flex flex-wrap gap-3 mt-6">
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold/10 border border-gold/20 text-sm font-medium text-gold">
                 <Award className="w-4 h-4" />
                 여성기업 인증
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink/5 border border-border/50 text-sm font-medium text-ink">
-                <BadgeCheck className="w-4 h-4" />
-                이노비즈 인증
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink/5 border border-border/50 text-sm font-medium text-ink">
-                <BadgeCheck className="w-4 h-4" />
-                윤리경영 인증
-              </span>
+
             </div>
           </FadeUp>
         </div>

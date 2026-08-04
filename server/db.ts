@@ -1,4 +1,4 @@
-import { eq, desc, count, and, lte, gte, or, isNull, isNotNull, ne, sql, inArray } from "drizzle-orm";
+import { eq, desc, count, and, lte, gte, gt, or, isNull, isNotNull, ne, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, inquiries, subscribers, estimates, leadDownloads, chatSessions, styleRecommendations, announcements, portfolioDrafts, draftImages, driveSyncLog, spaceProjects, sensors, sensorData, spaceAnalysis, crmClients, crmInteractions, crmDeals, crmActivities, popups, notifications, portfolioReviews, insightArticles, newsletterSubscribers, newsletterCampaigns, type InsertInquiry, type InsertSubscriber, type InsertEstimate, type InsertLeadDownload, type InsertChatSession, type InsertStyleRecommendation, type InsertAnnouncement, type InsertPortfolioDraft, type InsertDraftImage, type InsertDriveSyncLog, type InsertSpaceProject, type InsertSensor, type InsertSensorData, type InsertSpaceAnalysis, type InsertCrmClient, type InsertCrmInteraction, type InsertCrmDeal, type InsertCrmActivity, type InsertPopup, type InsertNotification, type InsertPortfolioReview, type InsertInsightArticle, type InsertNewsletterSubscriber, type InsertNewsletterCampaign, subscriberSegments, subscriberTags, type InsertSubscriberSegment, type InsertSubscriberTag, clientProjects, clientFloorPlans, workSurveys, companyWideSurveys, companySurveyResponses, aiReports, meetingBookings, type InsertClientProject, type InsertClientFloorPlan, type InsertWorkSurvey, type InsertCompanyWideSurvey, type InsertCompanySurveyResponse, type InsertAiReport, type InsertMeetingBooking, downloadLogs, type InsertDownloadLog, spaceZones, type InsertSpaceZone, occupancyEvents, type InsertOccupancyEvent, zoneOccupancyStats, type InsertZoneOccupancyStat, sensorApiKeys, type InsertSensorApiKey, clients, type InsertClient, aiRedesigns, type InsertAiRedesign, siteSettings, type InsertSiteSetting, activityLogs, type InsertActivityLog, staffApplications, type InsertStaffApplication, staffInvitations, type InsertStaffInvitation, opsCameras, type InsertOpsCamera, opsCameraEvents, type InsertOpsCameraEvent, attendanceRecords, type InsertAttendanceRecord, leaveRequests, type InsertLeaveRequest, fieldMeasurementSessions, type InsertFieldMeasurementSession, panoramaImages, type InsertPanoramaImage, fieldMeasurements, type InsertFieldMeasurement, measurementReports, type InsertMeasurementReport, clientNotifications, type InsertClientNotification, workspaceJourneys, type InsertWorkspaceJourney, type WorkspaceJourney } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -102,7 +102,7 @@ export async function getUserByEmail(email: string) {
 // 마이페이지 (E-13): 본인 프로필/비번/알림 필드 부분 업데이트
 export async function updateUserFields(
   id: number,
-  fields: Partial<{ name: string; phone: string; landline: string; avatarUrl: string; notifPrefs: unknown; passwordHash: string }>,
+  fields: Partial<{ name: string; phone: string; landline: string; avatarUrl: string | null; notifPrefs: unknown; passwordHash: string }>,
 ): Promise<void> {
   const db = await getDb();
   if (!db) return;
@@ -1222,6 +1222,17 @@ export async function getInsightArticleBySlug(slug: string) {
   return result[0] || null;
 }
 
+export async function getPublishedInsightArticleBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(insightArticles)
+    .where(and(eq(insightArticles.slug, slug), eq(insightArticles.status, "published")))
+    .limit(1);
+  return result[0] || null;
+}
+
 export async function getInsightArticleById(id: number) {
   const db = await getDb();
   if (!db) return null;
@@ -2129,6 +2140,25 @@ export async function getClientByVerifyToken(token: string) {
   if (!db) return null;
   const rows = await db.select().from(clients).where(eq(clients.emailVerifyToken, token)).limit(1);
   return rows[0] ?? null;
+}
+
+export async function activatePendingClientByVerifyToken(token: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(clients)
+    .set({
+      emailVerified: "yes",
+      emailVerifyToken: null,
+      emailVerifyExpires: null,
+      status: "active",
+    })
+    .where(and(
+      eq(clients.emailVerifyToken, token),
+      eq(clients.status, "pending"),
+      eq(clients.emailVerified, "no"),
+      gt(clients.emailVerifyExpires, new Date()),
+    ));
+  return (result[0] as any).affectedRows === 1;
 }
 
 export async function getClientByResetToken(token: string) {
@@ -3572,10 +3602,11 @@ export async function getUnreadClientNotificationCount(clientId: number) {
   return row?.count ?? 0;
 }
 
-export async function markClientNotificationRead(id: number) {
+export async function markClientNotificationRead(id: number, clientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(clientNotifications).set({ isRead: "yes" }).where(eq(clientNotifications.id, id));
+  await db.update(clientNotifications).set({ isRead: "yes" })
+    .where(and(eq(clientNotifications.id, id), eq(clientNotifications.clientId, clientId)));
 }
 
 export async function markAllClientNotificationsRead(clientId: number) {
@@ -3585,10 +3616,11 @@ export async function markAllClientNotificationsRead(clientId: number) {
     .where(and(eq(clientNotifications.clientId, clientId), eq(clientNotifications.isRead, "no")));
 }
 
-export async function deleteClientNotification(id: number) {
+export async function deleteClientNotification(id: number, clientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.delete(clientNotifications).where(eq(clientNotifications.id, id));
+  await db.delete(clientNotifications)
+    .where(and(eq(clientNotifications.id, id), eq(clientNotifications.clientId, clientId)));
 }
 
 // ===== Workspace Journey (고객 여정) =====

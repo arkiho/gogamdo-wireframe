@@ -28,7 +28,7 @@ import {
   Clock,
   TrendingUp,
 } from "lucide-react";
-import SEOHead from "@/components/SEOHead";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 import { analytics } from "@/lib/analytics";
 
 function FadeUp({
@@ -209,11 +209,7 @@ const TECH_HIGHLIGHTS = [
 export default function HowWeWork() {
   return (
     <>
-      <SEOHead
-        title="우리가 일하는 방식 | 고감도 프로세스"
-        description="고감도는 감이 아닌 데이터로 설계합니다. 2,800건 이상의 프로젝트 데이터, AI 도면 분석, 실시간 시공 관리 시스템으로 일반 인테리어 회사와는 다른 차원의 서비스를 제공합니다."
-        path="/how-we-work"
-      />
+      <SEOHead {...SEO_CONFIG.howWeWork} />
 
       {/* HowTo 구조화 데이터 (AEO) */}
       <script

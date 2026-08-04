@@ -15,7 +15,7 @@ import type { Connection } from "mysql2/promise";
 interface ColumnPatch { table: string; col: string; alter: string; }
 
 const COLUMN_PATCHES: ColumnPatch[] = [
-  {"table":"announcements","col":"message","alter":"ALTER TABLE `announcements` ADD COLUMN `message` text NOT NULL"},
+  {"table":"announcements","col":"message","alter":"ALTER TABLE `announcements` ADD COLUMN `message` text NULL"},
   {"table":"announcements","col":"linkUrl","alter":"ALTER TABLE `announcements` ADD COLUMN `linkUrl` varchar(500)"},
   {"table":"announcements","col":"linkText","alter":"ALTER TABLE `announcements` ADD COLUMN `linkText` varchar(100)"},
   {"table":"announcements","col":"bgColor","alter":"ALTER TABLE `announcements` ADD COLUMN `bgColor` varchar(20) DEFAULT '#111111'"},
@@ -43,6 +43,8 @@ const COLUMN_PATCHES: ColumnPatch[] = [
   {"table":"subscribers","col":"name","alter":"ALTER TABLE `subscribers` ADD COLUMN `name` varchar(100)"},
   {"table":"subscribers","col":"active","alter":"ALTER TABLE `subscribers` ADD COLUMN `active` enum('yes','no') NOT NULL DEFAULT 'yes'"},
 ];
+
+export const COLUMN_PATCH_MIGRATION_PAYLOAD = JSON.stringify(COLUMN_PATCHES);
 
 export async function ensureColumnPatches(conn: Connection): Promise<void> {
   const tables = [...new Set(COLUMN_PATCHES.map((p) => p.table))];
@@ -73,6 +75,6 @@ export async function ensureColumnPatches(conn: Connection): Promise<void> {
   }
   console.log(`[DB] Column patches applied (${added} added, ${COLUMN_PATCHES.length} total).`);
   if (failures.length) {
-    console.warn("[DB] Column patch failures:\n" + failures.join("\n"));
+    throw new Error("[DB] Column patch migration failures:\n" + failures.join("\n"));
   }
 }

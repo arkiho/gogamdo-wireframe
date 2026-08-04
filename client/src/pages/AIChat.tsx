@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { trpc } from "@/lib/trpc";
 import { trackEvent } from "@/lib/analytics";
-import SEOHead from "@/components/SEOHead";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 import {
   MessageSquare, Sparkles, Building2, Calculator,
   Palette, Clock, ArrowRight, X, CheckCircle2,
@@ -85,10 +85,7 @@ export default function AIChat() {
 
   return (
     <>
-      <SEOHead
-        title="AI 인테리어 상담 | 고감도"
-        description="AI 인테리어 상담 챗봇으로 사무실 인테리어에 대한 궁금증을 해결하세요. 비용, 공사 기간, 디자인 트렌드까지 24시간 상담 가능합니다."
-      />
+      <SEOHead {...SEO_CONFIG.aiChat} />
 
       {/* Hero Section */}
       <section className="pt-32 pb-12 lg:pt-40 lg:pb-16 bg-[#1A1A1A] text-white relative overflow-hidden">

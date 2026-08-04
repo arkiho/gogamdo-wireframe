@@ -6,6 +6,7 @@
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { appRouter } from "./routers";
+import { sendPasswordResetEmail } from "./email";
 import type { TrpcContext } from "./_core/context";
 
 // Mock db functions
@@ -39,6 +40,7 @@ vi.mock("./db", async (importOriginal) => {
     }),
     createClient: vi.fn().mockResolvedValue({ id: 3 }),
     updateClient: vi.fn().mockResolvedValue(undefined),
+    activatePendingClientByVerifyToken: vi.fn().mockImplementation(async (token: string) => token === "valid-verify-token"),
     getClientById: vi.fn().mockImplementation(async (id: number) => {
       if (id === 1) {
         return {
@@ -288,6 +290,20 @@ describe("A4: 비밀번호 재설정 플로우", () => {
       });
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
+    });
+
+    it("공격자 Origin/Referer를 비밀번호 재설정 링크에 사용하지 않아야 한다", async () => {
+      const ctx = createPublicContext();
+      (ctx.req as any).headers = {
+        origin: "https://attacker.example",
+        referer: "https://attacker.example/phish",
+        host: "attacker.example",
+      };
+      const caller = appRouter.createCaller(ctx);
+      await caller.clientAuth.requestPasswordReset({ email: "existing@test.com" });
+      expect(vi.mocked(sendPasswordResetEmail)).toHaveBeenLastCalledWith(
+        expect.objectContaining({ origin: "https://kokamdo.co.kr" }),
+      );
     });
 
     it("미등록 이메일로도 보안상 성공 응답을 반환해야 한다", async () => {

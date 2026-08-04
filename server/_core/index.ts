@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { parse as parseCookieHeader } from "cookie";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -7,11 +8,19 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { storagePut, STORAGE_DIR } from "../storage";
+import { storagePut, STORAGE_DIR, validateStorageRuntimeConfiguration } from "../storage";
 import sensorApiRouter from "../routers/sensorApi";
 import { generateInsightHandler } from "../routers/scheduledInsight";
 import sitemapRouter from "../routers/sitemap";
-import { startInsightScheduler } from "./insightScheduler";
+import { getSessionSecretBytes, verifyClientSession } from "./sessionSecurity";
+import { createUploadHandler } from "./uploadHandler";
+import { createStorageAccessMiddleware } from "./storageAccess";
+import { authorizeStorageRead } from "./storageAuthorization";
+import { databaseStorageAuthorization } from "./storageAuthorizationDatabase";
+import { createReadinessHandler, probeDatabase, probeLocalStorage } from "./readiness";
+import { createSchedulerAuthMiddleware } from "./schedulerAuth";
+import { sdk } from "./sdk";
+import { getClientById } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -32,267 +41,10 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-async function ensureTables() {
-  if (!process.env.DATABASE_URL) return;
-  try {
-    const { createConnection } = await import("mysql2/promise");
-    const conn = await createConnection(process.env.DATABASE_URL);
-    console.log("[DB] Ensuring tables exist...");
-
-    // Create tables if not exist (idempotent)
-    await conn.execute(`CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      openId VARCHAR(64) UNIQUE,
-      googleId VARCHAR(128) UNIQUE,
-      naverId VARCHAR(128) UNIQUE,
-      kakaoId VARCHAR(128) UNIQUE,
-      name TEXT,
-      email VARCHAR(320) UNIQUE,
-      passwordHash VARCHAR(256),
-      loginMethod VARCHAR(64),
-      role ENUM('user','admin','master') NOT NULL DEFAULT 'user',
-      department ENUM('design','construction','accounting','management','sales','none') DEFAULT 'none',
-      opsRole ENUM('pm','designer','site_manager','accountant','director','staff') DEFAULT 'staff',
-      phone VARCHAR(20),
-      isActive TINYINT NOT NULL DEFAULT 1,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      lastSignedIn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    // 기존 users 테이블에 소셜 로그인 컬럼이 없으면 추가 (배포된 DB 대응)
-    const addColumnIfMissing = async (table: string, column: string, ddl: string) => {
-      try {
-        const [rows]: any = await conn.execute(
-          `SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
-          [table, column]
-        );
-        if (rows?.[0]?.c === 0) {
-          await conn.execute(`ALTER TABLE \`${table}\` ADD COLUMN ${ddl}`);
-          console.log(`[DB] Added column ${table}.${column}`);
-        }
-      } catch (e: any) {
-        console.warn(`[DB] addColumn ${table}.${column} warning:`, e?.message || e);
-      }
-    };
-    await addColumnIfMissing("users", "naverId", "naverId VARCHAR(128) UNIQUE");
-    await addColumnIfMissing("users", "kakaoId", "kakaoId VARCHAR(128) UNIQUE");
-    // 직원 마이페이지 (E-13): 유선연락처·프로필사진·알림설정
-    await addColumnIfMissing("users", "landline", "landline VARCHAR(20) NULL");
-    await addColumnIfMissing("users", "avatarUrl", "avatarUrl TEXT NULL");
-    await addColumnIfMissing("users", "notifPrefs", "notifPrefs JSON NULL");
-    // 고객 마이페이지(E-13) + 소셜 로그인(F-16): clients_auth 확장
-    await addColumnIfMissing("clients_auth", "landline", "landline VARCHAR(20) NULL");
-    await addColumnIfMissing("clients_auth", "avatarUrl", "avatarUrl TEXT NULL");
-    await addColumnIfMissing("clients_auth", "notifPrefs", "notifPrefs JSON NULL");
-    await addColumnIfMissing("clients_auth", "googleId", "googleId VARCHAR(128) NULL");
-    await addColumnIfMissing("clients_auth", "naverId", "naverId VARCHAR(128) NULL");
-    await addColumnIfMissing("clients_auth", "kakaoId", "kakaoId VARCHAR(128) NULL");
-    await addColumnIfMissing("clients_auth", "loginMethod", "loginMethod VARCHAR(64) NULL");
-    // 4팀 조직 구조 (STAFF_UI): 대표자/경영지원/공사팀/설계팀
-    await addColumnIfMissing("users", "team", "team ENUM('executive','management','construction','design') NULL");
-    // 지출결의서 세무유형·계산결과·지급일정·공정태깅 (STAFF_UI 3)
-    await addColumnIfMissing("ops_expenses", "expenseType", "expenseType ENUM('tax_invoice','withholding','withholding_expense','daily_worker') NULL");
-    await addColumnIfMissing("ops_expenses", "taxDetail", "taxDetail JSON NULL");
-    await addColumnIfMissing("ops_expenses", "paymentSchedule", "paymentSchedule JSON NULL");
-    await addColumnIfMissing("ops_expenses", "scheduleItemId", "scheduleItemId INT NULL");
-    // 내부지출·반려사유 (STAFF_UI 3-1)
-    await addColumnIfMissing("ops_expenses", "isInternal", "isInternal TINYINT DEFAULT 0");
-    await addColumnIfMissing("ops_expenses", "rejectionReason", "rejectionReason TEXT NULL");
-    // 공정별 실행예산 (STAFF_UI 6)
-    await addColumnIfMissing("ops_schedule_items", "budgetAmount", "budgetAmount DECIMAL(15,0) NULL");
-    // 고객 수금 일정 (계약금·기성·잔금) — 결제·경비 현황 (C-7)
-    await addColumnIfMissing("ops_projects", "billingSchedule", "billingSchedule JSON NULL");
-    // 거래처 첨부(통장사본·사업자등록증) + 현장별 평가
-    await addColumnIfMissing("ops_vendors", "bankbookUrl", "bankbookUrl TEXT NULL");
-    await addColumnIfMissing("ops_vendors", "businessCertUrl", "businessCertUrl TEXT NULL");
-    await conn.execute(`CREATE TABLE IF NOT EXISTS ops_vendor_evaluations (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      vendorId INT NOT NULL, projectId INT NOT NULL, evaluatorId INT, evaluatorName VARCHAR(100),
-      quality INT NOT NULL, schedule INT NOT NULL, communication INT NOT NULL, price INT NOT NULL, reliability INT NOT NULL,
-      totalScore INT NOT NULL, comment TEXT,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_ve_vendor (vendorId), INDEX idx_ve_project (projectId)
-    )`);
-    // 유심 LTE 카메라 뷰어/회선 정보 (STAFF_UI 7)
-    await addColumnIfMissing("ops_cameras", "viewerUrl", "viewerUrl TEXT NULL");
-    await addColumnIfMissing("ops_cameras", "simInfo", "simInfo VARCHAR(200) NULL");
-    await addColumnIfMissing("ops_cameras", "notes", "notes TEXT NULL");
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS inquiries (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(100) NOT NULL, company VARCHAR(200), email VARCHAR(320) NOT NULL,
-      phone VARCHAR(20), type VARCHAR(50), area VARCHAR(50), message TEXT NOT NULL,
-      status ENUM('new','contacted','quoted','closed') NOT NULL DEFAULT 'new',
-      notes TEXT, isDeleted TINYINT NOT NULL DEFAULT 0, deletedAt TIMESTAMP NULL, deletedBy VARCHAR(100), deleteReason TEXT,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )`);
-    // 문의 유입경로 (AEO 귀속) — C-10
-    await addColumnIfMissing("inquiries", "referralSource", "referralSource VARCHAR(50) NULL");
-    // 인사이트 콘텐츠 큐 (발행 주제 캘린더) — D-11
-    await conn.execute(`CREATE TABLE IF NOT EXISTS insight_content_queue (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      scheduledDate VARCHAR(20) NOT NULL,
-      category ENUM('trend','cost_guide','case_study','tip','news') NOT NULL DEFAULT 'trend',
-      title VARCHAR(300) NOT NULL,
-      keywords JSON, sources TEXT,
-      status ENUM('planned','generating','published','skipped') NOT NULL DEFAULT 'planned',
-      generatedArticleId INT, createdBy INT,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_queue_date (scheduledDate), INDEX idx_queue_status (status)
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS subscribers (
-      id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(320) NOT NULL UNIQUE,
-      source VARCHAR(50) DEFAULT 'website', company VARCHAR(200),
-      isActive TINYINT NOT NULL DEFAULT 1, isDeleted TINYINT NOT NULL DEFAULT 0,
-      deletedAt TIMESTAMP NULL, deletedBy VARCHAR(100), deleteReason TEXT,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS estimates (
-      id INT AUTO_INCREMENT PRIMARY KEY, spaceType VARCHAR(50), area DECIMAL(10,2),
-      grade VARCHAR(50), estimatedCost DECIMAL(15,2), minCost DECIMAL(15,2), maxCost DECIMAL(15,2),
-      resultJson JSON, isDeleted TINYINT NOT NULL DEFAULT 0, deletedAt TIMESTAMP NULL, deletedBy VARCHAR(100), deleteReason TEXT,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS portfolio_drafts (
-      id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(300) NOT NULL, projectName VARCHAR(200),
-      category VARCHAR(100), client VARCHAR(200), area VARCHAR(50), location VARCHAR(200),
-      duration VARCHAR(100), description TEXT, aiDescription TEXT, challenge TEXT, solution TEXT, \`result\` TEXT,
-      tags JSON, sortOrder INT NOT NULL DEFAULT 0,
-      status ENUM('draft','review','published','archived') NOT NULL DEFAULT 'draft',
-      driveFolder VARCHAR(500), driveFolderId VARCHAR(200),
-      publishedAt TIMESTAMP NULL,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS draft_images (
-      id INT AUTO_INCREMENT PRIMARY KEY, portfolioId INT NOT NULL, originalUrl TEXT NOT NULL,
-      processedUrl TEXT, thumbnailUrl TEXT, beforeUrl TEXT,
-      isCover ENUM('yes','no') NOT NULL DEFAULT 'no', sortOrder INT NOT NULL DEFAULT 0,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS insight_articles (
-      id INT AUTO_INCREMENT PRIMARY KEY, slug VARCHAR(300) NOT NULL UNIQUE, title VARCHAR(500) NOT NULL,
-      summary TEXT, content LONGTEXT, category VARCHAR(100), tags JSON, coverImage TEXT,
-      author VARCHAR(200) DEFAULT '고감도', readingTime INT DEFAULT 5,
-      status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
-      publishedAt TIMESTAMP NULL, viewCount INT NOT NULL DEFAULT 0,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS newsletter_subscribers (
-      id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(320) NOT NULL UNIQUE,
-      name VARCHAR(200), company VARCHAR(200), source VARCHAR(50) DEFAULT 'website',
-      status ENUM('active','unsubscribed','bounced') NOT NULL DEFAULT 'active',
-      unsubscribeToken VARCHAR(100) UNIQUE,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS newsletter_campaigns (
-      id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(500) NOT NULL, subject VARCHAR(500) NOT NULL,
-      content LONGTEXT, segmentId INT, status ENUM('draft','sent','failed') NOT NULL DEFAULT 'draft',
-      sentAt TIMESTAMP NULL, recipientCount INT NOT NULL DEFAULT 0,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS site_settings (
-      id INT AUTO_INCREMENT PRIMARY KEY, \`key\` VARCHAR(200) NOT NULL UNIQUE, value JSON,
-      updatedBy INT, createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS announcements (
-      id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(300) NOT NULL, content TEXT,
-      type ENUM('info','warning','success','error') NOT NULL DEFAULT 'info',
-      isActive TINYINT NOT NULL DEFAULT 1, isDeleted TINYINT NOT NULL DEFAULT 0,
-      deletedAt TIMESTAMP NULL, deletedBy VARCHAR(100), deleteReason TEXT,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )`);
-
-    // 사후관리(Post-Occupancy) — schema.ts에는 정의되어 있으나 마이그레이션이 없어 여기서 보장
-    await conn.execute(`CREATE TABLE IF NOT EXISTS post_occupancy_surveys (
-      id INT AUTO_INCREMENT PRIMARY KEY, clientProjectId INT NOT NULL, opsProjectId INT, surveyInstanceId INT,
-      overallSatisfaction INT, designSatisfaction INT, constructionSatisfaction INT,
-      communicationSatisfaction INT, timelineSatisfaction INT,
-      issuesReported JSON, positiveComments TEXT, improvementSuggestions TEXT, wouldRecommend TINYINT,
-      status ENUM('pending','sent','completed','follow_up_needed') NOT NULL DEFAULT 'pending',
-      completedAt TIMESTAMP NULL,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_poc_project (clientProjectId)
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS maintenance_visits (
-      id INT AUTO_INCREMENT PRIMARY KEY, clientProjectId INT NOT NULL, opsProjectId INT,
-      visitType ENUM('fine_tuning','warranty','optimization','inspection') NOT NULL,
-      scheduledDate VARCHAR(20) NOT NULL, scheduledTime VARCHAR(10),
-      technicianId INT, technicianName VARCHAR(200),
-      description TEXT, workPerformed TEXT, issuesFound JSON, photoUrls JSON, clientSignature TEXT,
-      status ENUM('scheduled','confirmed','in_progress','completed','cancelled','rescheduled') NOT NULL DEFAULT 'scheduled',
-      completedAt TIMESTAMP NULL, clientFeedback TEXT,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_mv_project (clientProjectId), INDEX idx_mv_status (status)
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS insight_subscriptions (
-      id INT AUTO_INCREMENT PRIMARY KEY, clientProjectId INT NOT NULL, opsProjectId INT, clientUserId INT,
-      plan ENUM('basic','standard','premium') NOT NULL DEFAULT 'basic',
-      status ENUM('active','paused','cancelled','expired') NOT NULL DEFAULT 'active',
-      startDate VARCHAR(20) NOT NULL, endDate VARCHAR(20), nextReportDate VARCHAR(20),
-      monthlyFee DECIMAL(10,0), sensorProjectId INT, sensorsInstalled JSON,
-      lastReportId INT, totalReports INT DEFAULT 0,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_is_project (clientProjectId)
-    )`);
-
-    await conn.execute(`CREATE TABLE IF NOT EXISTS space_optimization_reports (
-      id INT AUTO_INCREMENT PRIMARY KEY, subscriptionId INT NOT NULL, clientProjectId INT NOT NULL,
-      reportPeriod VARCHAR(50) NOT NULL,
-      occupancyAnalysis JSON, environmentAnalysis JSON, trafficAnalysis JSON, optimizationSuggestions JSON,
-      summary TEXT, fullReport LONGTEXT,
-      status ENUM('generating','ready','sent','reviewed') NOT NULL DEFAULT 'generating',
-      sentAt TIMESTAMP NULL, viewedAt TIMESTAMP NULL,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_sor_subscription (subscriptionId)
-    )`);
-
-    // 거래처 계좌 등록부 (STAFF_UI 4)
-    await conn.execute(`CREATE TABLE IF NOT EXISTS ops_vendors (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(200) NOT NULL,
-      category VARCHAR(100),
-      businessNumber VARCHAR(20),
-      bankName VARCHAR(100),
-      accountHolder VARCHAR(100),
-      accountNumber VARCHAR(50),
-      contactName VARCHAR(100),
-      contactPhone VARCHAR(30),
-      notes TEXT,
-      isActive TINYINT NOT NULL DEFAULT 1,
-      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_vendor_name (name)
-    )`);
-
-    // 확장 테이블(CRM/OpsX/설문/KPI 등 103개) — schema.ts엔 있으나 그동안 미생성되던 것들
-    const { ensureExtendedTables } = await import("./extendedTables");
-    await ensureExtendedTables(conn);
-
-    // 기존 테이블 컬럼 드리프트 보정 (announcements 등 옛 DDL과 schema.ts 불일치)
-    const { ensureColumnPatches } = await import("./columnPatches");
-    await ensureColumnPatches(conn);
-
-    await conn.end();
-    console.log("[DB] Tables ensured successfully.");
-  } catch (err: any) {
-    console.warn("[DB] Table creation warning:", err?.message || "unknown error");
-  }
-}
-
 async function startServer() {
+  getSessionSecretBytes(process.env.JWT_SECRET);
+  validateStorageRuntimeConfiguration();
+
   const app = express();
   const server = createServer(app);
 
@@ -306,41 +58,47 @@ async function startServer() {
     next();
   });
 
+  app.get("/healthz", (_req, res) => {
+    res.status(200).json({ status: "alive" });
+  });
+
+  app.get("/readyz", createReadinessHandler({
+    database: () => probeDatabase(process.env.DATABASE_URL),
+    storage: () => probeLocalStorage(STORAGE_DIR),
+    timeoutMs: 3_000,
+  }));
+
+  const authenticateApplicationRequest = async (req: express.Request) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      return { kind: "staff" as const, id: user.id };
+    } catch {
+      const cookies = parseCookieHeader(req.headers.cookie || "");
+      const token = cookies.client_token;
+      if (!token) throw new Error("Authentication required");
+      const claims = await verifyClientSession(token);
+      const client = await getClientById(claims.clientId);
+      if (!client || client.status !== "active") {
+        throw new Error("Active client session required");
+      }
+      return { kind: "client" as const, id: client.id };
+    }
+  };
+
+  const uploadHandler = createUploadHandler({
+    authenticate: authenticateApplicationRequest,
+    put: storagePut,
+  });
+
+  app.post("/api/upload", express.json({ limit: "14mb" }), uploadHandler);
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
-  // File upload endpoint for portfolio images
-  app.post("/api/upload", async (req, res) => {
-    try {
-      const contentType = req.headers["content-type"] || "";
-      if (!contentType.startsWith("multipart/form-data") && !contentType.startsWith("application/octet-stream")) {
-        // Handle base64 JSON upload
-        const { data, filename, mimeType } = req.body;
-        if (!data || !filename) {
-          return res.status(400).json({ error: "Missing data or filename" });
-        }
-        const buffer = Buffer.from(data, "base64");
-        const key = `portfolio/${Date.now()}-${filename}`;
-        const result = await storagePut(key, buffer, mimeType || "image/jpeg");
-        return res.json({ url: result.url, key: result.key });
-      }
-      // For multipart, collect raw body
-      const chunks: Buffer[] = [];
-      req.on("data", (chunk: Buffer) => chunks.push(chunk));
-      req.on("end", async () => {
-        const body = Buffer.concat(chunks);
-        const key = `portfolio/${Date.now()}-upload.jpg`;
-        const result = await storagePut(key, body, "image/jpeg");
-        res.json({ url: result.url, key: result.key });
-      });
-    } catch (err: any) {
-      console.error("Upload error:", err);
-      res.status(500).json({ error: err.message || "Upload failed" });
-    }
-  });
+
   // Email verification endpoint (GET for link clicks)
   app.get("/api/verify-email", async (req, res) => {
     const token = req.query.token as string;
@@ -350,20 +108,13 @@ async function startServer() {
         <p>유효한 인증 링크를 사용해주세요.</p></body></html>`);
     }
     try {
-      const { getClientByVerifyToken, updateClient } = await import("../db");
-      const client = await getClientByVerifyToken(token);
-      if (!client || !client.emailVerifyExpires || client.emailVerifyExpires < new Date()) {
+      const { activatePendingClientByVerificationToken } = await import("./clientVerification");
+      if (!await activatePendingClientByVerificationToken(token)) {
         return res.status(400).send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px">
           <h2>❌ 유효하지 않거나 만료된 인증 토큰입니다</h2>
           <p>회원가입 페이지에서 인증 메일을 재발송해주세요.</p>
           <a href="/client/login" style="color:#B8860B">로그인 페이지로 이동</a></body></html>`);
       }
-      await updateClient(client.id, {
-        emailVerified: "yes",
-        emailVerifyToken: null,
-        emailVerifyExpires: null,
-        status: "active",
-      });
       return res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px">
         <h2>✅ 이메일 인증이 완료되었습니다!</h2>
         <p>이제 로그인하실 수 있습니다.</p>
@@ -390,15 +141,22 @@ async function startServer() {
 
   // Dynamic sitemap.xml and robots.txt
   // 로컬 디스크(Railway 볼륨)에 저장된 업로드 이미지 정적 서빙
-  app.use("/uploads", express.static(STORAGE_DIR, {
-    maxAge: "7d",
+  app.use("/uploads", createStorageAccessMiddleware({
+    authenticate: authenticateApplicationRequest,
+    authorize: (key, subject) => authorizeStorageRead(key, subject, databaseStorageAuthorization),
+  }), express.static(STORAGE_DIR, {
+    maxAge: 0,
     fallthrough: true,
   }));
 
   app.use(sitemapRouter);
 
   // Scheduled cron callbacks (must be before tRPC middleware)
-  app.post("/api/scheduled/generateInsight", generateInsightHandler);
+  app.post(
+    "/api/scheduled/generateInsight",
+    createSchedulerAuthMiddleware(() => process.env.SCHEDULER_SECRET),
+    generateInsightHandler,
+  );
 
   // Sensor hardware API (REST, API-key auth)
   app.use("/api/sensor", sensorApiRouter);
@@ -427,11 +185,10 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    // Run table creation in background after server is up
-    ensureTables().catch((err) => console.warn("[DB] Background migration failed:", err));
-    // 인사이트 자동 발행 스케줄러 (프로덕션에서만, 화·금 09:00 KST)
-    startInsightScheduler();
   });
 }
 
-startServer().catch(console.error);
+startServer().catch(error => {
+  console.error("[Startup] Fatal error:", error);
+  process.exitCode = 1;
+});

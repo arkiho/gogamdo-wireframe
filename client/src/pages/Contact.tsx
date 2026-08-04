@@ -4,20 +4,29 @@
  * Sections: Hero → Form + Info → FAQ
  */
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Phone, Mail, MapPin, Clock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { analytics } from "@/lib/analytics";
 import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
+import {
+  MAX_INQUIRY_FREEFORM_LENGTH,
+  MAX_INQUIRY_QUALIFICATION_FIELD_LENGTH,
+} from "@shared/inquiryLimits";
+import {
+  parseSpaceCalculatorSearch,
+  submitQualifiedInquiryMessage,
+} from "@/lib/leadQualification";
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 30 }}
+      whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
@@ -30,11 +39,11 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
 const FAQS = [
   {
     q: "상담부터 시공 완료까지 얼마나 걸리나요?",
-    a: "프로젝트 규모에 따라 다르지만, 일반적으로 100평 기준 설계 2~3주, 시공 4~6주 정도 소요됩니다. 긴급 프로젝트의 경우 일정 단축도 가능합니다.",
+    a: "설계와 시공 기간은 면적, 공사 범위, 건물 조건과 의사결정 일정에 따라 달라집니다. 문의 내용을 확인한 뒤 단계별 예상 일정을 안내합니다.",
   },
   {
-    q: "견적은 무료인가요?",
-    a: "네, 초기 상담과 개략 견적은 무료입니다. 현장 방문 후 상세 견적을 제공하며, 이 과정에서 별도 비용은 발생하지 않습니다.",
+    q: "상담과 진단의 범위는 어떻게 정해지나요?",
+    a: "필요 평수 기본 진단은 연락처 없이 확인할 수 있습니다. 상세 진단, 현장 방문, 설계와 견적의 범위는 프로젝트 조건을 확인한 뒤 별도로 안내합니다.",
   },
   {
     q: "시공 중 업무가 가능한가요?",
@@ -42,11 +51,14 @@ const FAQS = [
   },
   {
     q: "하자 보수는 어떻게 되나요?",
-    a: "시공 완료 후 1년간 무상 하자 보수를 보장합니다. 긴급 하자의 경우 24시간 내 대응하며, 정기 점검 서비스도 제공합니다.",
+    a: "하자 보수의 대상과 기간, 대응 절차는 공사 범위와 계약 조건에 따라 정합니다. 계약 전에 해당 기준을 문서로 확인할 수 있도록 안내합니다.",
   },
 ];
 
 export default function Contact() {
+  const calculatorContext = parseSpaceCalculatorSearch(
+    typeof window === "undefined" ? "" : window.location.search,
+  );
   const [submitted, setSubmitted] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
@@ -55,17 +67,35 @@ export default function Contact() {
     company: "",
     email: "",
     phone: "",
-    type: "",
-    area: "",
+    type: calculatorContext.source ? "office" : "",
+    area: calculatorContext.recommendedPyeong
+      ? `${calculatorContext.recommendedPyeong}평 (무료 필요면적 진단)`
+      : "",
+    budget: "",
+    purpose: calculatorContext.source ? "space-review" : "",
+    role: "",
+    location: "",
+    targetDate: "",
+    decisionStage: "",
+    leaseStatus: "",
     message: "",
-    referralSource: "",
+    referralSource: calculatorContext.source ? "space_calculator" : "",
   });
+
+  useEffect(() => {
+    analytics.qualifiedContactView(calculatorContext.source || "direct");
+  }, [calculatorContext.source]);
 
   const createInquiry = trpc.inquiry.create.useMutation({
     onSuccess: () => {
       analytics.contactSubmit(formData.type || "general");
+      analytics.qualifiedContactSubmit(
+        calculatorContext.source || "direct",
+        formData.purpose || "unspecified",
+        formData.decisionStage || "unspecified",
+      );
       setSubmitted(true);
-      toast.success("문의가 접수되었습니다. 24시간 내 연락드리겠습니다.");
+      toast.success("문의가 접수되었습니다. 담당자가 내용을 확인하겠습니다.");
     },
     onError: (err) => {
       toast.error("문의 접수에 실패했습니다. 다시 시도해 주세요.");
@@ -75,16 +105,37 @@ export default function Contact() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createInquiry.mutate({
+    const inquiryMessage = submitQualifiedInquiryMessage({
+      purpose: formData.purpose,
+      role: formData.role,
+      location: formData.location,
+      targetDate: formData.targetDate,
+      budget: formData.budget,
+      decisionStage: formData.decisionStage,
+      leaseStatus: formData.leaseStatus,
+      employeeCount: calculatorContext.employeeCount,
+      recommendedPyeong: calculatorContext.recommendedPyeong,
+      message: formData.message,
+    }, (qualifiedMessage) => createInquiry.mutate({
       name: formData.name,
       company: formData.company || undefined,
       email: formData.email,
       phone: formData.phone || undefined,
-      type: formData.type || undefined,
+      type:
+        formData.type ||
+        (formData.purpose === "public-project"
+          ? "public"
+          : formData.purpose === "other"
+            ? "other"
+            : "office"),
+      budget: formData.budget || undefined,
       area: formData.area || undefined,
-      message: formData.message,
+      message: qualifiedMessage,
       referralSource: formData.referralSource || undefined,
-    });
+    }));
+    if (!inquiryMessage.ok) {
+      toast.error(inquiryMessage.error);
+    }
   };
 
   const updateField = (field: string, value: string) => {
@@ -106,8 +157,8 @@ export default function Contact() {
               <br />이야기해 주세요
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl">
-              무료 상담을 통해 귀사에 최적화된 공간 솔루션을 제안드립니다.
-              평균 24시간 내 회신합니다.
+              프로젝트 목적과 현재 단계, 일정과 공간 조건을 알려주시면
+              담당자가 내용을 확인한 뒤 상담 범위를 안내합니다.
             </p>
           </FadeUp>
         </div>
@@ -144,15 +195,15 @@ export default function Contact() {
                       <div className="flex items-start gap-3">
                         <span className="w-6 h-6 rounded-full bg-gold/20 text-gold flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
                         <div>
-                          <p className="text-sm font-medium text-ink">24시간 내 연락</p>
-                          <p className="text-xs text-muted-foreground">담당 컨설턴트가 전화 또는 이메일로 연락드립니다.</p>
+                          <p className="text-sm font-medium text-ink">담당자 검토</p>
+                          <p className="text-xs text-muted-foreground">프로젝트 조건을 확인한 뒤 전화 또는 이메일로 연락드립니다.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="w-6 h-6 rounded-full bg-gold/20 text-gold flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
                         <div>
-                          <p className="text-sm font-medium text-ink">무료 현장 상담</p>
-                          <p className="text-xs text-muted-foreground">현장 방문 후 맞춤 설계안과 상세 견적을 제공합니다.</p>
+                          <p className="text-sm font-medium text-ink">상담 범위 협의</p>
+                          <p className="text-xs text-muted-foreground">현장 방문, 상세 진단과 제안 범위를 프로젝트에 맞게 협의합니다.</p>
                         </div>
                       </div>
                     </div>
@@ -173,7 +224,23 @@ export default function Contact() {
                       <button
                         onClick={() => {
                           setSubmitted(false);
-                          setFormData({ name: "", company: "", email: "", phone: "", type: "", area: "", message: "", referralSource: "" });
+                          setFormData({
+                            name: "",
+                            company: "",
+                            email: "",
+                            phone: "",
+                            type: "",
+                            area: "",
+                            budget: "",
+                            purpose: "",
+                            role: "",
+                            location: "",
+                            targetDate: "",
+                            decisionStage: "",
+                            leaseStatus: "",
+                            message: "",
+                            referralSource: "",
+                          });
                         }}
                         className="px-6 py-3 bg-ink text-white text-sm font-medium hover:bg-ink/90 transition-colors"
                       >
@@ -185,10 +252,11 @@ export default function Contact() {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
+                        <label htmlFor="contact-name" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
                           이름 *
                         </label>
                         <input
+                          id="contact-name"
                           type="text"
                           required
                           value={formData.name}
@@ -198,11 +266,13 @@ export default function Contact() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
-                          회사명
+                        <label htmlFor="contact-company" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
+                          회사명 *
                         </label>
                         <input
+                          id="contact-company"
                           type="text"
+                          required
                           value={formData.company}
                           onChange={(e) => updateField("company", e.target.value)}
                           className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors"
@@ -213,10 +283,11 @@ export default function Contact() {
 
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
+                        <label htmlFor="contact-email" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
                           이메일 *
                         </label>
                         <input
+                          id="contact-email"
                           type="email"
                           required
                           value={formData.email}
@@ -226,10 +297,11 @@ export default function Contact() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
+                        <label htmlFor="contact-phone" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
                           연락처
                         </label>
                         <input
+                          id="contact-phone"
                           type="tel"
                           value={formData.phone}
                           onChange={(e) => updateField("phone", e.target.value)}
@@ -239,59 +311,153 @@ export default function Contact() {
                       </div>
                     </div>
 
+                    {calculatorContext.recommendedPyeong && (
+                      <div className="border border-gold/30 bg-gold/5 p-4 text-sm text-ink">
+                        무료 필요면적 진단 결과 <strong>{calculatorContext.recommendedPyeong}평</strong>과
+                        입력 인원 <strong>{calculatorContext.employeeCount ?? "-"}명</strong>을 함께 전달합니다.
+                      </div>
+                    )}
+
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="contact-purpose" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
+                          프로젝트 목적 *
+                        </label>
+                        <select
+                          id="contact-purpose"
+                          required
+                          value={formData.purpose}
+                          onChange={(e) => updateField("purpose", e.target.value)}
+                          className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none"
+                        >
+                          <option value="">선택해 주세요</option>
+                          <option value="space-review">부동산 계약 전 면적 검토</option>
+                          <option value="office-relocation">사무실 이전</option>
+                          <option value="office-renewal">기존 사무실 리뉴얼</option>
+                          <option value="public-project">학교·공공기관 관급공사</option>
+                          <option value="other">기타</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="contact-role" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
+                          담당자 역할
+                        </label>
+                        <select
+                          id="contact-role"
+                          value={formData.role}
+                          onChange={(e) => updateField("role", e.target.value)}
+                          className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none"
+                        >
+                          <option value="">선택해 주세요</option>
+                          <option value="decision-maker">의사결정권자</option>
+                          <option value="project-owner">프로젝트 실무 책임자</option>
+                          <option value="researcher">정보 수집·비교 담당자</option>
+                          <option value="broker">부동산·외부 파트너</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="contact-location" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">희망 지역</label>
+                        <input
+                          id="contact-location"
+                          type="text"
+                          value={formData.location}
+                          maxLength={MAX_INQUIRY_QUALIFICATION_FIELD_LENGTH}
+                          onChange={(e) => updateField("location", e.target.value)}
+                          className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors"
+                          placeholder="예: 서울 성동구"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="contact-target-date" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">희망 착수·입주 시기</label>
+                        <input
+                          id="contact-target-date"
+                          type="month"
+                          value={formData.targetDate}
+                          onChange={(e) => updateField("targetDate", e.target.value)}
+                          className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="contact-budget" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">예산 범위</label>
+                        <select
+                          id="contact-budget"
+                          value={formData.budget}
+                          onChange={(e) => updateField("budget", e.target.value)}
+                          className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none"
+                        >
+                          <option value="">선택해 주세요</option>
+                          <option value="under-100m">1억원 미만</option>
+                          <option value="100m-200m">1억~2억원</option>
+                          <option value="200m-500m">2억~5억원</option>
+                          <option value="over-500m">5억원 이상</option>
+                          <option value="undecided">미정</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="contact-lease-status" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">부동산 계약 상태</label>
+                        <select
+                          id="contact-lease-status"
+                          value={formData.leaseStatus}
+                          onChange={(e) => updateField("leaseStatus", e.target.value)}
+                          className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none"
+                        >
+                          <option value="">선택해 주세요</option>
+                          <option value="not-signed">계약 전</option>
+                          <option value="negotiating">계약 협의 중</option>
+                          <option value="signed">계약 완료</option>
+                          <option value="existing">기존 공간 리뉴얼</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <div>
-                      <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
-                        공간 유형
-                      </label>
+                      <label htmlFor="contact-decision-stage" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">의사결정 단계</label>
                       <select
-                        value={formData.type}
-                        onChange={(e) => updateField("type", e.target.value)}
+                        id="contact-decision-stage"
+                        value={formData.decisionStage}
+                        onChange={(e) => updateField("decisionStage", e.target.value)}
                         className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none"
                       >
                         <option value="">선택해 주세요</option>
-                        <option value="office">사무실</option>
-                        <option value="showroom">쇼룸/전시공간</option>
-                        <option value="commercial">상업공간</option>
-                        <option value="other">기타</option>
+                        <option value="reviewing-buildings">후보 건물 검토 중</option>
+                        <option value="planning-budget">예산·일정 기획 중</option>
+                        <option value="selecting-vendor">업체 비교·선정 중</option>
+                        <option value="ready-to-start">즉시 추진 가능</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
-                        예상 면적
-                      </label>
-                      <select
-                        value={formData.area}
-                        onChange={(e) => updateField("area", e.target.value)}
-                        className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors appearance-none"
-                      >
-                        <option value="">선택해 주세요</option>
-                        <option value="small">30㎡ 이하 (10평 이하)</option>
-                        <option value="medium">30~100㎡ (10~30평)</option>
-                        <option value="large">100~300㎡ (30~100평)</option>
-                        <option value="xlarge">300㎡ 이상 (100평 이상)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
+                      <label htmlFor="contact-message" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
                         문의 내용 *
                       </label>
                       <textarea
+                        id="contact-message"
                         required
                         rows={5}
+                        maxLength={MAX_INQUIRY_FREEFORM_LENGTH}
+                        aria-describedby="inquiry-message-limit"
                         value={formData.message}
                         onChange={(e) => updateField("message", e.target.value)}
                         className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors resize-none"
                         placeholder="프로젝트에 대해 자유롭게 작성해 주세요. 예산, 일정, 특별 요구사항 등을 포함해 주시면 더 정확한 상담이 가능합니다."
                       />
+                      <p id="inquiry-message-limit" className="mt-1 text-right text-xs text-muted-foreground">
+                        {MAX_INQUIRY_FREEFORM_LENGTH - formData.message.length}자 남음
+                      </p>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
+                      <label htmlFor="contact-referral-source" className="block text-xs font-medium text-ink/60 uppercase tracking-wider mb-2">
                         어떻게 알게 되셨나요?
                       </label>
                       <select
+                        id="contact-referral-source"
                         value={formData.referralSource}
                         onChange={(e) => updateField("referralSource", e.target.value)}
                         className="w-full px-4 py-3 border border-border bg-transparent text-ink text-sm focus:outline-none focus:border-gold transition-colors"
@@ -351,7 +517,7 @@ export default function Contact() {
                         <Mail className="w-4 h-4 text-gold mt-1 flex-shrink-0" />
                         <div>
                           <p className="text-sm font-medium text-ink"><a href="mailto:contact@kokamdo.co.kr">contact@kokamdo.co.kr</a></p>
-                          <p className="text-xs text-muted-foreground">24시간 내 회신</p>
+                          <p className="text-xs text-muted-foreground">영업시간 내 문의 확인</p>
                         </div>
                       </li>
                       <li className="flex items-start gap-3">
@@ -409,6 +575,9 @@ export default function Contact() {
               <FadeUp key={i} delay={i * 0.05}>
                 <div className="border-b border-border/50">
                   <button
+                    type="button"
+                    aria-expanded={expandedFaq === i}
+                    aria-controls={`contact-faq-panel-${i}`}
                     onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
                     className="w-full py-5 flex items-center justify-between text-left group"
                   >
@@ -425,6 +594,7 @@ export default function Contact() {
                   </button>
                   {expandedFaq === i && (
                     <motion.div
+                      id={`contact-faq-panel-${i}`}
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       transition={{ duration: 0.3 }}

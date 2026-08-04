@@ -10,7 +10,7 @@
  */
 import type { Connection } from "mysql2/promise";
 
-const EXTENDED_TABLE_DDL: string[] = [
+export const EXTENDED_TABLE_DDL: string[] = [
   "CREATE TABLE IF NOT EXISTS `activity_logs` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`userName` varchar(200),\n\t`action` varchar(100) NOT NULL,\n\t`target` varchar(200),\n\t`details` text,\n\t`ipAddress` varchar(50),\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `activity_logs_id` PRIMARY KEY(`id`)\n)",
   "CREATE TABLE IF NOT EXISTS `ai_redesigns` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`originalImageUrl` text NOT NULL,\n\t`prompt` text NOT NULL,\n\t`resultImageUrl` text,\n\t`status` enum('pending','processing','completed','failed') NOT NULL DEFAULT 'pending',\n\t`errorMessage` text,\n\t`customerName` varchar(100),\n\t`customerEmail` varchar(320),\n\t`customerPhone` varchar(30),\n\t`spaceType` varchar(50),\n\t`userIp` varchar(45),\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `ai_redesigns_id` PRIMARY KEY(`id`)\n)",
   "CREATE TABLE IF NOT EXISTS `ai_reports` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`projectId` int NOT NULL,\n\t`type` enum('analysis','proposal') NOT NULL,\n\t`title` varchar(300) NOT NULL,\n\t`content` longtext NOT NULL,\n\t`summary` text,\n\t`emailSentAt` timestamp,\n\t`emailSentTo` varchar(320),\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `ai_reports_id` PRIMARY KEY(`id`)\n)",
@@ -116,6 +116,11 @@ const EXTENDED_TABLE_DDL: string[] = [
   "CREATE TABLE IF NOT EXISTS `zone_occupancy_stats` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`projectId` int NOT NULL,\n\t`zoneId` int NOT NULL,\n\t`bucketHour` timestamp NOT NULL,\n\t`avgOccupancy` int DEFAULT 0,\n\t`maxOccupancy` int DEFAULT 0,\n\t`totalMinutesOccupied` int DEFAULT 0,\n\t`enterCount` int DEFAULT 0,\n\t`exitCount` int DEFAULT 0,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `zone_occupancy_stats_id` PRIMARY KEY(`id`)\n)",
 ];
 
+export const EXTENDED_TABLE_NAMES = EXTENDED_TABLE_DDL.map(
+  ddl => ddl.match(/IF NOT EXISTS `([^`]+)`/)?.[1] ?? "",
+).filter(Boolean);
+export const EXTENDED_TABLE_MIGRATION_PAYLOAD = JSON.stringify(EXTENDED_TABLE_DDL);
+
 export async function ensureExtendedTables(conn: Connection): Promise<void> {
   let created = 0;
   const failures: string[] = [];
@@ -130,6 +135,6 @@ export async function ensureExtendedTables(conn: Connection): Promise<void> {
   }
   console.log(`[DB] Extended tables ensured (${created}/${EXTENDED_TABLE_DDL.length}).`);
   if (failures.length) {
-    console.warn("[DB] Extended table failures:\n" + failures.join("\n"));
+    throw new Error("[DB] Extended table migration failures:\n" + failures.join("\n"));
   }
 }

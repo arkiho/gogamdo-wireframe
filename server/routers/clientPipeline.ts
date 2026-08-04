@@ -700,28 +700,6 @@ ${survey ? JSON.stringify(survey, null, 2) : "서베이 미완료"}`
       return { success: true };
     }),
 
-  // ===== 고객 알림 API =====
-  listNotifications: protectedProcedure
-    .input(z.object({ clientId: z.number() }))
-    .query(async ({ input }) => listClientNotifications(input.clientId)),
-
-  getUnreadCount: protectedProcedure
-    .input(z.object({ clientId: z.number() }))
-    .query(async ({ input }) => getUnreadClientNotificationCount(input.clientId)),
-
-  markNotificationRead: protectedProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      await markClientNotificationRead(input.id);
-      return { success: true };
-    }),
-
-  markAllNotificationsRead: protectedProcedure
-    .input(z.object({ clientId: z.number() }))
-    .mutation(async ({ input }) => {
-      await markAllClientNotificationsRead(input.clientId);
-      return { success: true };
-    }),
 
   adminUpdateMeetingWithNotification: protectedProcedure
     .input(z.object({

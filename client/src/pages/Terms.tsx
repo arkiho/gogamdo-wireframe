@@ -1,13 +1,10 @@
-import SEOHead from "@/components/SEOHead";
+import SEOHead, { SEO_CONFIG } from "@/components/SEOHead";
 import { Link } from "wouter";
 
 export default function Terms() {
   return (
     <>
-      <SEOHead
-        title="이용약관 | 고감도 KOKAMDO"
-        description="(주)고감도 홈페이지 이용약관입니다."
-      />
+      <SEOHead {...SEO_CONFIG.terms} />
       <div className="min-h-screen bg-surface pt-32 pb-20">
         <div className="container max-w-3xl mx-auto px-6">
           <h1 className="text-3xl font-bold text-ink mb-2">이용약관</h1>
